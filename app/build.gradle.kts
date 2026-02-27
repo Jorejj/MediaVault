@@ -41,4 +41,15 @@ dependencies {
     testImplementation(libs.junit)
     androidTestImplementation(libs.ext.junit)
     androidTestImplementation(libs.espresso.core)
+
+    // MPAndroidChart (Since this isn't in your TOML yet, use the double-quote syntax)
+    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+
+    // Glide for loading images (used in the activity list)
+    implementation ("com.github.bumptech.glide:glide:4.16.0")
+    annotationProcessor ("com.github.bumptech.glide:compiler:4.16.0")
+
+    // Navigation
+    implementation("androidx.navigation:navigation-fragment-ktx:2.9.7")
+    implementation("androidx.navigation:navigation-ui-ktx:2.9.7")
 }

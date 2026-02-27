@@ -1,3 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">MediaVault</string>
+    <string name="mediavault">MediaVault</string>
+    <string name="your_stats">Your Stats</string>
+    <string name="overview">OVERVIEW</string>
+    <string name="completed_books_value">850</string>
+    <string name="completed_movies_value">3,450</string>
+    <string name="completed_books">Completed Books</string>
+    <string name="completed_movies">Completed Movies</string>
+    <string name="completed_anime_value">850</string>
+    <string name="completed_series_value">3,450</string>
+    <string name="completed_anime">Completed Anime</string>
+    <string name="completed_series">Completed Series</string>
+    <string name="reading_and_watching_habits">Reading and Watching Habits</string>
+    <string name="monthly_activity">Monthly Activity</string>
+    <string name="top_genre_fantasy">Top Genre: Fantasy</string>
+    <string name="avg_rating">Avg Rating: 4.6</string>
+    <string name="longest_streak">Longest Streak: 35 Days</string>
+
+    <string name="daily">Daily</string>
+    <string name="weekly">Weekly</string>
+    <string name="monthly">Monthly</string>
+    <string name="yearly">Yearly</string>
+
+    <string name="vault_composition">Vault Composition</string>
+    <string name="media_ratio">Media Ratio</string>
+    <string name="books">Books</string>
+    <string name="videos">Videos</string>
+    <string name="comics">Comics</string>
+
+    <string name="backlog_health">Backlog Health Tracker</string>
+    <string name="backlog_status_healthy">Healthy</string>
+    <string name="backlog_status_overwhelming">Overwhelming</string>
+    <string name="completed_vs_backlog">Completed vs. Backlog</string>
+
+    <string name="screen_for_home">Screen for Home</string>
+    <string name="screen_for_library">Screen for Library</string>
+    <string name="screen_for_settings">Screen for Settings</string>
 </resources>

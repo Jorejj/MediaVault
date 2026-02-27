@@ -23,5 +23,11 @@
 >>>>>>> Stashed changes
     </style>
 
-    <style name="Theme.MediaVault" parent="Base.Theme.MediaVault" />
+    <style name="Theme.MediaVault" parent="Base.Theme.MediaVault">
+        <item name="android:windowBackground">@color/bg_main</item>
+        <item name="colorCardBackground">@color/bg_card</item>
+        <item name="colorBottomNav">@color/nav_bg</item>
+    </style>
+
+
 </resources>

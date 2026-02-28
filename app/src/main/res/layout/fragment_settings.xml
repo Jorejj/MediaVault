@@ -58,7 +58,7 @@
                 android:padding="16dp">
                 <ImageView android:id="@+id/icon_theme" android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_settings1"
  android:layout_centerVertical="true" app:tint="?android:attr/textColorPrimary"/>
-                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Theme" android:layout_toEndOf="@id/icon_theme" android:layout_marginStart="16dp" android:layout_centerVertical="true" android:textSize="16sp" android:textColor="?android:attr/textColorPrimary"/>
+                <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Dark Mode" android:layout_toEndOf="@id/icon_theme" android:layout_marginStart="16dp" android:layout_centerVertical="true" android:textSize="16sp" android:textColor="?android:attr/textColorPrimary"/>
                 <androidx.appcompat.widget.SwitchCompat android:id="@+id/switch_theme" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_alignParentEnd="true"/>
             </RelativeLayout>
 

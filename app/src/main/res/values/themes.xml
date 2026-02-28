@@ -9,11 +9,13 @@
         <item name="android:windowLightStatusBar">true</item>
     </style>
 
-    <style name="Theme.MediaVault" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+    <style name="Theme.MediaVault" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="colorPrimary">@color/main_blue</item>
         <item name="colorSecondary">@color/black</item>
 
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+        <item name="android:windowBackground">@color/bg_main</item>
+        <item name="colorCardBackground">@color/bg_card</item>
+        <item name="colorBottomNav">@color/nav_bg</item>
     </style>
-
 </resources>

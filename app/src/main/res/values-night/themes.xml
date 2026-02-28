@@ -4,4 +4,9 @@
         <!-- Customize your dark theme here. -->
         <!-- <item name="colorPrimary">@color/my_dark_primary</item> -->
     </style>
+    <style name="Theme.MediaVault" parent="Base.Theme.MediaVault">
+        <item name="android:windowBackground">@color/bg_main_dark</item>
+        <item name="colorCardBackground">@color/bg_card_dark</item>
+        <item name="colorBottomNav">@color/nav_bg_dark</item>
+    </style>
 </resources>

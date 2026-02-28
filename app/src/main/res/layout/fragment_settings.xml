@@ -56,7 +56,8 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:padding="16dp">
-                <ImageView android:id="@+id/icon_theme" android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_settings1" android:layout_centerVertical="true" app:tint="?android:attr/textColorPrimary"/>
+                <ImageView android:id="@+id/icon_theme" android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_settings1"
+ android:layout_centerVertical="true" app:tint="?android:attr/textColorPrimary"/>
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Theme" android:layout_toEndOf="@id/icon_theme" android:layout_marginStart="16dp" android:layout_centerVertical="true" android:textSize="16sp" android:textColor="?android:attr/textColorPrimary"/>
                 <androidx.appcompat.widget.SwitchCompat android:id="@+id/switch_theme" android:layout_width="wrap_content" android:layout_height="wrap_content" android:layout_alignParentEnd="true"/>
             </RelativeLayout>
@@ -69,9 +70,11 @@
                 android:clickable="true"
                 android:focusable="true"
                 android:foreground="?attr/selectableItemBackground">
-                <ImageView android:id="@+id/icon_backup" android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_settings1" android:layout_centerVertical="true" app:tint="?android:attr/textColorPrimary"/>
+                <ImageView android:id="@+id/icon_backup" android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_settings1"
+ android:layout_centerVertical="true" app:tint="?android:attr/textColorPrimary"/>
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Back up Media" android:layout_toEndOf="@id/icon_backup" android:layout_marginStart="16dp" android:layout_centerVertical="true" android:textSize="16sp" android:textColor="?android:attr/textColorPrimary"/>
-                <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@drawable/ic_chevron_right" android:layout_alignParentEnd="true" android:layout_centerVertical="true" app:tint="?android:attr/textColorPrimary"/>
+                <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@drawable/ic_chevron_right"
+ android:layout_alignParentEnd="true" android:layout_centerVertical="true" app:tint="?android:attr/textColorPrimary"/>
             </RelativeLayout>
 
         </LinearLayout>
@@ -107,9 +110,11 @@
                 android:clickable="true"
                 android:focusable="true"
                 android:foreground="?attr/selectableItemBackground">
-                <ImageView android:id="@+id/icon_about" android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_settings1" android:layout_centerVertical="true" app:tint="?android:attr/textColorPrimary"/>
+                <ImageView android:id="@+id/icon_about" android:layout_width="24dp" android:layout_height="24dp" android:src="@drawable/ic_settings1"
+ android:layout_centerVertical="true" app:tint="?android:attr/textColorPrimary"/>
                 <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="About" android:layout_toEndOf="@id/icon_about" android:layout_marginStart="16dp" android:layout_centerVertical="true" android:textSize="16sp" android:textColor="?android:attr/textColorPrimary"/>
-                <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@drawable/ic_chevron_right" android:layout_alignParentEnd="true" android:layout_centerVertical="true" app:tint="?android:attr/textColorPrimary"/>
+                <ImageView android:layout_width="20dp" android:layout_height="20dp" android:src="@drawable/ic_chevron_right"
+ android:layout_alignParentEnd="true" android:layout_centerVertical="true" app:tint="?android:attr/textColorPrimary"/>
             </RelativeLayout>
 
         </LinearLayout>

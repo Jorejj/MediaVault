@@ -37,4 +37,26 @@
     <string name="screen_for_home">Screen for Home</string>
     <string name="screen_for_library">Screen for Library</string>
     <string name="screen_for_settings">Screen for Settings</string>
+
+    <!-- Home Fragment Strings -->
+    <string name="recent_activity">Recent Activity</string>
+    <string name="your_media_overview">Your Media Overview</string>
+    <string name="watch_time_value">120</string>
+    <string name="hrs_watched">hrs Watched</string>
+    <string name="pages_read_value">3,450</string>
+    <string name="pages_read">Pages Read</string>
+    <string name="ongoing_items_value">24</string>
+    <string name="ongoing_items">Ongoing items</string>
+    <string name="avg_rating_value">4.6</string>
+    <string name="avg_rating_label">Avg Rating</string>
+    <string name="view_detailed_stats">View Detailed Stats →</string>
+    <string name="binge_calculator">Binge Calculator</string>
+    <string name="binge_calculator_desc">See how much time you\'re spent watching movies and Reading Books</string>
+    <string name="analyze_habits">Analyze Habits</string>
+    <string name="shake_to_decide">Shake to Decide!</string>
+    <string name="shake_to_decide_desc">Can\'t decide what to watch and read?\nShake your phone and MediaVault will give you a choices</string>
+    <string name="time_ago_sample">2h ago</string>
+    <string name="recent_title_sample">Title of the Movie . Anime</string>
+    <string name="recent_subtitle_sample">Anime - Episode 12 / 25</string>
+    <string name="progress_percent_sample">48%</string>
 </resources>

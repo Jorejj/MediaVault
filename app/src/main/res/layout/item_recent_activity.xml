@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    app:cardBackgroundColor="@color/white"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="0dp"
+    android:layout_marginBottom="12dp">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp">
+
+        <ImageView
+            android:id="@+id/iv_thumbnail"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
+            android:layout_marginEnd="16dp"
+            android:background="@drawable/rounded_corners"/>
+
+        <TextView
+            android:id="@+id/tv_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_toEndOf="@id/iv_thumbnail"
+            android:text="Title of the Movie . Anime"
+            android:textColor="@color/black"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/tv_subtitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/tv_title"
+            android:layout_toEndOf="@id/iv_thumbnail"
+            android:text="Anime - Episode 12 / 25"
+            android:textColor="@color/grey_600"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/tv_timestamp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:layout_alignTop="@id/tv_title"
+            android:text="2h ago"
+            android:textColor="@color/grey_600"
+            android:textSize="12sp" />
+
+        <ProgressBar
+            android:id="@+id/progress_bar"
+            style="@android:style/Widget.ProgressBar.Horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="8dp"
+            android:layout_below="@id/tv_subtitle"
+            android:layout_toStartOf="@id/tv_progress_percentage"
+            android:layout_toEndOf="@id/iv_thumbnail"
+            android:layout_marginTop="8dp"
+            android:progressDrawable="@drawable/custom_progress_bar"
+            android:progress="48"/>
+
+        <TextView
+            android:id="@+id/tv_progress_percentage"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignTop="@id/progress_bar"
+            android:layout_alignBottom="@id/progress_bar"
+            android:layout_alignParentEnd="true"
+            android:layout_marginStart="8dp"
+            android:text="48%"
+            android:textColor="@color/grey_600"
+            android:textSize="12sp" />
+
+    </RelativeLayout>
+</com.google.android.material.card.MaterialCardView>

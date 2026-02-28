@@ -19,7 +19,6 @@
             android:layout_width="60dp"
             android:layout_height="60dp"
             android:layout_gravity="start"
-            android:contentDescription="@string/app_name"
             android:src="@drawable/app_logo" />
 
         <!-- Recent Activity Section -->
@@ -28,7 +27,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
             android:layout_marginBottom="12dp"
-            android:text="@string/recent_activity"
+            android:text="Recent Activity"
             android:textColor="@color/black"
             android:textSize="16sp"
             android:textStyle="bold" />
@@ -44,7 +43,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
             android:layout_marginBottom="12dp"
-            android:text="@string/your_media_overview"
+            android:text="Your Media Overview"
             android:textColor="@color/black"
             android:textSize="16sp"
             android:textStyle="bold" />
@@ -82,7 +81,6 @@
                         <ImageView
                             android:layout_width="24dp"
                             android:layout_height="24dp"
-                            android:contentDescription="@null"
                             android:src="@drawable/ic_clock"
                             app:tint="@color/black" />
 
@@ -90,7 +88,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="8dp"
-                            android:text="@string/watch_time_value"
+                            android:text="120"
                             android:textColor="@color/black"
                             android:textSize="18sp"
                             android:textStyle="bold" />
@@ -99,9 +97,9 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="4dp"
-                            android:text="@string/hrs_watched"
+                            android:text="hrs Watched"
                             android:textColor="@color/grey_600"
-                            android:textSize="11sp" />
+                            android:textSize="10sp" />
                     </LinearLayout>
 
                     <!-- Pages Read -->
@@ -116,7 +114,6 @@
                         <ImageView
                             android:layout_width="24dp"
                             android:layout_height="24dp"
-                            android:contentDescription="@null"
                             android:src="@drawable/ic_library"
                             app:tint="@color/black" />
 
@@ -124,7 +121,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="8dp"
-                            android:text="@string/pages_read_value"
+                            android:text="3,450"
                             android:textColor="@color/black"
                             android:textSize="18sp"
                             android:textStyle="bold" />
@@ -133,9 +130,9 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="4dp"
-                            android:text="@string/pages_read"
+                            android:text="Pages Read"
                             android:textColor="@color/grey_600"
-                            android:textSize="11sp" />
+                            android:textSize="10sp" />
                     </LinearLayout>
 
                     <!-- Ongoing Items -->
@@ -149,7 +146,6 @@
                         <ImageView
                             android:layout_width="24dp"
                             android:layout_height="24dp"
-                            android:contentDescription="@null"
                             android:src="@drawable/ic_add"
                             app:tint="@color/black" />
 
@@ -157,7 +153,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="8dp"
-                            android:text="@string/ongoing_items_value"
+                            android:text="24"
                             android:textColor="@color/black"
                             android:textSize="18sp"
                             android:textStyle="bold" />
@@ -166,9 +162,9 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="4dp"
-                            android:text="@string/ongoing_items"
+                            android:text="Ongoing items"
                             android:textColor="@color/grey_600"
-                            android:textSize="11sp" />
+                            android:textSize="10sp" />
                     </LinearLayout>
 
                     <!-- Avg Rating -->
@@ -182,7 +178,6 @@
                         <ImageView
                             android:layout_width="24dp"
                             android:layout_height="24dp"
-                            android:contentDescription="@null"
                             android:src="@drawable/ic_star"
                             app:tint="@color/black" />
 
@@ -190,7 +185,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="8dp"
-                            android:text="@string/avg_rating_value"
+                            android:text="4.6"
                             android:textColor="@color/black"
                             android:textSize="18sp"
                             android:textStyle="bold" />
@@ -199,9 +194,9 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="4dp"
-                            android:text="@string/avg_rating_label"
+                            android:text="Avg Rating"
                             android:textColor="@color/grey_600"
-                            android:textSize="11sp" />
+                            android:textSize="10sp" />
                     </LinearLayout>
 
                 </GridLayout>
@@ -211,7 +206,7 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center_horizontal"
                     android:layout_marginTop="24dp"
-                    android:text="@string/view_detailed_stats"
+                    android:text="View Detailed Stats →"
                     android:textColor="@color/grey_600"
                     android:textSize="12sp"
                     android:textStyle="bold" />
@@ -236,23 +231,33 @@
                 android:orientation="vertical"
                 android:padding="16dp">
 
-                <TextView
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:drawablePadding="12dp"
                     android:gravity="center_vertical"
-                    android:text="@string/binge_calculator"
-                    android:textColor="@color/black"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    app:drawableStartCompat="@drawable/ic_clock"
-                    app:drawableTint="@color/black" />
+                    android:orientation="horizontal">
+
+                    <ImageView
+                        android:layout_width="28dp"
+                        android:layout_height="28dp"
+                        android:src="@drawable/ic_clock"
+                        app:tint="@color/black" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:text="Binge Calculator"
+                        android:textColor="@color/black"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="@string/binge_calculator_desc"
+                    android:text="See how much time you're spent watching movies and Reading Books"
                     android:textColor="@color/grey_600"
                     android:textSize="12sp" />
 
@@ -297,7 +302,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/shake_to_decide"
+                        android:text="Shake to Decide!"
                         android:textColor="@color/black"
                         android:textSize="16sp"
                         android:textStyle="bold" />
@@ -306,7 +311,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
-                        android:text="@string/shake_to_decide_desc"
+                        android:text="Can't decide what to watch and read?\nShake your phone and MediaVault will give you a choices"
                         android:textColor="@color/grey_600"
                         android:textSize="11sp" />
 
@@ -318,7 +323,6 @@
                     android:layout_height="80dp"
                     android:layout_alignParentEnd="true"
                     android:layout_centerVertical="true"
-                    android:contentDescription="@null"
                     android:src="@color/grey_100" />
 
             </RelativeLayout>

@@ -1,0 +1,505 @@
+package com.example.mediavault;
+
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.database.sqlite.SQLiteConstraintException;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
+import android.os.Bundle;
+import android.text.TextUtils;
+import android.util.Log;
+import android.view.KeyEvent;
+import android.view.View;
+import android.view.inputmethod.EditorInfo;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ProgressBar;
+import android.widget.RatingBar;
+import android.widget.Spinner;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.activity.OnBackPressedCallback;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
+import com.example.mediavault.api.GoogleBooksApiService;
+import com.example.mediavault.api.GoogleBooksResponse;
+import com.example.mediavault.api.JikanApiService;
+import com.example.mediavault.api.JikanResponse;
+import com.example.mediavault.api.MediaSearchAdapter;
+import com.example.mediavault.api.MediaSearchResult;
+import com.google.android.material.button.MaterialButtonToggleGroup;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.snackbar.Snackbar;
+import com.google.android.material.textfield.TextInputEditText;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import retrofit2.Retrofit;
+import retrofit2.converter.gson.GsonConverterFactory;
+
+public class AddMediaActivity extends AppCompatActivity implements MediaSearchAdapter.OnItemClickListener {
+
+    private static final String TAG = "AddMediaDB_Error";
+
+    private View layoutSearchApi, layoutManualEntry, coordinatorLayout;
+    private MaterialButtonToggleGroup toggleGroup;
+    
+    // Search API Components
+    private TextInputEditText etApiSearch;
+    private Spinner spinnerApiTarget;
+    private RecyclerView rvApiResults;
+    private MediaSearchAdapter searchAdapter;
+    private ProgressBar pbSearchLoading;
+    private TextView tvNoResults;
+    private Button btnApiSearchSubmit;
+    
+    // Manual Entry Components
+    private TextInputEditText etManualTitle, etManualGenre, etManualImage, etManualAuthor;
+    private EditText etManualProgress, etManualTotal;
+    private Spinner spinnerManualType, spinnerManualStatus, spinnerTotalUnit;
+    private RatingBar rbManualRating;
+    private Button btnManualDone;
+
+    private DatabaseHelper dbHelper;
+    private NetworkReceiver networkReceiver;
+    private Retrofit jikanRetrofit, googleBooksRetrofit;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_add_media);
+
+        dbHelper = new DatabaseHelper(this);
+        networkReceiver = new NetworkReceiver();
+
+        initRetrofit();
+        initViews();
+        setupToggle();
+        setupSearch();
+        setupManualEntry();
+        setupOnBackPressed();
+    }
+
+    private void initRetrofit() {
+        jikanRetrofit = new Retrofit.Builder()
+                .baseUrl("https://api.jikan.moe/v4/")
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        googleBooksRetrofit = new Retrofit.Builder()
+                .baseUrl("https://www.googleapis.com/books/v1/")
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+    }
+
+    private void initViews() {
+        coordinatorLayout = findViewById(R.id.coordinator_layout);
+        layoutSearchApi = findViewById(R.id.layout_search_api);
+        layoutManualEntry = findViewById(R.id.layout_manual_entry);
+        toggleGroup = findViewById(R.id.toggle_group);
+
+        // Search API
+        etApiSearch = findViewById(R.id.et_api_search);
+        spinnerApiTarget = findViewById(R.id.spinner_api_target);
+        rvApiResults = findViewById(R.id.rv_api_results);
+        pbSearchLoading = findViewById(R.id.pb_search_loading);
+        tvNoResults = findViewById(R.id.tv_no_results);
+        btnApiSearchSubmit = findViewById(R.id.btn_api_search_submit);
+        
+        // Manual Entry
+        etManualTitle = findViewById(R.id.et_manual_title);
+        spinnerManualType = findViewById(R.id.spinner_manual_type);
+        spinnerManualStatus = findViewById(R.id.spinner_manual_status);
+        etManualProgress = findViewById(R.id.et_manual_progress);
+        etManualTotal = findViewById(R.id.et_manual_total);
+        spinnerTotalUnit = findViewById(R.id.spinner_total_unit);
+        etManualGenre = findViewById(R.id.et_manual_genre);
+        rbManualRating = findViewById(R.id.rb_manual_rating);
+        etManualImage = findViewById(R.id.et_manual_image);
+        etManualAuthor = findViewById(R.id.et_manual_author);
+        btnManualDone = findViewById(R.id.btn_manual_done);
+    }
+
+    private void setupToggle() {
+        toggleGroup.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
+            if (isChecked) {
+                if (checkedId == R.id.btn_mode_search) {
+                    layoutSearchApi.setVisibility(View.VISIBLE);
+                    layoutManualEntry.setVisibility(View.GONE);
+                } else if (checkedId == R.id.btn_mode_manual) {
+                    layoutSearchApi.setVisibility(View.GONE);
+                    layoutManualEntry.setVisibility(View.VISIBLE);
+                }
+            }
+        });
+    }
+
+    private void setupSearch() {
+        searchAdapter = new MediaSearchAdapter(this);
+        rvApiResults.setLayoutManager(new LinearLayoutManager(this));
+        rvApiResults.setAdapter(searchAdapter);
+
+        etApiSearch.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_SEARCH || (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
+                performApiSearch();
+                return true;
+            }
+            return false;
+        });
+
+        btnApiSearchSubmit.setOnClickListener(v -> performApiSearch());
+    }
+
+    private void setupOnBackPressed() {
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (!TextUtils.isEmpty(etManualTitle.getText())) {
+                    showDiscardChangesDialog();
+                } else {
+                    setEnabled(false);
+                    onBackPressed();
+                }
+            }
+        });
+    }
+
+    private void showDiscardChangesDialog() {
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Discard Changes?")
+                .setMessage("You have unsaved data. Are you sure you want to go back?")
+                .setPositiveButton("Discard", (dialog, which) -> finish())
+                .setNegativeButton("Keep Editing", null)
+                .show();
+    }
+
+    private boolean isNetworkAvailable() {
+        ConnectivityManager cm = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+        return activeNetwork != null && activeNetwork.isConnected();
+    }
+
+    private void performApiSearch() {
+        if (!isNetworkAvailable()) {
+            Toast.makeText(this, "No internet connection. Please use Manual Entry.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        String query = Objects.requireNonNull(etApiSearch.getText()).toString().trim();
+        if (TextUtils.isEmpty(query)) return;
+
+        String target = spinnerApiTarget.getSelectedItem().toString();
+        
+        // Visual Feedback: Start Search
+        pbSearchLoading.setVisibility(View.VISIBLE);
+        rvApiResults.setVisibility(View.GONE);
+        tvNoResults.setVisibility(View.GONE);
+        btnApiSearchSubmit.setEnabled(false);
+        searchAdapter.setResults(new ArrayList<>());
+
+        if (target.contains("Anime")) {
+            searchAnime(query);
+        } else if (target.contains("Manga")) {
+            searchManga(query);
+        } else if (target.contains("Books")) {
+            searchBooks(query);
+        } else {
+            pbSearchLoading.setVisibility(View.GONE);
+            rvApiResults.setVisibility(View.VISIBLE);
+            btnApiSearchSubmit.setEnabled(true);
+            Toast.makeText(this, "Movies (TMDB) requires API key", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void searchAnime(String query) {
+        JikanApiService service = jikanRetrofit.create(JikanApiService.class);
+        service.getAnime(query, 10).enqueue(new Callback<JikanResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<JikanResponse> call, @NonNull Response<JikanResponse> response) {
+                handleJikanResponse(response, "Anime");
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<JikanResponse> call, @NonNull Throwable t) {
+                handleSearchError("Network timeout or error");
+            }
+        });
+    }
+
+    private void searchManga(String query) {
+        JikanApiService service = jikanRetrofit.create(JikanApiService.class);
+        service.getManga(query, 10).enqueue(new Callback<JikanResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<JikanResponse> call, @NonNull Response<JikanResponse> response) {
+                handleJikanResponse(response, "Manga");
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<JikanResponse> call, @NonNull Throwable t) {
+                handleSearchError("Network timeout or error");
+            }
+        });
+    }
+
+    private void handleJikanResponse(Response<JikanResponse> response, String type) {
+        pbSearchLoading.setVisibility(View.GONE);
+        btnApiSearchSubmit.setEnabled(true);
+        rvApiResults.setVisibility(View.VISIBLE);
+
+        if (response.isSuccessful() && response.body() != null) {
+            List<MediaSearchResult> results = new ArrayList<>();
+            if (response.body().getData() != null && !response.body().getData().isEmpty()) {
+                for (JikanResponse.MediaData data : response.body().getData()) {
+                    String imageUrl = null;
+                    if (data.getImages() != null && data.getImages().getJpg() != null) {
+                        imageUrl = data.getImages().getJpg().getImageUrl();
+                    }
+
+                    results.add(new MediaSearchResult(
+                            data.getTitle(),
+                            type,
+                            "", 
+                            "", 
+                            imageUrl,
+                            type.equals("Anime") ? data.getEpisodes() : data.getChapters(),
+                            type.equals("Anime") ? "Episodes" : "Chapters"
+                    ));
+                }
+                searchAdapter.setResults(results);
+                showSuccessSnackbar("Found " + results.size() + " results.");
+            } else {
+                tvNoResults.setVisibility(View.VISIBLE);
+            }
+        } else {
+            handleSearchError("API Error: " + response.code());
+        }
+    }
+
+    private void searchBooks(String query) {
+        GoogleBooksApiService service = googleBooksRetrofit.create(GoogleBooksApiService.class);
+        service.getBooks(query).enqueue(new Callback<GoogleBooksResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<GoogleBooksResponse> call, @NonNull Response<GoogleBooksResponse> response) {
+                pbSearchLoading.setVisibility(View.GONE);
+                btnApiSearchSubmit.setEnabled(true);
+                rvApiResults.setVisibility(View.VISIBLE);
+
+                if (response.isSuccessful() && response.body() != null) {
+                    List<MediaSearchResult> results = new ArrayList<>();
+                    if (response.body().getItems() != null && !response.body().getItems().isEmpty()) {
+                        for (GoogleBooksResponse.BookItem item : response.body().getItems()) {
+                            GoogleBooksResponse.VolumeInfo info = item.getVolumeInfo();
+                            String imageUrl = null;
+                            if (info.getImageLinks() != null) {
+                                imageUrl = info.getImageLinks().getThumbnail();
+                            }
+
+                            results.add(new MediaSearchResult(
+                                    info.getTitle(),
+                                    "Book",
+                                    "",
+                                    "", 
+                                    imageUrl,
+                                    info.getPageCount(),
+                                    "Pages"
+                            ));
+                        }
+                        searchAdapter.setResults(results);
+                        showSuccessSnackbar("Found " + results.size() + " results.");
+                    } else {
+                        tvNoResults.setVisibility(View.VISIBLE);
+                    }
+                } else {
+                    handleSearchError("API Error: " + response.code());
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<GoogleBooksResponse> call, @NonNull Throwable t) {
+                handleSearchError("Network timeout or error");
+            }
+        });
+    }
+
+    private void handleSearchError(String message) {
+        pbSearchLoading.setVisibility(View.GONE);
+        btnApiSearchSubmit.setEnabled(true);
+        rvApiResults.setVisibility(View.VISIBLE);
+        
+        Snackbar snackbar = Snackbar.make(coordinatorLayout, "Network Error: " + message, Snackbar.LENGTH_LONG);
+        snackbar.getView().setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_red_dark));
+        snackbar.show();
+    }
+
+    private void showSuccessSnackbar(String message) {
+        Snackbar.make(coordinatorLayout, message, Snackbar.LENGTH_SHORT).show();
+    }
+
+    @Override
+    public void onItemClick(MediaSearchResult result) {
+        // Auto-fill manual entry form
+        etManualTitle.setText(result.getTitle());
+        setSpinnerToValue(spinnerManualType, result.getType());
+        
+        // Optimization: APIs often return 'null' for unreleased or ongoing series.
+        // We handle this by clearing the field to let the user enter it manually.
+        Integer capacity = result.getCapacity();
+        if (capacity != null && capacity > 0) {
+            etManualTotal.setText(String.valueOf(capacity));
+        } else {
+            etManualTotal.setText("");
+        }
+
+        setSpinnerToValue(spinnerTotalUnit, result.getUnit());
+        etManualImage.setText(result.getImageUrl());
+        
+        // Switch to Manual Entry mode
+        toggleGroup.check(R.id.btn_mode_manual);
+
+        // API Auto-fill Feedback
+        String apiName = spinnerApiTarget.getSelectedItem().toString();
+        Toast.makeText(this, "Auto-filled data from " + apiName + ". Please review.", Toast.LENGTH_SHORT).show();
+    }
+
+    private void setSpinnerToValue(Spinner spinner, String value) {
+        for (int i = 0; i < spinner.getCount(); i++) {
+            if (spinner.getItemAtPosition(i).toString().equalsIgnoreCase(value)) {
+                spinner.setSelection(i);
+                break;
+            }
+        }
+    }
+
+    private void setupManualEntry() {
+        btnManualDone.setOnClickListener(v -> saveToDatabase());
+    }
+
+    private void saveToDatabase() {
+        String title = Objects.requireNonNull(etManualTitle.getText()).toString().trim();
+        String type = spinnerManualType.getSelectedItem().toString();
+        String status = spinnerManualStatus.getSelectedItem().toString();
+        String genre = Objects.requireNonNull(etManualGenre.getText()).toString().trim();
+        String progressStr = etManualProgress.getText().toString().trim();
+        String capacityStr = etManualTotal.getText().toString().trim();
+        String unit = spinnerTotalUnit.getSelectedItem().toString();
+        String imageUrl = Objects.requireNonNull(etManualImage.getText()).toString().trim();
+        float rating = rbManualRating.getRating();
+
+        // Inline Errors (setError)
+        if (TextUtils.isEmpty(title)) {
+            etManualTitle.setError("This field is required");
+            etManualTitle.requestFocus();
+            return;
+        }
+        if (TextUtils.isEmpty(capacityStr)) {
+            etManualTotal.setError("This field is required");
+            etManualTotal.requestFocus();
+            return;
+        }
+
+        int progress = 0;
+        int total;
+        try {
+            if (!TextUtils.isEmpty(progressStr)) {
+                progress = Integer.parseInt(progressStr);
+            }
+            total = Integer.parseInt(capacityStr);
+        } catch (NumberFormatException e) {
+            Toast.makeText(this, "Invalid numeric input", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Logical Constraint Alerts
+        if (total <= 0) {
+            etManualTotal.setError("Total must be greater than 0");
+            etManualTotal.requestFocus();
+            return;
+        }
+        if (progress < 0) {
+            etManualProgress.setError("Progress cannot be negative");
+            etManualProgress.requestFocus();
+            return;
+        }
+        if (progress > total) {
+            Snackbar.make(coordinatorLayout, "Progress cannot exceed Total Capacity", Snackbar.LENGTH_LONG).show();
+            return;
+        }
+
+        if (progress == total) {
+            status = "Completed";
+        }
+
+        try {
+            long result = dbHelper.addMedia(title, type, genre, total, unit, imageUrl);
+            
+            if (result != -1) {
+                dbHelper.updateProgress((int) result, progress, status, rating);
+                
+                // Database Save Success Alert
+                Snackbar snackbar = Snackbar.make(coordinatorLayout, "Successfully added to MediaVault!", Snackbar.LENGTH_SHORT);
+                snackbar.getView().setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_green_dark));
+                snackbar.addCallback(new Snackbar.Callback() {
+                    @Override
+                    public void onDismissed(Snackbar transientBottomBar, int event) {
+                        finish();
+                    }
+                });
+                snackbar.show();
+                
+            } else {
+                Log.e(TAG, "Insertion failed without exception for title: " + title);
+                Toast.makeText(this, "Error: Could not save to database.", Toast.LENGTH_SHORT).show();
+            }
+        } catch (SQLiteConstraintException e) {
+            Log.e(TAG, "Database constraint violation: " + e.getMessage());
+            showDuplicateEntryDialog();
+        } catch (Exception e) {
+            Log.e(TAG, "Unexpected database error: " + e.getMessage());
+            Toast.makeText(this, "A database error occurred.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void showDuplicateEntryDialog() {
+        new MaterialAlertDialogBuilder(this)
+                .setTitle("Duplicate Entry")
+                .setMessage("This title already exists in your library. Please use a different title or update the existing one.")
+                .setPositiveButton("OK", null)
+                .show();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        registerReceiver(networkReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        unregisterReceiver(networkReceiver);
+    }
+
+    private class NetworkReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            ConnectivityManager cm = (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+            NetworkInfo activeNetwork = cm.getActiveNetworkInfo();
+            boolean isConnected = activeNetwork != null && activeNetwork.isConnectedOrConnecting();
+            etApiSearch.setEnabled(isConnected);
+            btnApiSearchSubmit.setEnabled(isConnected);
+        }
+    }
+}

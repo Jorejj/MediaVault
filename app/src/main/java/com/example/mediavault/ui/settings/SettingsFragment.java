@@ -1,4 +1,4 @@
-package com.example.mediavault;
+package com.example.mediavault.ui.settings;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -14,6 +14,8 @@ import androidx.appcompat.app.AppCompatDelegate;
 import androidx.appcompat.widget.SwitchCompat;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
+
+import com.example.mediavault.R;
 
 public class SettingsFragment extends Fragment {
 

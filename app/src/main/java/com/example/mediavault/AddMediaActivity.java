@@ -203,7 +203,6 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
 
         String target = spinnerApiTarget.getSelectedItem().toString();
         
-        // Visual Feedback: Start Search
         pbSearchLoading.setVisibility(View.VISIBLE);
         rvApiResults.setVisibility(View.GONE);
         tvNoResults.setVisibility(View.GONE);
@@ -350,31 +349,19 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
 
     @Override
     public void onItemClick(MediaSearchResult result) {
-        // Auto-fill manual entry form
         etManualTitle.setText(result.getTitle());
         setSpinnerToValue(spinnerManualType, result.getType());
-        
-        // Optimization: APIs often return 'null' for unreleased or ongoing series.
-        // We handle this by clearing the field to let the user enter it manually.
-        Integer capacity = result.getCapacity();
-        if (capacity != null && capacity > 0) {
-            etManualTotal.setText(String.valueOf(capacity));
-        } else {
-            etManualTotal.setText("");
-        }
-
+        etManualTotal.setText(result.getCapacity() != null ? String.valueOf(result.getCapacity()) : "");
         setSpinnerToValue(spinnerTotalUnit, result.getUnit());
         etManualImage.setText(result.getImageUrl());
-        
-        // Switch to Manual Entry mode
         toggleGroup.check(R.id.btn_mode_manual);
 
-        // API Auto-fill Feedback
         String apiName = spinnerApiTarget.getSelectedItem().toString();
         Toast.makeText(this, "Auto-filled data from " + apiName + ". Please review.", Toast.LENGTH_SHORT).show();
     }
 
     private void setSpinnerToValue(Spinner spinner, String value) {
+        if (value == null) return;
         for (int i = 0; i < spinner.getCount(); i++) {
             if (spinner.getItemAtPosition(i).toString().equalsIgnoreCase(value)) {
                 spinner.setSelection(i);
@@ -392,21 +379,15 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         String type = spinnerManualType.getSelectedItem().toString();
         String status = spinnerManualStatus.getSelectedItem().toString();
         String genre = Objects.requireNonNull(etManualGenre.getText()).toString().trim();
+        String creator = Objects.requireNonNull(etManualAuthor.getText()).toString().trim();
         String progressStr = etManualProgress.getText().toString().trim();
         String capacityStr = etManualTotal.getText().toString().trim();
         String unit = spinnerTotalUnit.getSelectedItem().toString();
         String imageUrl = Objects.requireNonNull(etManualImage.getText()).toString().trim();
         float rating = rbManualRating.getRating();
 
-        // Inline Errors (setError)
-        if (TextUtils.isEmpty(title)) {
-            etManualTitle.setError("This field is required");
-            etManualTitle.requestFocus();
-            return;
-        }
-        if (TextUtils.isEmpty(capacityStr)) {
-            etManualTotal.setError("This field is required");
-            etManualTotal.requestFocus();
+        if (TextUtils.isEmpty(title) || TextUtils.isEmpty(capacityStr)) {
+            etManualTitle.setError("Required field");
             return;
         }
 
@@ -422,15 +403,8 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
             return;
         }
 
-        // Logical Constraint Alerts
         if (total <= 0) {
             etManualTotal.setError("Total must be greater than 0");
-            etManualTotal.requestFocus();
-            return;
-        }
-        if (progress < 0) {
-            etManualProgress.setError("Progress cannot be negative");
-            etManualProgress.requestFocus();
             return;
         }
         if (progress > total) {
@@ -443,12 +417,11 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         }
 
         try {
-            long result = dbHelper.addMedia(title, type, genre, total, unit, imageUrl);
+            long result = dbHelper.addMedia(title, type, genre, creator, total, unit, null, imageUrl);
             
             if (result != -1) {
                 dbHelper.updateProgress((int) result, progress, status, rating);
                 
-                // Database Save Success Alert
                 Snackbar snackbar = Snackbar.make(coordinatorLayout, "Successfully added to MediaVault!", Snackbar.LENGTH_SHORT);
                 snackbar.getView().setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_green_dark));
                 snackbar.addCallback(new Snackbar.Callback() {
@@ -460,14 +433,14 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                 snackbar.show();
                 
             } else {
-                Log.e(TAG, "Insertion failed without exception for title: " + title);
+                Log.e(TAG, "Insertion failed for title: " + title);
                 Toast.makeText(this, "Error: Could not save to database.", Toast.LENGTH_SHORT).show();
             }
         } catch (SQLiteConstraintException e) {
-            Log.e(TAG, "Database constraint violation: " + e.getMessage());
+            Log.e(TAG, "Constraint violation: " + e.getMessage());
             showDuplicateEntryDialog();
         } catch (Exception e) {
-            Log.e(TAG, "Unexpected database error: " + e.getMessage());
+            Log.e(TAG, "Unexpected DB error: " + e.getMessage());
             Toast.makeText(this, "A database error occurred.", Toast.LENGTH_SHORT).show();
         }
     }

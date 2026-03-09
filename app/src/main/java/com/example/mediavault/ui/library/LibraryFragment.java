@@ -38,8 +38,16 @@ public class LibraryFragment extends Fragment {
 
     private DatabaseHelper dbHelper;
     private MediaAdapter adapter;
-    private List<MediaItem> mediaItems;
+    private List<MediaItem> allMediaItems;
+    private List<MediaItem> filteredItems;
     private RecyclerView recyclerView;
+    private EditText searchBar;
+    private ChipGroup chipGroup;
+    private View emptyState;
+    private ImageButton btnFilter;
+    private String currentSearchQuery = "";
+    private String currentCategory = "All";
+    private int currentSortId = R.id.sort_title_asc;
 
     private final BroadcastReceiver updateReceiver = new BroadcastReceiver() {
         @Override
@@ -59,17 +67,137 @@ public class LibraryFragment extends Fragment {
         recyclerView = view.findViewById(R.id.library_recycler_view);
         recyclerView.setLayoutManager(new GridLayoutManager(getContext(), 2));
 
-        mediaItems = new ArrayList<>();
-        adapter = new MediaAdapter(mediaItems);
+        searchBar = view.findViewById(R.id.search_bar);
+        chipGroup = view.findViewById(R.id.chip_group_filter);
+        emptyState = view.findViewById(R.id.empty_state_view);
+        btnFilter = view.findViewById(R.id.btn_filter);
+
+        allMediaItems = new ArrayList<>();
+        filteredItems = new ArrayList<>();
+        adapter = new MediaAdapter(filteredItems);
         recyclerView.setAdapter(adapter);
 
+        setupListeners();
         refreshLibrary();
 
         return view;
     }
 
+    private void setupListeners() {
+        searchBar.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                currentSearchQuery = s.toString().toLowerCase().trim();
+                applyFilters();
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+
+        chipGroup.setOnCheckedChangeListener((group, checkedId) -> {
+            if (checkedId == R.id.chip_all) {
+                currentCategory = "All";
+            } else if (checkedId == R.id.chip_books) {
+                currentCategory = "Book"; // Match DB type
+            } else if (checkedId == R.id.chip_anime) {
+                currentCategory = "Anime";
+            } else if (checkedId == R.id.chip_series) {
+                currentCategory = "Series";
+            } else if (checkedId == R.id.chip_movies) {
+                currentCategory = "Movie"; // Match DB type
+            } else {
+                currentCategory = "All";
+            }
+            updateChipAppearance(group, checkedId);
+            applyFilters();
+        });
+
+        btnFilter.setOnClickListener(this::showSortMenu);
+    }
+
+    private void updateChipAppearance(ChipGroup group, int checkedId) {
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            if (child instanceof Chip) {
+                Chip chip = (Chip) child;
+                if (chip.getId() == checkedId) {
+                    chip.setChipBackgroundColorResource(R.color.accent_blue);
+                    chip.setTextColor(getResources().getColor(R.color.white));
+                } else {
+                    chip.setChipBackgroundColorResource(R.color.chip_unselected_bg);
+                    chip.setTextColor(getResources().getColor(R.color.chip_unselected_text));
+                }
+            }
+        }
+    }
+
+    private void showSortMenu(View v) {
+        PopupMenu popup = new PopupMenu(requireContext(), v);
+        
+        popup.getMenu().add(0, R.id.sort_title_asc, 0, "Title (A-Z)");
+        popup.getMenu().add(0, R.id.sort_title_desc, 1, "Title (Z-A)");
+        popup.getMenu().add(0, R.id.sort_rating_desc, 2, "Highest Rating");
+        popup.getMenu().add(0, R.id.sort_newest, 3, "Newest Added");
+
+        popup.setOnMenuItemClickListener(item -> {
+            currentSortId = item.getItemId();
+            applyFilters();
+            return true;
+        });
+        popup.show();
+    }
+
+    private void applyFilters() {
+        filteredItems.clear();
+        for (MediaItem item : allMediaItems) {
+            boolean matchesCategory;
+            if (currentCategory.equals("All")) {
+                matchesCategory = true;
+            } else if (currentCategory.equals("Book")) {
+                // If "Books" chip is selected, maybe we want both Book and Manga
+                matchesCategory = item.getType().equalsIgnoreCase("Book") || item.getType().equalsIgnoreCase("Manga");
+            } else {
+                matchesCategory = item.getType().equalsIgnoreCase(currentCategory);
+            }
+
+            boolean matchesSearch = item.getTitle().toLowerCase().contains(currentSearchQuery) ||
+                    (item.getGenre() != null && item.getGenre().toLowerCase().contains(currentSearchQuery));
+
+            if (matchesCategory && matchesSearch) {
+                filteredItems.add(item);
+            }
+        }
+
+        sortFilteredItems();
+        adapter.notifyDataSetChanged();
+
+        if (filteredItems.isEmpty()) {
+            emptyState.setVisibility(View.VISIBLE);
+            recyclerView.setVisibility(View.GONE);
+        } else {
+            emptyState.setVisibility(View.GONE);
+            recyclerView.setVisibility(View.VISIBLE);
+        }
+    }
+
+    private void sortFilteredItems() {
+        if (currentSortId == R.id.sort_title_asc) {
+            Collections.sort(filteredItems, (o1, o2) -> o1.getTitle().compareToIgnoreCase(o2.getTitle()));
+        } else if (currentSortId == R.id.sort_title_desc) {
+            Collections.sort(filteredItems, (o1, o2) -> o2.getTitle().compareToIgnoreCase(o1.getTitle()));
+        } else if (currentSortId == R.id.sort_rating_desc) {
+            Collections.sort(filteredItems, (o1, o2) -> Float.compare(o2.getRating(), o1.getRating()));
+        } else if (currentSortId == R.id.sort_newest) {
+            Collections.sort(filteredItems, (o1, o2) -> Integer.compare(o2.getId(), o1.getId()));
+        }
+    }
+
     private void refreshLibrary() {
-        mediaItems.clear();
+        allMediaItems.clear();
         Cursor cursor = dbHelper.getAllMedia();
         if (cursor != null) {
             if (cursor.moveToFirst()) {
@@ -96,12 +224,12 @@ public class LibraryFragment extends Fragment {
                     String cover = coverIndex != -1 ? cursor.getString(coverIndex) : null;
                     float rating = ratingIndex != -1 ? cursor.getFloat(ratingIndex) : 0f;
 
-                    mediaItems.add(new MediaItem(id, title, type, genre, status, progress, capacity, unit, cover, rating));
+                    allMediaItems.add(new MediaItem(id, title, type, genre, status, progress, capacity, unit, cover, rating));
                 } while (cursor.moveToNext());
             }
             cursor.close();
         }
-        adapter.notifyDataSetChanged();
+        applyFilters();
     }
 
     @Override

@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -52,30 +53,70 @@ public class HomeFragment extends Fragment {
         
         updateOverviewStats();
         setupNavigation(view);
-        setupRecentClickListeners();
+        setupRecentActivities();
         
         return view;
     }
 
-    private void setupRecentClickListeners() {
-        View.OnClickListener listener = v -> {
-            Cursor cursor = dbHelper.getAllMedia();
-            if (cursor != null && cursor.moveToFirst()) {
-                int id = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_ID));
-                cursor.close();
-                
-                Intent intent = new Intent(requireContext(), DescriptionActivity.class);
-                intent.putExtra(DescriptionActivity.EXTRA_MEDIA_ID, id);
-                startActivity(intent);
-            } else {
-                Toast.makeText(requireContext(), "No media in library yet!", Toast.LENGTH_SHORT).show();
-            }
-        };
+    private void setupRecentActivities() {
+        Cursor cursor = dbHelper.getAllMedia();
+        View[] items = {recentItem1, recentItem2, recentItem3, recentItem4};
+        
+        // Hide all initially
+        for (View item : items) item.setVisibility(View.GONE);
 
-        recentItem1.setOnClickListener(listener);
-        recentItem2.setOnClickListener(listener);
-        recentItem3.setOnClickListener(listener);
-        recentItem4.setOnClickListener(listener);
+        if (cursor != null) {
+            int count = 0;
+            if (cursor.moveToFirst()) {
+                int idIndex = cursor.getColumnIndex(DatabaseHelper.COL_ID);
+                int titleIndex = cursor.getColumnIndex(DatabaseHelper.COL_TITLE);
+                int typeIndex = cursor.getColumnIndex(DatabaseHelper.COL_MEDIA_TYPE);
+                int progressIndex = cursor.getColumnIndex(DatabaseHelper.COL_CURRENT_PROGRESS);
+                int totalIndex = cursor.getColumnIndex(DatabaseHelper.COL_TOTAL_COUNT);
+
+                do {
+                    if (count >= 4) break;
+                    
+                    View itemView = items[count];
+                    itemView.setVisibility(View.VISIBLE);
+                    
+                    int id = cursor.getInt(idIndex);
+                    String title = cursor.getString(titleIndex);
+                    String type = cursor.getString(typeIndex);
+                    int progress = cursor.getInt(progressIndex);
+                    int total = cursor.getInt(totalIndex);
+                    
+                    TextView tvTitle = itemView.findViewById(R.id.tv_title);
+                    TextView tvSubtitle = itemView.findViewById(R.id.tv_subtitle);
+                    TextView tvPercent = itemView.findViewById(R.id.tv_progress_percentage);
+                    ProgressBar progressBar = itemView.findViewById(R.id.progress_bar);
+                    
+                    if (tvTitle != null) tvTitle.setText(title);
+                    if (tvSubtitle != null) tvSubtitle.setText(type);
+                    if (total > 0) {
+                        int percent = (int) ((progress / (float) total) * 100);
+                        if (tvPercent != null) tvPercent.setText(percent + "%");
+                        if (progressBar != null) {
+                            progressBar.setMax(total);
+                            progressBar.setProgress(progress);
+                        }
+                    }
+
+                    itemView.setOnClickListener(v -> {
+                        Intent intent = new Intent(requireContext(), DescriptionActivity.class);
+                        intent.putExtra(DescriptionActivity.EXTRA_MEDIA_ID, id);
+                        startActivity(intent);
+                    });
+
+                    count++;
+                } while (cursor.moveToNext());
+            }
+            cursor.close();
+        }
+    }
+
+    private void setupRecentClickListeners() {
+        // Method replaced by setupRecentActivities for real data
     }
 
     private void updateOverviewStats() {

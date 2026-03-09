@@ -87,12 +87,12 @@ public class EditMediaActivity extends AppCompatActivity {
             etTitle.setText(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_TITLE)));
             etGenre.setText(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_GENRE)));
             etReview.setText(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_REVIEW)));
-            etProgress.setText(String.valueOf(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_PROGRESS))));
-            etTotal.setText(String.valueOf(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_CAPACITY))));
+            etProgress.setText(String.valueOf(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_CURRENT_PROGRESS))));
+            etTotal.setText(String.valueOf(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_TOTAL_COUNT))));
             rbRating.setRating(cursor.getFloat(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_RATING)));
-            coverPath = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_COVER));
+            coverPath = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_IMAGE_PATH));
 
-            setSpinnerToValue(spinnerType, cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_TYPE)));
+            setSpinnerToValue(spinnerType, cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_MEDIA_TYPE)));
             setSpinnerToValue(spinnerStatus, cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_STATUS)));
             setSpinnerToValue(spinnerUnit, cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_UNIT)));
 

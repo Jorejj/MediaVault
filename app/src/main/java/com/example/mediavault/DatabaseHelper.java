@@ -10,57 +10,93 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     // Database Information
     private static final String DATABASE_NAME = "MediaVault.db";
-    private static final int DATABASE_VERSION = 3; 
+    private static final int DATABASE_VERSION = 6; // Incremented for schema fixes and review column
     public static final String TABLE_MEDIA = "media_library";
+    public static final String TABLE_PROGRESS_LOG = "progress_log";
 
-    // Column Constants
-    public static final String COL_ID = "media_id";
+    // Column Constants for media_library
+    public static final String COL_ID = "id";
+    public static final String COL_API_ID = "api_id";
     public static final String COL_TITLE = "title";
-    public static final String COL_TYPE = "media_type";
+    public static final String COL_DESCRIPTION = "description";
+    public static final String COL_CREATOR = "creator";
+    public static final String COL_MEDIA_TYPE = "media_type";
     public static final String COL_GENRE = "genre";
-    public static final String COL_STATUS = "status";
-    public static final String COL_PROGRESS = "current_progress";
-    public static final String COL_CAPACITY = "total_capacity";
+    public static final String COL_IMAGE_PATH = "image_path";
+    public static final String COL_CURRENT_PROGRESS = "current_progress";
+    public static final String COL_TOTAL_COUNT = "total_count";
     public static final String COL_UNIT = "capacity_unit";
-    public static final String COL_COVER = "cover_image_path";
+    public static final String COL_RUNTIME = "runtime";
+    public static final String COL_STATUS = "status";
     public static final String COL_RATING = "user_rating";
     public static final String COL_REVIEW = "personal_review";
     public static final String COL_DATE_ADDED = "date_added";
-    public static final String COL_DATE_MODIFIED = "date_modified";
+    public static final String COL_LAST_UPDATED = "last_updated";
+    public static final String COL_IS_FAVORITE = "is_favorite";
+
+    // Column Constants for progress_log
+    public static final String COL_LOG_ID = "log_id";
+    public static final String COL_LOG_MEDIA_ID = "media_id";
+    public static final String COL_PROGRESS_ADDED = "progress_added";
+    public static final String COL_LOG_DATE = "log_date";
 
     public DatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }
 
     @Override
+    public void onConfigure(SQLiteDatabase db) {
+        super.onConfigure(db);
+        db.setForeignKeyConstraintsEnabled(true);
+    }
+
+    @Override
     public void onCreate(SQLiteDatabase db) {
-        String createTable = "CREATE TABLE " + TABLE_MEDIA + " (" +
+        // Create media_library table
+        String createMediaTable = "CREATE TABLE " + TABLE_MEDIA + " (" +
                 COL_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                COL_API_ID + " TEXT, " +
                 COL_TITLE + " TEXT NOT NULL, " +
-                COL_TYPE + " TEXT NOT NULL, " +
+                COL_DESCRIPTION + " TEXT, " +
+                COL_CREATOR + " TEXT, " +
+                COL_MEDIA_TYPE + " TEXT NOT NULL, " +
                 COL_GENRE + " TEXT, " +
-                COL_STATUS + " TEXT DEFAULT 'Planning', " +
-                COL_PROGRESS + " INTEGER DEFAULT 0, " +
-                COL_CAPACITY + " INTEGER NOT NULL, " +
+                COL_IMAGE_PATH + " TEXT, " +
+                COL_CURRENT_PROGRESS + " INTEGER DEFAULT 0, " +
+                COL_TOTAL_COUNT + " INTEGER NOT NULL, " +
                 COL_UNIT + " TEXT NOT NULL, " +
-                COL_COVER + " TEXT, " +
+                COL_RUNTIME + " TEXT, " +
+                COL_STATUS + " TEXT DEFAULT 'Planning', " +
                 COL_RATING + " REAL DEFAULT 0.0, " +
                 COL_REVIEW + " TEXT, " +
-                COL_DATE_ADDED + " TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
-                COL_DATE_MODIFIED + " TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
+                COL_DATE_ADDED + " DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+                COL_LAST_UPDATED + " DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+                COL_IS_FAVORITE + " INTEGER DEFAULT 0, " +
                 "CONSTRAINT unique_title UNIQUE (" + COL_TITLE + "), " +
                 "CONSTRAINT check_status CHECK (" + COL_STATUS + " IN ('Ongoing', 'Completed', 'Planning', 'Dropped')), " +
                 "CONSTRAINT check_capacity_unit CHECK (" + COL_UNIT + " IN ('Pages', 'Episodes', 'Minutes', 'Chapters')), " +
                 "CONSTRAINT check_user_rating CHECK (" + COL_RATING + " >= 0.0 AND " + COL_RATING + " <= 5.0), " +
-                "CONSTRAINT check_total_capacity CHECK (" + COL_CAPACITY + " > 0), " +
-                "CONSTRAINT check_progress CHECK (" + COL_PROGRESS + " >= 0 AND " + COL_PROGRESS + " <= " + COL_CAPACITY + "))";
+                "CONSTRAINT check_total_capacity CHECK (" + COL_TOTAL_COUNT + " > 0), " +
+                "CONSTRAINT check_current_progress CHECK (" + COL_CURRENT_PROGRESS + " >= 0 AND " + COL_CURRENT_PROGRESS + " <= " + COL_TOTAL_COUNT + "), " +
+                "CONSTRAINT check_image_path CHECK (" + COL_IMAGE_PATH + " IS NULL OR " + COL_IMAGE_PATH + " != ''))";
         
-        db.execSQL(createTable);
+        db.execSQL(createMediaTable);
 
+        // Create progress_log table for metrics
+        String createLogTable = "CREATE TABLE " + TABLE_PROGRESS_LOG + " (" +
+                COL_LOG_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                COL_LOG_MEDIA_ID + " INTEGER NOT NULL, " +
+                COL_PROGRESS_ADDED + " INTEGER NOT NULL, " +
+                COL_LOG_DATE + " DATE DEFAULT (date('now', 'localtime')), " +
+                "FOREIGN KEY (" + COL_LOG_MEDIA_ID + ") REFERENCES " + TABLE_MEDIA + "(" + COL_ID + ") ON DELETE CASCADE)";
+        
+        db.execSQL(createLogTable);
+
+        // Automated Trigger for last_updated
         String createTrigger = "CREATE TRIGGER update_media_modtime " +
                 "AFTER UPDATE ON " + TABLE_MEDIA + " " +
                 "FOR EACH ROW BEGIN " +
-                "UPDATE " + TABLE_MEDIA + " SET " + COL_DATE_MODIFIED + " = CURRENT_TIMESTAMP " +
+                "UPDATE " + TABLE_MEDIA + " SET " + COL_LAST_UPDATED + " = CURRENT_TIMESTAMP " +
                 "WHERE " + COL_ID + " = OLD." + COL_ID + "; END;";
         
         db.execSQL(createTrigger);
@@ -68,20 +104,35 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        if (oldVersion < 3) {
-            db.execSQL("ALTER TABLE " + TABLE_MEDIA + " ADD COLUMN " + COL_REVIEW + " TEXT");
+        if (oldVersion < 6) {
+            // Check if review column exists, if not add it
+            Cursor cursor = db.rawQuery("PRAGMA table_info(" + TABLE_MEDIA + ")", null);
+            boolean hasReview = false;
+            while (cursor.moveToNext()) {
+                if (COL_REVIEW.equals(cursor.getString(1))) {
+                    hasReview = true;
+                    break;
+                }
+            }
+            cursor.close();
+            if (!hasReview) {
+                db.execSQL("ALTER TABLE " + TABLE_MEDIA + " ADD COLUMN " + COL_REVIEW + " TEXT");
+            }
         }
     }
 
-    public long addMedia(String title, String type, String genre, int capacity, String unit, String coverPath) {
+    // --- CRUD OPERATIONS ---
+    public long addMedia(String title, String type, String genre, String creator, int totalCount, String unit, String runtime, String imagePath) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COL_TITLE, title);
-        values.put(COL_TYPE, type);
+        values.put(COL_MEDIA_TYPE, type);
         values.put(COL_GENRE, genre);
-        values.put(COL_CAPACITY, capacity);
+        values.put(COL_CREATOR, creator);
+        values.put(COL_TOTAL_COUNT, totalCount);
         values.put(COL_UNIT, unit);
-        values.put(COL_COVER, coverPath);
+        values.put(COL_RUNTIME, runtime);
+        values.put(COL_IMAGE_PATH, imagePath);
         long result = db.insert(TABLE_MEDIA, null, values);
         db.close();
         return result;
@@ -89,7 +140,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     public Cursor getAllMedia() {
         SQLiteDatabase db = this.getReadableDatabase();
-        return db.rawQuery("SELECT * FROM " + TABLE_MEDIA + " ORDER BY " + COL_DATE_MODIFIED + " DESC", null);
+        return db.rawQuery("SELECT * FROM " + TABLE_MEDIA + " ORDER BY " + COL_LAST_UPDATED + " DESC", null);
     }
 
     public Cursor getMediaById(int id) {
@@ -97,17 +148,17 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return db.rawQuery("SELECT * FROM " + TABLE_MEDIA + " WHERE " + COL_ID + " = ?", new String[]{String.valueOf(id)});
     }
 
-    public boolean updateMedia(int id, String title, String type, String genre, String status, int progress, int capacity, String unit, String coverPath, float rating, String review) {
+    public boolean updateMedia(int id, String title, String type, String genre, String status, int progress, int total, String unit, String imagePath, float rating, String review) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COL_TITLE, title);
-        values.put(COL_TYPE, type);
+        values.put(COL_MEDIA_TYPE, type);
         values.put(COL_GENRE, genre);
         values.put(COL_STATUS, status);
-        values.put(COL_PROGRESS, progress);
-        values.put(COL_CAPACITY, capacity);
+        values.put(COL_CURRENT_PROGRESS, progress);
+        values.put(COL_TOTAL_COUNT, total);
         values.put(COL_UNIT, unit);
-        values.put(COL_COVER, coverPath);
+        values.put(COL_IMAGE_PATH, imagePath);
         values.put(COL_RATING, rating);
         values.put(COL_REVIEW, review);
         int result = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(id)});
@@ -117,11 +168,35 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     public boolean updateProgress(int id, int newProgress, String newStatus, float newRating) {
         SQLiteDatabase db = this.getWritableDatabase();
+        
+        // 1. Get old progress to calculate delta
+        int oldProgress = 0;
+        Cursor cursor = db.query(TABLE_MEDIA, new String[]{COL_CURRENT_PROGRESS}, 
+                COL_ID + "=?", new String[]{String.valueOf(id)}, null, null, null);
+        if (cursor != null) {
+            if (cursor.moveToFirst()) {
+                oldProgress = cursor.getInt(0);
+            }
+            cursor.close();
+        }
+
+        int progressAdded = newProgress - oldProgress;
+
+        // 2. If progress increased, log it for dashboard metrics
+        if (progressAdded > 0) {
+            ContentValues logValues = new ContentValues();
+            logValues.put(COL_LOG_MEDIA_ID, id);
+            logValues.put(COL_PROGRESS_ADDED, progressAdded);
+            db.insert(TABLE_PROGRESS_LOG, null, logValues);
+        }
+
+        // 3. Update the main media table
         ContentValues values = new ContentValues();
-        values.put(COL_PROGRESS, newProgress);
+        values.put(COL_CURRENT_PROGRESS, newProgress);
         values.put(COL_STATUS, newStatus);
         values.put(COL_RATING, newRating);
         int result = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(id)});
+        
         db.close();
         return result > 0;
     }
@@ -133,15 +208,55 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return result > 0;
     }
 
-    // --- METRICS METHODS ---
+    // --- DASHBOARD METRICS QUERIES ---
 
-    public int getCompletedCountByType(String type) {
+    public int getDailyPages() {
+        return getProgressSum(COL_UNIT + " = 'Pages'", "date('now', 'localtime')");
+    }
+
+    public int getWeeklyPages() {
+        return getProgressSum(COL_UNIT + " = 'Pages'", "date('now', 'localtime', '-7 days')");
+    }
+
+    public int getDailyMinutes() {
+        return getProgressSum(COL_UNIT + " = 'Minutes'", "date('now', 'localtime')");
+    }
+
+    public int getWeeklyMinutes() {
+        return getProgressSum(COL_UNIT + " = 'Minutes'", "date('now', 'localtime', '-7 days')");
+    }
+
+    private int getProgressSum(String unitFilter, String dateFilter) {
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + TABLE_MEDIA + " WHERE " + COL_TYPE + " = ? AND " + COL_STATUS + " = 'Completed'", new String[]{type});
-        int count = 0;
-        if (cursor.moveToFirst()) count = cursor.getInt(0);
+        String query = "SELECT SUM(l." + COL_PROGRESS_ADDED + ") FROM " + TABLE_PROGRESS_LOG + " l " +
+                "JOIN " + TABLE_MEDIA + " m ON l." + COL_LOG_MEDIA_ID + " = m." + COL_ID + " " +
+                "WHERE m." + unitFilter + " AND l." + COL_LOG_DATE + " >= " + dateFilter;
+        
+        Cursor cursor = db.rawQuery(query, null);
+        int total = 0;
+        if (cursor.moveToFirst()) {
+            total = cursor.getInt(0);
+        }
         cursor.close();
-        return count;
+        return total;
+    }
+
+    public int getTotalMinutesWatched() {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT SUM(" + COL_CURRENT_PROGRESS + ") FROM " + TABLE_MEDIA + " WHERE " + COL_UNIT + " = 'Minutes'", null);
+        int total = 0;
+        if (cursor.moveToFirst()) total = cursor.getInt(0);
+        cursor.close();
+        return total;
+    }
+
+    public int getTotalPagesRead() {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT SUM(" + COL_CURRENT_PROGRESS + ") FROM " + TABLE_MEDIA + " WHERE " + COL_UNIT + " = 'Pages'", null);
+        int total = 0;
+        if (cursor.moveToFirst()) total = cursor.getInt(0);
+        cursor.close();
+        return total;
     }
 
     public int getStatusCount(String status) {
@@ -162,10 +277,19 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return avg;
     }
 
+    public int getCompletedCountByType(String type) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + TABLE_MEDIA + " WHERE " + COL_MEDIA_TYPE + " = ? AND " + COL_STATUS + " = 'Completed'", new String[]{type});
+        int count = 0;
+        if (cursor.moveToFirst()) count = cursor.getInt(0);
+        cursor.close();
+        return count;
+    }
+
     public String getTopGenre() {
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT " + COL_GENRE + ", COUNT(" + COL_GENRE + ") as count FROM " + TABLE_MEDIA + " GROUP BY " + COL_GENRE + " ORDER BY count DESC LIMIT 1", null);
-        String genre = "-";
+        Cursor cursor = db.rawQuery("SELECT " + COL_GENRE + ", COUNT(*) as count FROM " + TABLE_MEDIA + " GROUP BY " + COL_GENRE + " ORDER BY count DESC LIMIT 1", null);
+        String genre = "N/A";
         if (cursor.moveToFirst()) genre = cursor.getString(0);
         cursor.close();
         return genre;
@@ -173,33 +297,16 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     public int getTotalCountByType(String type) {
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + TABLE_MEDIA + " WHERE " + COL_TYPE + " = ?", new String[]{type});
+        Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + TABLE_MEDIA + " WHERE " + COL_MEDIA_TYPE + " = ?", new String[]{type});
         int count = 0;
         if (cursor.moveToFirst()) count = cursor.getInt(0);
         cursor.close();
         return count;
     }
 
-    public int getTotalPagesRead() {
-        SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT SUM(" + COL_PROGRESS + ") FROM " + TABLE_MEDIA + " WHERE " + COL_UNIT + " = 'Pages'", null);
-        int total = 0;
-        if (cursor.moveToFirst()) total = cursor.getInt(0);
-        cursor.close();
-        return total;
-    }
-
-    public int getTotalMinutesWatched() {
-        SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT SUM(" + COL_PROGRESS + ") FROM " + TABLE_MEDIA + " WHERE " + COL_UNIT + " = 'Minutes'", null);
-        int total = 0;
-        if (cursor.moveToFirst()) total = cursor.getInt(0);
-        cursor.close();
-        return total;
-    }
-
     public void clearAllMedia() {
         SQLiteDatabase db = this.getWritableDatabase();
+        db.execSQL("DELETE FROM " + TABLE_PROGRESS_LOG);
         db.execSQL("DELETE FROM " + TABLE_MEDIA);
         db.close();
     }

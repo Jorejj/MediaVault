@@ -32,9 +32,9 @@ public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHol
     @Override
     public void onBindViewHolder(@NonNull MediaViewHolder holder, int position) {
         MediaItem item = mediaItems.get(position);
-        holder.title.setText(item.getTitle());
-        holder.subtitle.setText(item.getSubtitle());
-        holder.rating.setText(item.getRatingString());
+        if (holder.title != null) holder.title.setText(item.getTitle() != null ? item.getTitle() : "Unknown");
+        if (holder.subtitle != null) holder.subtitle.setText(item.getSubtitle() != null ? item.getSubtitle() : "");
+        if (holder.rating != null) holder.rating.setText(item.getRatingString());
         
         holder.itemView.setOnClickListener(v -> {
             Intent intent = new Intent(v.getContext(), DescriptionActivity.class);

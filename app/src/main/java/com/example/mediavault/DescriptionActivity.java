@@ -201,28 +201,42 @@ public class DescriptionActivity extends AppCompatActivity {
 
     private void loadMediaData() {
         Cursor cursor = dbHelper.getMediaById(mediaId);
-        if (cursor != null && cursor.moveToFirst()) {
-            mediaTitle = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_TITLE));
-            String type = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_TYPE));
-            String genre = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_GENRE));
-            String status = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_STATUS));
-            String review = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_REVIEW));
-            int progress = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_PROGRESS));
-            int capacity = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_CAPACITY));
-            String unit = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_UNIT));
-            float rating = cursor.getFloat(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_RATING));
+        if (cursor != null) {
+            if (cursor.moveToFirst()) {
+                int titleIndex = cursor.getColumnIndex(DatabaseHelper.COL_TITLE);
+                int typeIndex = cursor.getColumnIndex(DatabaseHelper.COL_MEDIA_TYPE);
+                int genreIndex = cursor.getColumnIndex(DatabaseHelper.COL_GENRE);
+                int statusIndex = cursor.getColumnIndex(DatabaseHelper.COL_STATUS);
+                int reviewIndex = cursor.getColumnIndex(DatabaseHelper.COL_REVIEW);
+                int progressIndex = cursor.getColumnIndex(DatabaseHelper.COL_CURRENT_PROGRESS);
+                int capacityIndex = cursor.getColumnIndex(DatabaseHelper.COL_TOTAL_COUNT);
+                int unitIndex = cursor.getColumnIndex(DatabaseHelper.COL_UNIT);
+                int ratingIndex = cursor.getColumnIndex(DatabaseHelper.COL_RATING);
 
-            tvTitle.setText(mediaTitle);
-            collapsingToolbar.setTitle(mediaTitle);
-            tvType.setText(type.toUpperCase());
-            tvGenre.setText(genre);
-            tvStatus.setText(status);
-            tvProgressText.setText(progress + " / " + capacity + " " + unit);
-            tvMyReview.setText(review != null && !review.isEmpty() ? review : "No personal review yet.");
-            pbProgress.setMax(capacity);
-            pbProgress.setProgress(progress);
-            rbRating.setRating(rating);
-            
+                mediaTitle = titleIndex != -1 ? cursor.getString(titleIndex) : "Unknown";
+                String type = typeIndex != -1 ? cursor.getString(typeIndex) : "N/A";
+                String genre = genreIndex != -1 ? cursor.getString(genreIndex) : "";
+                String status = statusIndex != -1 ? cursor.getString(statusIndex) : "Planning";
+                String review = reviewIndex != -1 ? cursor.getString(reviewIndex) : "";
+                int progress = progressIndex != -1 ? cursor.getInt(progressIndex) : 0;
+                int capacity = capacityIndex != -1 ? cursor.getInt(capacityIndex) : 0;
+                String unit = unitIndex != -1 ? cursor.getString(unitIndex) : "";
+                float rating = ratingIndex != -1 ? cursor.getFloat(ratingIndex) : 0f;
+
+                tvTitle.setText(mediaTitle);
+                collapsingToolbar.setTitle(mediaTitle);
+                tvType.setText(type.toUpperCase());
+                tvGenre.setText(genre);
+                tvStatus.setText(status);
+                tvProgressText.setText(progress + " / " + capacity + " " + unit);
+                tvMyReview.setText(review != null && !review.isEmpty() ? review : "No personal review yet.");
+                pbProgress.setMax(capacity > 0 ? capacity : 100);
+                pbProgress.setProgress(progress);
+                rbRating.setRating(rating);
+            } else {
+                Toast.makeText(this, "Error: Media record not found", Toast.LENGTH_SHORT).show();
+                finish();
+            }
             cursor.close();
         } else {
             Toast.makeText(this, "Error: Could not load media", Toast.LENGTH_SHORT).show();

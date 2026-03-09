@@ -58,21 +58,34 @@ public class LibraryFragment extends Fragment {
     private void refreshLibrary() {
         mediaItems.clear();
         Cursor cursor = dbHelper.getAllMedia();
-        if (cursor != null && cursor.moveToFirst()) {
-            do {
-                int id = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_ID));
-                String title = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_TITLE));
-                String type = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_TYPE));
-                String genre = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_GENRE));
-                String status = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_STATUS));
-                int progress = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_PROGRESS));
-                int capacity = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_CAPACITY));
-                String unit = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_UNIT));
-                String cover = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_COVER));
-                float rating = cursor.getFloat(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_RATING));
+        if (cursor != null) {
+            if (cursor.moveToFirst()) {
+                int idIndex = cursor.getColumnIndex(DatabaseHelper.COL_ID);
+                int titleIndex = cursor.getColumnIndex(DatabaseHelper.COL_TITLE);
+                int typeIndex = cursor.getColumnIndex(DatabaseHelper.COL_MEDIA_TYPE);
+                int genreIndex = cursor.getColumnIndex(DatabaseHelper.COL_GENRE);
+                int statusIndex = cursor.getColumnIndex(DatabaseHelper.COL_STATUS);
+                int progressIndex = cursor.getColumnIndex(DatabaseHelper.COL_CURRENT_PROGRESS);
+                int capacityIndex = cursor.getColumnIndex(DatabaseHelper.COL_TOTAL_COUNT);
+                int unitIndex = cursor.getColumnIndex(DatabaseHelper.COL_UNIT);
+                int coverIndex = cursor.getColumnIndex(DatabaseHelper.COL_IMAGE_PATH);
+                int ratingIndex = cursor.getColumnIndex(DatabaseHelper.COL_RATING);
 
-                mediaItems.add(new MediaItem(id, title, type, genre, status, progress, capacity, unit, cover, rating));
-            } while (cursor.moveToNext());
+                do {
+                    int id = idIndex != -1 ? cursor.getInt(idIndex) : -1;
+                    String title = titleIndex != -1 ? cursor.getString(titleIndex) : "Unknown";
+                    String type = typeIndex != -1 ? cursor.getString(typeIndex) : "N/A";
+                    String genre = genreIndex != -1 ? cursor.getString(genreIndex) : "";
+                    String status = statusIndex != -1 ? cursor.getString(statusIndex) : "Planning";
+                    int progress = progressIndex != -1 ? cursor.getInt(progressIndex) : 0;
+                    int capacity = capacityIndex != -1 ? cursor.getInt(capacityIndex) : 0;
+                    String unit = unitIndex != -1 ? cursor.getString(unitIndex) : "";
+                    String cover = coverIndex != -1 ? cursor.getString(coverIndex) : null;
+                    float rating = ratingIndex != -1 ? cursor.getFloat(ratingIndex) : 0f;
+
+                    mediaItems.add(new MediaItem(id, title, type, genre, status, progress, capacity, unit, cover, rating));
+                } while (cursor.moveToNext());
+            }
             cursor.close();
         }
         adapter.notifyDataSetChanged();

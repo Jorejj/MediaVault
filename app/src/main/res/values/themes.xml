@@ -17,5 +17,8 @@
         <item name="android:windowBackground">@color/bg_main</item>
         <item name="colorCardBackground">@color/bg_card</item>
         <item name="colorBottomNav">@color/nav_bg</item>
+        <item name="colorTextPrimary">@color/text_primary</item>
+        <item name="colorTextSecondary">@color/grey_600</item>
+        <item name="colorIconTint">@color/black</item>
     </style>
 </resources>

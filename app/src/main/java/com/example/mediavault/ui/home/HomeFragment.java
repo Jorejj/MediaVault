@@ -24,7 +24,7 @@ import java.util.Locale;
 
 public class HomeFragment extends Fragment {
 
-    private TextView tvWatchTime, tvPagesRead, tvOngoingItems, tvAvgRating;
+    private TextView tvWatchTime, tvPagesRead, tvEpisodesWatched, tvOngoingItems, tvAvgRating;
     private TextView tvViewDetailedStats;
     private MaterialButton btnAnalyzeHabits;
     private DatabaseHelper dbHelper;
@@ -40,6 +40,7 @@ public class HomeFragment extends Fragment {
         // Initialize TextViews
         tvWatchTime = view.findViewById(R.id.tv_watch_time);
         tvPagesRead = view.findViewById(R.id.tv_pages_read);
+        tvEpisodesWatched = view.findViewById(R.id.tv_episodes_watched);
         tvOngoingItems = view.findViewById(R.id.tv_ongoing_items);
         tvAvgRating = view.findViewById(R.id.tv_avg_rating);
         tvViewDetailedStats = view.findViewById(R.id.tv_view_detailed_stats);
@@ -115,10 +116,6 @@ public class HomeFragment extends Fragment {
         }
     }
 
-    private void setupRecentClickListeners() {
-        // Method replaced by setupRecentActivities for real data
-    }
-
     private void updateOverviewStats() {
         // Watch Time (Minutes to Hours)
         int totalMinutes = dbHelper.getTotalMinutesWatched();
@@ -128,6 +125,10 @@ public class HomeFragment extends Fragment {
         // Pages Read
         int totalPages = dbHelper.getTotalPagesRead();
         tvPagesRead.setText(String.valueOf(totalPages));
+
+        // Episodes Watched
+        int totalEpisodes = dbHelper.getTotalEpisodesWatched();
+        tvEpisodesWatched.setText(String.valueOf(totalEpisodes));
         
         // Ongoing Items
         int ongoingCount = dbHelper.getStatusCount("Ongoing");
@@ -139,17 +140,12 @@ public class HomeFragment extends Fragment {
     }
 
     private void setupNavigation(View view) {
-        // Navigate to Metrics Fragment
         View.OnClickListener toMetrics = v -> {
-            // Using setSelectedItemId ensures the BottomNavigationView selection state
-            // is updated. This allows the user to click back to "Home" in the nav bar
-            // to return here correctly.
             if (getActivity() != null) {
                 BottomNavigationView bottomNav = getActivity().findViewById(R.id.bottom_navigation);
                 if (bottomNav != null) {
                     bottomNav.setSelectedItemId(R.id.nav_metrics);
                 } else {
-                    // Fallback to direct navigation if BottomNav is not found
                     Navigation.findNavController(view).navigate(R.id.nav_metrics);
                 }
             }

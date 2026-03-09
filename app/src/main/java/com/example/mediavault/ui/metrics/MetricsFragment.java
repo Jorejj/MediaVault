@@ -106,34 +106,33 @@ public class MetricsFragment extends Fragment {
         String[] labels = new String[]{"Daily", "Weekly", "Monthly", "Yearly"};
         String label = labels[position] + " Progress";
 
-        // Aggregate data for Pages and Hours
+        // Aggregate data for Pages, Hours, and Episodes
         int totalPages = dbHelper.getTotalPagesRead();
         float totalHours = dbHelper.getTotalMinutesWatched() / 60f;
+        int totalEpisodes = dbHelper.getTotalEpisodesWatched();
 
-        // Mocking dynamic distribution for visualization based on the selected period
-        // Index 0: Pages, Index 1: Hours
-        if (position == 0) { // Daily
-            entries.add(new BarEntry(0f, totalPages / 30f)); // Average daily pages
-            entries.add(new BarEntry(1f, totalHours / 30f)); // Average daily hours
-        } else if (position == 1) { // Weekly
-            entries.add(new BarEntry(0f, totalPages / 4f)); // Average weekly pages
-            entries.add(new BarEntry(1f, totalHours / 4f)); // Average weekly hours
-        } else if (position == 2) { // Monthly
-            entries.add(new BarEntry(0f, totalPages));
-            entries.add(new BarEntry(1f, totalHours));
-        } else { // Yearly
-            entries.add(new BarEntry(0f, totalPages * 12f)); // Estimated yearly
-            entries.add(new BarEntry(1f, totalHours * 12f)); // Estimated yearly
-        }
+        // Factors for distribution
+        float factor = 1f;
+        if (position == 0) factor = 1/30f; // Daily approx
+        else if (position == 1) factor = 1/4f; // Weekly approx
+        else if (position == 3) factor = 12f; // Yearly approx
+
+        entries.add(new BarEntry(0f, (float) totalPages * factor));
+        entries.add(new BarEntry(1f, totalHours * factor));
+        entries.add(new BarEntry(2f, (float) totalEpisodes * factor));
 
         BarDataSet dataSet = new BarDataSet(entries, label);
-        dataSet.setColor(ContextCompat.getColor(requireContext(), R.color.accent_blue));
+        dataSet.setColors(new int[]{
+                ContextCompat.getColor(requireContext(), R.color.accent_blue),
+                ContextCompat.getColor(requireContext(), R.color.accent_cyan),
+                ContextCompat.getColor(requireContext(), R.color.accent_green)
+        });
         dataSet.setDrawValues(true);
         dataSet.setValueTextColor(Color.GRAY);
         dataSet.setValueTextSize(10f);
 
         BarData barData = new BarData(dataSet);
-        barData.setBarWidth(0.5f);
+        barData.setBarWidth(0.6f);
 
         chartMonthlyActivity.setData(barData);
         chartMonthlyActivity.getDescription().setEnabled(false);
@@ -152,7 +151,7 @@ public class MetricsFragment extends Fragment {
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
         xAxis.setDrawGridLines(false);
         xAxis.setGranularity(1f);
-        xAxis.setValueFormatter(new IndexAxisValueFormatter(new String[]{"Pages", "Hours"}));
+        xAxis.setValueFormatter(new IndexAxisValueFormatter(new String[]{"Pages", "Hours", "Episodes"}));
 
         chartMonthlyActivity.getAxisLeft().setDrawGridLines(false);
         chartMonthlyActivity.getAxisRight().setEnabled(false);
@@ -166,12 +165,14 @@ public class MetricsFragment extends Fragment {
         int anime = dbHelper.getTotalCountByType("Anime");
         int movies = dbHelper.getTotalCountByType("Movie");
         int series = dbHelper.getTotalCountByType("Series");
+        int manga = dbHelper.getTotalCountByType("Manga");
 
         ArrayList<PieEntry> entries = new ArrayList<>();
         if (books > 0) entries.add(new PieEntry(books, "Books"));
         if (anime > 0) entries.add(new PieEntry(anime, "Anime"));
         if (movies > 0) entries.add(new PieEntry(movies, "Movies"));
         if (series > 0) entries.add(new PieEntry(series, "Series"));
+        if (manga > 0) entries.add(new PieEntry(manga, "Manga"));
 
         if (entries.isEmpty()) {
             chartVaultComposition.setNoDataText("No data available in library");
@@ -181,12 +182,13 @@ public class MetricsFragment extends Fragment {
         }
 
         PieDataSet dataSet = new PieDataSet(entries, "");
-        dataSet.setColors(
+        dataSet.setColors(new int[]{
             ContextCompat.getColor(requireContext(), R.color.accent_blue),
             ContextCompat.getColor(requireContext(), R.color.accent_cyan),
             ContextCompat.getColor(requireContext(), R.color.accent_blue_variant),
-            ContextCompat.getColor(requireContext(), R.color.vault_accent_blue)
-        );
+            ContextCompat.getColor(requireContext(), R.color.vault_accent_blue),
+            Color.parseColor("#9C27B0") // Purple for Manga
+        });
         dataSet.setSliceSpace(3f);
         dataSet.setValueTextColor(Color.WHITE);
         dataSet.setValueTextSize(12f);

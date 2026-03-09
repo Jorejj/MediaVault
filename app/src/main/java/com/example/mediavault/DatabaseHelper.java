@@ -12,7 +12,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     // Database Information
     private static final String DATABASE_NAME = "MediaVault.db";
-    private static final int DATABASE_VERSION = 7; // Incremented to ensure upgrade runs
+    private static final int DATABASE_VERSION = 8;
     public static final String TABLE_MEDIA = "media_library";
     public static final String TABLE_PROGRESS_LOG = "progress_log";
 
@@ -108,23 +108,24 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        if (oldVersion < 7) {
+        if (oldVersion < 8) {
             Set<String> columns = getTableColumns(db, TABLE_MEDIA);
             
             if (!columns.contains(COL_REVIEW)) {
                 db.execSQL("ALTER TABLE " + TABLE_MEDIA + " ADD COLUMN " + COL_REVIEW + " TEXT");
             }
             if (!columns.contains(COL_DATE_ADDED)) {
-                db.execSQL("ALTER TABLE " + TABLE_MEDIA + " ADD COLUMN " + COL_DATE_ADDED + " DATETIME DEFAULT CURRENT_TIMESTAMP");
+                db.execSQL("ALTER TABLE " + TABLE_MEDIA + " ADD COLUMN " + COL_DATE_ADDED + " DATETIME");
+                db.execSQL("UPDATE " + TABLE_MEDIA + " SET " + COL_DATE_ADDED + " = CURRENT_TIMESTAMP WHERE " + COL_DATE_ADDED + " IS NULL");
             }
             if (!columns.contains(COL_LAST_UPDATED)) {
-                db.execSQL("ALTER TABLE " + TABLE_MEDIA + " ADD COLUMN " + COL_LAST_UPDATED + " DATETIME DEFAULT CURRENT_TIMESTAMP");
+                db.execSQL("ALTER TABLE " + TABLE_MEDIA + " ADD COLUMN " + COL_LAST_UPDATED + " DATETIME");
+                db.execSQL("UPDATE " + TABLE_MEDIA + " SET " + COL_LAST_UPDATED + " = CURRENT_TIMESTAMP WHERE " + COL_LAST_UPDATED + " IS NULL");
             }
             if (!columns.contains(COL_IS_FAVORITE)) {
                 db.execSQL("ALTER TABLE " + TABLE_MEDIA + " ADD COLUMN " + COL_IS_FAVORITE + " INTEGER DEFAULT 0");
             }
             
-            // Ensure the trigger exists
             createTrigger(db);
         }
     }
@@ -189,7 +190,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public boolean updateProgress(int id, int newProgress, String newStatus, float newRating) {
         SQLiteDatabase db = this.getWritableDatabase();
         
-        // 1. Get old progress to calculate delta
         int oldProgress = 0;
         Cursor cursor = db.query(TABLE_MEDIA, new String[]{COL_CURRENT_PROGRESS}, 
                 COL_ID + "=?", new String[]{String.valueOf(id)}, null, null, null);
@@ -202,7 +202,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
         int progressAdded = newProgress - oldProgress;
 
-        // 2. If progress increased, log it for dashboard metrics
         if (progressAdded > 0) {
             ContentValues logValues = new ContentValues();
             logValues.put(COL_LOG_MEDIA_ID, id);
@@ -210,7 +209,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             db.insert(TABLE_PROGRESS_LOG, null, logValues);
         }
 
-        // 3. Update the main media table
         ContentValues values = new ContentValues();
         values.put(COL_CURRENT_PROGRESS, newProgress);
         values.put(COL_STATUS, newStatus);
@@ -231,26 +229,26 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     // --- DASHBOARD METRICS QUERIES ---
 
     public int getDailyPages() {
-        return getProgressSum(COL_UNIT + " = 'Pages'", "date('now', 'localtime')");
+        return getProgressSum("m." + COL_UNIT + " = 'Pages' OR m." + COL_UNIT + " = 'Chapters'", "date('now', 'localtime')");
     }
 
     public int getWeeklyPages() {
-        return getProgressSum(COL_UNIT + " = 'Pages'", "date('now', 'localtime', '-7 days')");
+        return getProgressSum("m." + COL_UNIT + " = 'Pages' OR m." + COL_UNIT + " = 'Chapters'", "date('now', 'localtime', '-7 days')");
     }
 
     public int getDailyMinutes() {
-        return getProgressSum(COL_UNIT + " = 'Minutes'", "date('now', 'localtime')");
+        return getProgressSum("m." + COL_UNIT + " = 'Minutes' OR m." + COL_UNIT + " = 'Episodes'", "date('now', 'localtime')");
     }
 
     public int getWeeklyMinutes() {
-        return getProgressSum(COL_UNIT + " = 'Minutes'", "date('now', 'localtime', '-7 days')");
+        return getProgressSum("m." + COL_UNIT + " = 'Minutes' OR m." + COL_UNIT + " = 'Episodes'", "date('now', 'localtime', '-7 days')");
     }
 
-    private int getProgressSum(String unitFilter, String dateFilter) {
+    private int getProgressSum(String condition, String dateFilter) {
         SQLiteDatabase db = this.getReadableDatabase();
         String query = "SELECT SUM(l." + COL_PROGRESS_ADDED + ") FROM " + TABLE_PROGRESS_LOG + " l " +
                 "JOIN " + TABLE_MEDIA + " m ON l." + COL_LOG_MEDIA_ID + " = m." + COL_ID + " " +
-                "WHERE m." + unitFilter + " AND l." + COL_LOG_DATE + " >= " + dateFilter;
+                "WHERE (" + condition + ") AND l." + COL_LOG_DATE + " >= " + dateFilter;
         
         Cursor cursor = db.rawQuery(query, null);
         int total = 0;
@@ -263,7 +261,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     public int getTotalMinutesWatched() {
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT SUM(" + COL_CURRENT_PROGRESS + ") FROM " + TABLE_MEDIA + " WHERE " + COL_UNIT + " = 'Minutes'", null);
+        String query = "SELECT " +
+                "SUM(CASE " +
+                "  WHEN " + COL_UNIT + " = 'Minutes' THEN " + COL_CURRENT_PROGRESS + " " +
+                "  WHEN " + COL_UNIT + " = 'Episodes' THEN " + COL_CURRENT_PROGRESS + " * 24 " +
+                "  WHEN (" + COL_MEDIA_TYPE + " = 'Movie' OR " + COL_MEDIA_TYPE + " = 'Series') AND " + COL_UNIT + " NOT IN ('Minutes', 'Episodes') THEN " + COL_CURRENT_PROGRESS + " * 120 " +
+                "  ELSE 0 END) " +
+                "FROM " + TABLE_MEDIA;
+        
+        Cursor cursor = db.rawQuery(query, null);
         int total = 0;
         if (cursor.moveToFirst()) total = cursor.getInt(0);
         cursor.close();
@@ -272,7 +278,17 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     public int getTotalPagesRead() {
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT SUM(" + COL_CURRENT_PROGRESS + ") FROM " + TABLE_MEDIA + " WHERE " + COL_UNIT + " = 'Pages'", null);
+        // Explicitly only count Pages and Chapters, or Book/Manga types
+        Cursor cursor = db.rawQuery("SELECT SUM(" + COL_CURRENT_PROGRESS + ") FROM " + TABLE_MEDIA + " WHERE " + COL_UNIT + " IN ('Pages', 'Chapters')", null);
+        int total = 0;
+        if (cursor.moveToFirst()) total = cursor.getInt(0);
+        cursor.close();
+        return total;
+    }
+
+    public int getTotalEpisodesWatched() {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT SUM(" + COL_CURRENT_PROGRESS + ") FROM " + TABLE_MEDIA + " WHERE " + COL_UNIT + " = 'Episodes'", null);
         int total = 0;
         if (cursor.moveToFirst()) total = cursor.getInt(0);
         cursor.close();

@@ -25,6 +25,9 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_toEndOf="@id/iv_thumbnail"
+            android:layout_toStartOf="@+id/tv_timestamp"
+            android:ellipsize="end"
+            android:maxLines="1"
             android:text="Title of the Movie . Anime"
             android:textColor="@color/black"
             android:textStyle="bold" />
@@ -35,6 +38,9 @@
             android:layout_height="wrap_content"
             android:layout_below="@id/tv_title"
             android:layout_toEndOf="@id/iv_thumbnail"
+            android:layout_toStartOf="@+id/tv_timestamp"
+            android:ellipsize="end"
+            android:maxLines="1"
             android:text="Anime - Episode 12 / 25"
             android:textColor="@color/grey_600"
             android:textSize="12sp" />
@@ -49,29 +55,34 @@
             android:textColor="@color/grey_600"
             android:textSize="12sp" />
 
-        <ProgressBar
-            android:id="@+id/progress_bar"
-            style="@android:style/Widget.ProgressBar.Horizontal"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="8dp"
+            android:layout_height="wrap_content"
             android:layout_below="@id/tv_subtitle"
-            android:layout_toStartOf="@id/tv_progress_percentage"
             android:layout_toEndOf="@id/iv_thumbnail"
             android:layout_marginTop="8dp"
-            android:progressDrawable="@drawable/custom_progress_bar"
-            android:progress="48"/>
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-        <TextView
-            android:id="@+id/tv_progress_percentage"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignTop="@id/progress_bar"
-            android:layout_alignBottom="@id/progress_bar"
-            android:layout_alignParentEnd="true"
-            android:layout_marginStart="8dp"
-            android:text="48%"
-            android:textColor="@color/grey_600"
-            android:textSize="12sp" />
+            <ProgressBar
+                android:id="@+id/progress_bar"
+                style="@android:style/Widget.ProgressBar.Horizontal"
+                android:layout_width="0dp"
+                android:layout_height="8dp"
+                android:layout_weight="1"
+                android:progressDrawable="@drawable/custom_progress_bar"
+                android:progress="48"/>
+
+            <TextView
+                android:id="@+id/tv_progress_percentage"
+                android:layout_width="40dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:gravity="end"
+                android:text="48%"
+                android:textColor="@color/grey_600"
+                android:textSize="12sp" />
+        </LinearLayout>
 
     </RelativeLayout>
 </com.google.android.material.card.MaterialCardView>

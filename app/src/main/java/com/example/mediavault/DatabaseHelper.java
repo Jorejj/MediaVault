@@ -10,7 +10,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     // Database Information
     private static final String DATABASE_NAME = "MediaVault.db";
-    private static final int DATABASE_VERSION = 2; // Incremented for new constraints and date_modified
+    private static final int DATABASE_VERSION = 2; 
     public static final String TABLE_MEDIA = "media_library";
 
     // Column Constants
@@ -55,7 +55,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         
         db.execSQL(createTable);
 
-        // Automated Trigger for date_modified
         String createTrigger = "CREATE TRIGGER update_media_modtime " +
                 "AFTER UPDATE ON " + TABLE_MEDIA + " " +
                 "FOR EACH ROW BEGIN " +
@@ -72,7 +71,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         onCreate(db);
     }
 
-    // --- CRUD OPERATIONS ---
     public long addMedia(String title, String type, String genre, int capacity, String unit, String coverPath) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
@@ -110,15 +108,53 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return result > 0;
     }
 
-    // --- FEATURE SPECIFIC METHODS ---
+    // --- METRICS METHODS ---
 
-    // Shake-to-Decide: Pick random "Planning" item 
-    public Cursor getRandomPlanToWatch() {
+    public int getCompletedCountByType(String type) {
         SQLiteDatabase db = this.getReadableDatabase();
-        return db.rawQuery("SELECT * FROM " + TABLE_MEDIA + " WHERE " + COL_STATUS + " = 'Planning' ORDER BY RANDOM() LIMIT 1", null);
+        Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + TABLE_MEDIA + " WHERE " + COL_TYPE + " = ? AND " + COL_STATUS + " = 'Completed'", new String[]{type});
+        int count = 0;
+        if (cursor.moveToFirst()) count = cursor.getInt(0);
+        cursor.close();
+        return count;
     }
 
-    // Binge Calculator: Total Pages 
+    public int getStatusCount(String status) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + TABLE_MEDIA + " WHERE " + COL_STATUS + " = ?", new String[]{status});
+        int count = 0;
+        if (cursor.moveToFirst()) count = cursor.getInt(0);
+        cursor.close();
+        return count;
+    }
+
+    public float getAverageRating() {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT AVG(" + COL_RATING + ") FROM " + TABLE_MEDIA + " WHERE " + COL_RATING + " > 0", null);
+        float avg = 0f;
+        if (cursor.moveToFirst()) avg = cursor.getFloat(0);
+        cursor.close();
+        return avg;
+    }
+
+    public String getTopGenre() {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT " + COL_GENRE + ", COUNT(" + COL_GENRE + ") as count FROM " + TABLE_MEDIA + " GROUP BY " + COL_GENRE + " ORDER BY count DESC LIMIT 1", null);
+        String genre = "-";
+        if (cursor.moveToFirst()) genre = cursor.getString(0);
+        cursor.close();
+        return genre;
+    }
+
+    public int getTotalCountByType(String type) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + TABLE_MEDIA + " WHERE " + COL_TYPE + " = ?", new String[]{type});
+        int count = 0;
+        if (cursor.moveToFirst()) count = cursor.getInt(0);
+        cursor.close();
+        return count;
+    }
+
     public int getTotalPagesRead() {
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor cursor = db.rawQuery("SELECT SUM(" + COL_PROGRESS + ") FROM " + TABLE_MEDIA + " WHERE " + COL_UNIT + " = 'Pages'", null);
@@ -128,7 +164,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return total;
     }
 
-    // Binge Calculator: Total Minutes\
     public int getTotalMinutesWatched() {
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor cursor = db.rawQuery("SELECT SUM(" + COL_PROGRESS + ") FROM " + TABLE_MEDIA + " WHERE " + COL_UNIT + " = 'Minutes'", null);
@@ -138,7 +173,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return total;
     }
 
-    // Administrative: Clear all local data
     public void clearAllMedia() {
         SQLiteDatabase db = this.getWritableDatabase();
         db.execSQL("DELETE FROM " + TABLE_MEDIA);

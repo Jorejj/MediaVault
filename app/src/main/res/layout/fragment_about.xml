@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="@color/bg_main">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="About MediaVault"
+        android:fontFamily="@font/sf_pro_bold"
+        android:textSize="24sp"
+        android:textColor="@color/text_primary"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Scrollable Text Display Requirement 2.3 -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:background="@drawable/rounded_corners"
+        android:padding="16dp"
+        android:fadeScrollbars="false"
+        android:scrollbarStyle="outsideOverlay">
+
+        <TextView
+            android:id="@+id/tv_about_content"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/sf_pro_regular"
+            android:textSize="16sp"
+            android:lineSpacingExtra="6dp"
+            android:textColor="@color/text_secondary"
+            android:text="MediaVault is your ultimate companion for tracking and managing your media consumption across books, movies, anime, and manga.\n\nBuilt with a focus on modern aesthetics and user productivity, MediaVault allows you to effortlessly search for new titles using integrated APIs or manually record your collection. Our mission is to help users organize their entertainment journey with precision and style.\n\nKey Features:\n\n- Cross-Platform Media Tracking: Manage everything from high-octane anime to classic literature in one unified vault.\n\n- Real-time Analytics: Visualize your progress with detailed metrics, including total watch time, pages read, and genre distribution.\n\n- Intelligent API Integration: Quickly add items using Jikan API for Anime/Manga and Google Books API for literature.\n\n- Adaptive Design: Enjoy a seamless experience on any device with layouts optimized for various screen sizes and orientations.\n\n- Local Data Control: All your data stays on your device using encrypted SQLite storage for maximum privacy and performance.\n\nDeveloped as part of the Android Development Mastery course, MediaVault demonstrates advanced UI techniques, broadcast receivers for system-level synchronization, and efficient data handling patterns.\n\nThank you for choosing MediaVault to store your digital memories!" />
+    </ScrollView>
+
+    <Button
+        android:id="@+id/btn_about_back"
+        style="@style/BlueButton"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:layout_marginTop="16dp"
+        android:text="Back to Settings" />
+
+</LinearLayout>

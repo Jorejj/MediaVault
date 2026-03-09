@@ -34,10 +34,18 @@
             android:textSize="16sp"
             android:textStyle="bold" />
 
-        <include layout="@layout/item_recent_activity" />
-        <include layout="@layout/item_recent_activity" />
-        <include layout="@layout/item_recent_activity" />
-        <include layout="@layout/item_recent_activity" />
+        <include
+            android:id="@+id/recent_item_1"
+            layout="@layout/item_recent_activity" />
+        <include
+            android:id="@+id/recent_item_2"
+            layout="@layout/item_recent_activity" />
+        <include
+            android:id="@+id/recent_item_3"
+            layout="@layout/item_recent_activity" />
+        <include
+            android:id="@+id/recent_item_4"
+            layout="@layout/item_recent_activity" />
 
         <!-- Your Media Overview Section -->
         <TextView

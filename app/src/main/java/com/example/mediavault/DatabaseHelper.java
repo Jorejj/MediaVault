@@ -10,7 +10,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     // Database Information
     private static final String DATABASE_NAME = "MediaVault.db";
-    private static final int DATABASE_VERSION = 2; 
+    private static final int DATABASE_VERSION = 3; 
     public static final String TABLE_MEDIA = "media_library";
 
     // Column Constants
@@ -24,6 +24,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public static final String COL_UNIT = "capacity_unit";
     public static final String COL_COVER = "cover_image_path";
     public static final String COL_RATING = "user_rating";
+    public static final String COL_REVIEW = "personal_review";
     public static final String COL_DATE_ADDED = "date_added";
     public static final String COL_DATE_MODIFIED = "date_modified";
 
@@ -44,6 +45,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 COL_UNIT + " TEXT NOT NULL, " +
                 COL_COVER + " TEXT, " +
                 COL_RATING + " REAL DEFAULT 0.0, " +
+                COL_REVIEW + " TEXT, " +
                 COL_DATE_ADDED + " TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
                 COL_DATE_MODIFIED + " TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
                 "CONSTRAINT unique_title UNIQUE (" + COL_TITLE + "), " +
@@ -66,9 +68,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        db.execSQL("DROP TABLE IF EXISTS " + TABLE_MEDIA);
-        db.execSQL("DROP TRIGGER IF EXISTS update_media_modtime");
-        onCreate(db);
+        if (oldVersion < 3) {
+            db.execSQL("ALTER TABLE " + TABLE_MEDIA + " ADD COLUMN " + COL_REVIEW + " TEXT");
+        }
     }
 
     public long addMedia(String title, String type, String genre, int capacity, String unit, String coverPath) {
@@ -88,6 +90,29 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public Cursor getAllMedia() {
         SQLiteDatabase db = this.getReadableDatabase();
         return db.rawQuery("SELECT * FROM " + TABLE_MEDIA + " ORDER BY " + COL_DATE_MODIFIED + " DESC", null);
+    }
+
+    public Cursor getMediaById(int id) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        return db.rawQuery("SELECT * FROM " + TABLE_MEDIA + " WHERE " + COL_ID + " = ?", new String[]{String.valueOf(id)});
+    }
+
+    public boolean updateMedia(int id, String title, String type, String genre, String status, int progress, int capacity, String unit, String coverPath, float rating, String review) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COL_TITLE, title);
+        values.put(COL_TYPE, type);
+        values.put(COL_GENRE, genre);
+        values.put(COL_STATUS, status);
+        values.put(COL_PROGRESS, progress);
+        values.put(COL_CAPACITY, capacity);
+        values.put(COL_UNIT, unit);
+        values.put(COL_COVER, coverPath);
+        values.put(COL_RATING, rating);
+        values.put(COL_REVIEW, review);
+        int result = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(id)});
+        db.close();
+        return result > 0;
     }
 
     public boolean updateProgress(int id, int newProgress, String newStatus, float newRating) {

@@ -18,4 +18,7 @@
         <item name="colorCardBackground">@color/bg_card</item>
         <item name="colorBottomNav">@color/nav_bg</item>
     </style>
+
+    <style name="Theme.MediaVault.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
+    <style name="Theme.MediaVault.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
 </resources>

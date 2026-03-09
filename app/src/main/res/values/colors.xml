@@ -15,6 +15,7 @@
 
     <color name="accent_blue">#0182CD</color>
     <color name="vault_accent_blue">#2979FF</color>
+    <color name="accent_blue_variant">#40C4FF</color>
 
     <color name="cyber_bg_dark">#0B132B</color>
     <color name="cyber_surface">#151D3B</color>

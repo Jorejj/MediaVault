@@ -5,13 +5,17 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ProgressBar;
+import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
+import com.example.mediavault.DatabaseHelper;
 import com.example.mediavault.R;
 import com.github.mikephil.charting.charts.BarChart;
 import com.github.mikephil.charting.charts.PieChart;
+import com.github.mikephil.charting.components.Legend;
 import com.github.mikephil.charting.components.XAxis;
 import com.github.mikephil.charting.data.BarData;
 import com.github.mikephil.charting.data.BarDataSet;
@@ -20,78 +24,204 @@ import com.github.mikephil.charting.data.PieData;
 import com.github.mikephil.charting.data.PieDataSet;
 import com.github.mikephil.charting.data.PieEntry;
 import com.github.mikephil.charting.formatter.IndexAxisValueFormatter;
+import com.google.android.material.tabs.TabLayout;
 import java.util.ArrayList;
+import java.util.Locale;
 
 public class MetricsFragment extends Fragment {
 
     private BarChart chartMonthlyActivity;
     private PieChart chartVaultComposition;
+    private TabLayout tabLayoutMetrics;
+    
+    private TextView txtCompletedBooks, txtCompletedMovies, txtCompletedAnime, txtCompletedSeries;
+    private TextView txtBacklogStatus, txtBacklogPercentage, txtTopGenre, txtAvgRating;
+    private ProgressBar progressBacklogHealth;
+    
+    private DatabaseHelper dbHelper;
 
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_metrics, container, false);
         
+        dbHelper = new DatabaseHelper(requireContext());
+        
+        // Initialize all views from fragment_metrics.xml
         chartMonthlyActivity = view.findViewById(R.id.chart_monthly_activity);
         chartVaultComposition = view.findViewById(R.id.chart_vault_composition);
+        tabLayoutMetrics = view.findViewById(R.id.tab_layout_metrics);
         
-        setupMonthlyActivityChart();
-        setupVaultCompositionChart();
+        txtCompletedBooks = view.findViewById(R.id.txt_completed_books);
+        txtCompletedMovies = view.findViewById(R.id.txt_completed_movies);
+        txtCompletedAnime = view.findViewById(R.id.txt_completed_anime);
+        txtCompletedSeries = view.findViewById(R.id.txt_completed_series);
+        
+        txtBacklogStatus = view.findViewById(R.id.txt_backlog_status);
+        txtBacklogPercentage = view.findViewById(R.id.txt_backlog_percentage);
+        progressBacklogHealth = view.findViewById(R.id.progress_backlog_health);
+        
+        txtTopGenre = view.findViewById(R.id.txt_top_genre);
+        txtAvgRating = view.findViewById(R.id.txt_avg_rating);
+        
+        // Setup components with real database data
+        refreshData();
+        
+        tabLayoutMetrics.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
+            @Override
+            public void onTabSelected(TabLayout.Tab tab) {
+                setupHabitProgressChart(tab.getPosition());
+            }
+
+            @Override
+            public void onTabUnselected(TabLayout.Tab tab) {}
+
+            @Override
+            public void onTabReselected(TabLayout.Tab tab) {}
+        });
         
         return view;
     }
 
-    private void setupMonthlyActivityChart() {
-        ArrayList<BarEntry> entries = new ArrayList<>();
-        // Dummy data for Monthly Activity
-        entries.add(new BarEntry(0f, new float[]{25f, 10f})); // Jan
-        entries.add(new BarEntry(1f, new float[]{30f, 15f})); // Feb
-        entries.add(new BarEntry(2f, new float[]{45f, 20f})); // Mar
-        entries.add(new BarEntry(3f, new float[]{15f, 5f}));  // Apr
+    private void refreshData() {
+        setupOverviewData();
+        setupVaultCompositionChart();
+        setupBacklogHealth();
+        setupHabitProgressChart(tabLayoutMetrics.getSelectedTabPosition());
+    }
 
-        BarDataSet dataSet = new BarDataSet(entries, "Activity");
-        dataSet.setColors(
-            ContextCompat.getColor(requireContext(), R.color.accent_blue),
-            ContextCompat.getColor(requireContext(), R.color.accent_cyan)
-        );
-        dataSet.setDrawValues(false);
+    private void setupOverviewData() {
+        // Fetch real counts from Database
+        txtCompletedBooks.setText(String.valueOf(dbHelper.getCompletedCountByType("Book")));
+        txtCompletedMovies.setText(String.valueOf(dbHelper.getCompletedCountByType("Movie")));
+        txtCompletedAnime.setText(String.valueOf(dbHelper.getCompletedCountByType("Anime")));
+        txtCompletedSeries.setText(String.valueOf(dbHelper.getCompletedCountByType("Series")));
+        
+        txtTopGenre.setText(String.format("Top Genre: %s", dbHelper.getTopGenre()));
+        txtAvgRating.setText(String.format(Locale.getDefault(), "Avg Rating: %.1f", dbHelper.getAverageRating()));
+    }
+
+    private void setupHabitProgressChart(int position) {
+        ArrayList<BarEntry> entries = new ArrayList<>();
+        String[] labels = new String[]{"Daily", "Weekly", "Monthly", "Yearly"};
+        String label = labels[position] + " Progress";
+
+        // Aggregate data for Pages and Hours
+        int totalPages = dbHelper.getTotalPagesRead();
+        float totalHours = dbHelper.getTotalMinutesWatched() / 60f;
+
+        // Mocking dynamic distribution for visualization based on the selected period
+        // Index 0: Pages, Index 1: Hours
+        if (position == 0) { // Daily
+            entries.add(new BarEntry(0f, totalPages / 30f)); // Average daily pages
+            entries.add(new BarEntry(1f, totalHours / 30f)); // Average daily hours
+        } else if (position == 1) { // Weekly
+            entries.add(new BarEntry(0f, totalPages / 4f)); // Average weekly pages
+            entries.add(new BarEntry(1f, totalHours / 4f)); // Average weekly hours
+        } else if (position == 2) { // Monthly
+            entries.add(new BarEntry(0f, totalPages));
+            entries.add(new BarEntry(1f, totalHours));
+        } else { // Yearly
+            entries.add(new BarEntry(0f, totalPages * 12f)); // Estimated yearly
+            entries.add(new BarEntry(1f, totalHours * 12f)); // Estimated yearly
+        }
+
+        BarDataSet dataSet = new BarDataSet(entries, label);
+        dataSet.setColor(ContextCompat.getColor(requireContext(), R.color.accent_blue));
+        dataSet.setDrawValues(true);
+        dataSet.setValueTextColor(Color.GRAY);
+        dataSet.setValueTextSize(10f);
 
         BarData barData = new BarData(dataSet);
         barData.setBarWidth(0.5f);
 
         chartMonthlyActivity.setData(barData);
         chartMonthlyActivity.getDescription().setEnabled(false);
-        chartMonthlyActivity.getLegend().setEnabled(false);
+        
+        Legend legend = chartMonthlyActivity.getLegend();
+        legend.setEnabled(true);
+        legend.setVerticalAlignment(Legend.LegendVerticalAlignment.TOP);
+        legend.setHorizontalAlignment(Legend.LegendHorizontalAlignment.RIGHT);
+
+        chartMonthlyActivity.setDragEnabled(false);
+        chartMonthlyActivity.setScaleEnabled(false);
+        chartMonthlyActivity.setPinchZoom(false);
+        chartMonthlyActivity.setDoubleTapToZoomEnabled(false);
         
         XAxis xAxis = chartMonthlyActivity.getXAxis();
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
         xAxis.setDrawGridLines(false);
-        xAxis.setValueFormatter(new IndexAxisValueFormatter(new String[]{"Jan", "Feb", "Mar", "Apr"}));
+        xAxis.setGranularity(1f);
+        xAxis.setValueFormatter(new IndexAxisValueFormatter(new String[]{"Pages", "Hours"}));
 
-        chartMonthlyActivity.getAxisLeft().setEnabled(false);
-        chartMonthlyActivity.getAxisRight().setDrawGridLines(false);
+        chartMonthlyActivity.getAxisLeft().setDrawGridLines(false);
+        chartMonthlyActivity.getAxisRight().setEnabled(false);
+        
+        chartMonthlyActivity.animateY(1000);
         chartMonthlyActivity.invalidate();
     }
 
     private void setupVaultCompositionChart() {
+        int books = dbHelper.getTotalCountByType("Book");
+        int anime = dbHelper.getTotalCountByType("Anime");
+        int movies = dbHelper.getTotalCountByType("Movie");
+        int series = dbHelper.getTotalCountByType("Series");
+
         ArrayList<PieEntry> entries = new ArrayList<>();
-        entries.add(new PieEntry(45f, "Books"));
-        entries.add(new PieEntry(35f, "Anime"));
-        entries.add(new PieEntry(20f, "Movies"));
+        if (books > 0) entries.add(new PieEntry(books, "Books"));
+        if (anime > 0) entries.add(new PieEntry(anime, "Anime"));
+        if (movies > 0) entries.add(new PieEntry(movies, "Movies"));
+        if (series > 0) entries.add(new PieEntry(series, "Series"));
+
+        if (entries.isEmpty()) {
+            chartVaultComposition.setNoDataText("No data available in library");
+            chartVaultComposition.setData(null);
+            chartVaultComposition.invalidate();
+            return;
+        }
 
         PieDataSet dataSet = new PieDataSet(entries, "");
-        dataSet.setColors(new int[]{
+        dataSet.setColors(
             ContextCompat.getColor(requireContext(), R.color.accent_blue),
             ContextCompat.getColor(requireContext(), R.color.accent_cyan),
-            ContextCompat.getColor(requireContext(), R.color.accent_purple)
-        });
+            ContextCompat.getColor(requireContext(), R.color.accent_blue_variant),
+            ContextCompat.getColor(requireContext(), R.color.vault_accent_blue)
+        );
         dataSet.setSliceSpace(3f);
         dataSet.setValueTextColor(Color.WHITE);
+        dataSet.setValueTextSize(12f);
 
-        chartVaultComposition.setData(new PieData(dataSet));
+        PieData pieData = new PieData(dataSet);
+        chartVaultComposition.setData(pieData);
         chartVaultComposition.getDescription().setEnabled(false);
         chartVaultComposition.setHoleColor(Color.TRANSPARENT);
+        chartVaultComposition.setEntryLabelColor(Color.WHITE);
+        chartVaultComposition.setEntryLabelTextSize(11f);
+        chartVaultComposition.setRotationEnabled(false);
+        
         chartVaultComposition.animateY(1400);
         chartVaultComposition.invalidate();
+    }
+    
+    private void setupBacklogHealth() {
+        int completed = dbHelper.getStatusCount("Completed");
+        int planning = dbHelper.getStatusCount("Planning");
+        int ongoing = dbHelper.getStatusCount("Ongoing");
+        int total = completed + planning + ongoing;
+        
+        int progress = (total > 0) ? (completed * 100 / total) : 0;
+        progressBacklogHealth.setProgress(progress);
+        txtBacklogPercentage.setText(String.format(Locale.getDefault(), "%d%% Completed", progress));
+        
+        if (progress >= 70) {
+            txtBacklogStatus.setText("Excellent");
+            txtBacklogStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.accent_green));
+        } else if (progress >= 40) {
+            txtBacklogStatus.setText("Healthy");
+            txtBacklogStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.accent_blue));
+        } else {
+            txtBacklogStatus.setText("Overwhelming");
+            txtBacklogStatus.setTextColor(Color.RED);
+        }
     }
 }

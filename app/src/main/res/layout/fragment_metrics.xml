@@ -4,13 +4,20 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:fillViewport="true"
+    android:clipToPadding="false"
+    android:scrollbarStyle="outsideOverlay"
     android:background="@color/light_background">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="16dp">
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="120dp"
+        android:clipToPadding="false">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
@@ -19,8 +26,8 @@
 
             <ImageView
                 android:id="@+id/img_logo"
-                android:layout_width="80dp"
-                android:layout_height="80dp"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
                 android:src="@drawable/app_logo"
                 android:scaleType="fitCenter"
                 app:layout_constraintBottom_toBottomOf="parent"
@@ -29,13 +36,13 @@
                 tools:ignore="ContentDescription" />
 
             <LinearLayout
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:gravity="center"
                 android:orientation="vertical"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintStart_toEndOf="@id/img_logo"
                 app:layout_constraintTop_toTopOf="parent">
 
                 <TextView
@@ -43,7 +50,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/mediavault"
                     android:textColor="@color/black"
-                    android:textSize="28sp"
+                    android:textSize="24sp"
                     android:textStyle="bold" />
 
                 <TextView
@@ -51,7 +58,7 @@
                     android:layout_height="wrap_content"
                     android:text="@string/your_stats"
                     android:textColor="@color/grey_800"
-                    android:textSize="18sp" />
+                    android:textSize="16sp" />
             </LinearLayout>
 
         </androidx.constraintlayout.widget.ConstraintLayout>
@@ -71,60 +78,14 @@
                 android:orientation="vertical"
                 android:padding="16dp">
 
-                <LinearLayout
-                    android:layout_width="match_parent"
+                <TextView
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
                     android:layout_marginBottom="16dp"
-                    android:orientation="horizontal">
-
-                    <TextView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_weight="1"
-                        android:text="@string/overview"
-                        android:textColor="@color/grey_600"
-                        android:textSize="14sp"
-                        android:textStyle="bold" />
-
-                    <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:orientation="horizontal">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginEnd="8dp"
-                            android:text="@string/daily"
-                            android:textColor="@color/grey_600"
-                            android:textSize="12sp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginEnd="8dp"
-                            android:text="@string/weekly"
-                            android:textColor="@color/grey_600"
-                            android:textSize="12sp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginEnd="8dp"
-                            android:text="@string/monthly"
-                            android:textColor="@color/accent_blue"
-                            android:textSize="12sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/yearly"
-                            android:textColor="@color/grey_600"
-                            android:textSize="12sp" />
-                    </LinearLayout>
-                </LinearLayout>
+                    android:text="@string/overview"
+                    android:textColor="@color/grey_600"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
 
                 <GridLayout
                     android:layout_width="match_parent"
@@ -139,9 +100,10 @@
                         android:orientation="vertical">
 
                         <TextView
+                            android:id="@+id/txt_completed_books"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/completed_books_value"
+                            android:text="0"
                             android:textColor="@color/black"
                             android:textSize="24sp"
                             android:textStyle="bold" />
@@ -161,9 +123,10 @@
                         android:orientation="vertical">
 
                         <TextView
+                            android:id="@+id/txt_completed_movies"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/completed_movies_value"
+                            android:text="0"
                             android:textColor="@color/black"
                             android:textSize="24sp"
                             android:textStyle="bold" />
@@ -183,9 +146,10 @@
                         android:orientation="vertical">
 
                         <TextView
+                            android:id="@+id/txt_completed_anime"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/completed_anime_value"
+                            android:text="0"
                             android:textColor="@color/black"
                             android:textSize="24sp"
                             android:textStyle="bold" />
@@ -204,9 +168,10 @@
                         android:orientation="vertical">
 
                         <TextView
+                            android:id="@+id/txt_completed_series"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/completed_series_value"
+                            android:text="0"
                             android:textColor="@color/black"
                             android:textSize="24sp"
                             android:textStyle="bold" />
@@ -258,7 +223,7 @@
                 <com.github.mikephil.charting.charts.PieChart
                     android:id="@+id/chart_vault_composition"
                     android:layout_width="match_parent"
-                    android:layout_height="200dp" />
+                    android:layout_height="280dp" />
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -317,13 +282,14 @@
                         android:layout_height="12dp"
                         android:layout_marginTop="16dp"
                         android:layout_marginBottom="8dp"
-                        android:progress="75"
+                        android:progress="0"
                         android:progressDrawable="@drawable/custom_progress_bar" />
 
                     <TextView
+                        android:id="@+id/txt_backlog_percentage"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="75% Completed"
+                        android:text="0% Completed"
                         android:textColor="@color/grey_800"
                         android:textSize="14sp" />
                 </LinearLayout>
@@ -355,18 +321,37 @@
                     android:textSize="18sp"
                     android:textStyle="bold" />
 
-                <TextView
-                    android:layout_width="wrap_content"
+                <com.google.android.material.tabs.TabLayout
+                    android:id="@+id/tab_layout_metrics"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
-                    android:text="@string/monthly_activity"
-                    android:textColor="@color/grey_600"
-                    android:textSize="14sp" />
+                    app:tabMode="fixed"
+                    app:tabGravity="fill"
+                    app:tabSelectedTextColor="@color/accent_blue"
+                    app:tabIndicatorColor="@color/accent_blue">
+                    <com.google.android.material.tabs.TabItem
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Daily" />
+                    <com.google.android.material.tabs.TabItem
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Weekly" />
+                    <com.google.android.material.tabs.TabItem
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Monthly" />
+                    <com.google.android.material.tabs.TabItem
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Yearly" />
+                </com.google.android.material.tabs.TabLayout>
 
                 <com.github.mikephil.charting.charts.BarChart
                     android:id="@+id/chart_monthly_activity"
                     android:layout_width="match_parent"
-                    android:layout_height="200dp"
+                    android:layout_height="250dp"
                     android:layout_marginBottom="16dp" />
 
                 <GridLayout
@@ -379,48 +364,34 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_columnWeight="1"
-                        app:cardBackgroundColor="@color/light_background"
+                        app:cardBackgroundColor="@color/accent_blue"
                         app:cardCornerRadius="8dp"
                         app:cardElevation="0dp">
 
                         <TextView
+                            android:id="@+id/txt_top_genre"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:padding="8dp"
-                            android:text="@string/top_genre_fantasy"
-                            android:textColor="@color/grey_800" />
+                            android:text="Top Genre: -"
+                            android:textColor="@color/white" />
                     </com.google.android.material.card.MaterialCardView>
 
                     <com.google.android.material.card.MaterialCardView
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_columnWeight="1"
-                        app:cardBackgroundColor="@color/light_background"
+                        app:cardBackgroundColor="@color/accent_blue"
                         app:cardCornerRadius="8dp"
                         app:cardElevation="0dp">
 
                         <TextView
+                            android:id="@+id/txt_avg_rating"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:padding="8dp"
-                            android:text="@string/avg_rating"
-                            android:textColor="@color/grey_800" />
-                    </com.google.android.material.card.MaterialCardView>
-
-                    <com.google.android.material.card.MaterialCardView
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_columnWeight="1"
-                        app:cardBackgroundColor="@color/light_background"
-                        app:cardCornerRadius="8dp"
-                        app:cardElevation="0dp">
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:padding="8dp"
-                            android:text="@string/longest_streak"
-                            android:textColor="@color/grey_800" />
+                            android:text="Avg Rating: 0.0"
+                            android:textColor="@color/white" />
                     </com.google.android.material.card.MaterialCardView>
 
                 </GridLayout>

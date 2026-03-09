@@ -59,4 +59,21 @@
     <string name="recent_title_sample">Title of the Movie . Anime</string>
     <string name="recent_subtitle_sample">Anime - Episode 12 / 25</string>
     <string name="progress_percent_sample">48%</string>
+
+    <!-- Add Media Strings -->
+    <string name="new_media">New Media</string>
+    <string name="search_api">Search API</string>
+    <string name="manual_entry">Manual Entry</string>
+    <string name="search">Search</string>
+    <string name="no_results_found">No results found</string>
+    <string name="save_update_media">Save / Update Media</string>
+    <string name="title">Title</string>
+    <string name="status">Status</string>
+    <string name="capacity_unit">Capacity Unit</string>
+    <string name="progress">Progress</string>
+    <string name="total">Total</string>
+    <string name="genre_s">Genre(s)</string>
+    <string name="image_url_path">Image URL/Path</string>
+    <string name="author">Author</string>
+    <string name="done">Done</string>
 </resources>

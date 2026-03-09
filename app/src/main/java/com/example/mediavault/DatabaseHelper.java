@@ -205,7 +205,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return total;
     }
 
-    // Administrative: Clear all local data
     public void clearAllMedia() {
         SQLiteDatabase db = this.getWritableDatabase();
         db.execSQL("DELETE FROM " + TABLE_PROGRESS_LOG);

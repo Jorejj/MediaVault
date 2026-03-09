@@ -11,7 +11,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="20dp">
+        android:padding="20dp"
+        android:paddingBottom="100dp"
+        android:clipToPadding="false">
 
         <!-- App Logo -->
         <ImageView
@@ -85,10 +87,11 @@
                             app:tint="@color/black" />
 
                         <TextView
+                            android:id="@+id/tv_watch_time"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="8dp"
-                            android:text="120"
+                            android:text="0"
                             android:textColor="@color/black"
                             android:textSize="18sp"
                             android:textStyle="bold" />
@@ -97,7 +100,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="4dp"
-                            android:text="hrs Watched"
+                            android:text="hrs"
                             android:textColor="@color/grey_600"
                             android:textSize="10sp" />
                     </LinearLayout>
@@ -118,10 +121,11 @@
                             app:tint="@color/black" />
 
                         <TextView
+                            android:id="@+id/tv_pages_read"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="8dp"
-                            android:text="3,450"
+                            android:text="0"
                             android:textColor="@color/black"
                             android:textSize="18sp"
                             android:textStyle="bold" />
@@ -130,7 +134,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="4dp"
-                            android:text="Pages Read"
+                            android:text="Pages"
                             android:textColor="@color/grey_600"
                             android:textSize="10sp" />
                     </LinearLayout>
@@ -150,10 +154,11 @@
                             app:tint="@color/black" />
 
                         <TextView
+                            android:id="@+id/tv_ongoing_items"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="8dp"
-                            android:text="24"
+                            android:text="0"
                             android:textColor="@color/black"
                             android:textSize="18sp"
                             android:textStyle="bold" />
@@ -162,7 +167,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="4dp"
-                            android:text="Ongoing items"
+                            android:text="Ongoing"
                             android:textColor="@color/grey_600"
                             android:textSize="10sp" />
                     </LinearLayout>
@@ -182,10 +187,11 @@
                             app:tint="@color/black" />
 
                         <TextView
+                            android:id="@+id/tv_avg_rating"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="8dp"
-                            android:text="4.6"
+                            android:text="0.0"
                             android:textColor="@color/black"
                             android:textSize="18sp"
                             android:textStyle="bold" />
@@ -194,7 +200,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginStart="4dp"
-                            android:text="Avg Rating"
+                            android:text="Rating"
                             android:textColor="@color/grey_600"
                             android:textSize="10sp" />
                     </LinearLayout>
@@ -202,6 +208,7 @@
                 </GridLayout>
 
                 <TextView
+                    android:id="@+id/tv_view_detailed_stats"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_gravity="center_horizontal"
@@ -209,7 +216,9 @@
                     android:text="View Detailed Stats →"
                     android:textColor="@color/grey_600"
                     android:textSize="12sp"
-                    android:textStyle="bold" />
+                    android:textStyle="bold"
+                    android:clickable="true"
+                    android:focusable="true" />
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>

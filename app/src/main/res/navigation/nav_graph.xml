@@ -34,4 +34,10 @@
         android:name="com.example.mediavault.AboutFragment"
         android:label="About"
         tools:layout="@layout/fragment_about" />
+
+    <activity
+        android:id="@+id/nav_add_media"
+        android:name="com.example.mediavault.AddMediaActivity"
+        android:label="Add New Media"
+        tools:layout="@layout/activity_add_media" />
 </navigation>

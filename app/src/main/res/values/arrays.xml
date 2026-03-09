@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="media_types">
+        <item>Book</item>
+        <item>Movie</item>
+        <item>Anime</item>
+        <item>Manga</item>
+        <item>Series</item>
+    </string-array>
+    <string-array name="api_targets">
+        <item>Anime (Jikan)</item>
+        <item>Manga (Jikan)</item>
+        <item>Books (Google Books)</item>
+        <item>Movies (TMDB)</item>
+    </string-array>
+    <string-array name="media_statuses">
+        <item>Planning</item>
+        <item>Ongoing</item>
+        <item>Completed</item>
+        <item>Dropped</item>
+    </string-array>
+    <string-array name="capacity_units">
+        <item>Pages</item>
+        <item>Episodes</item>
+        <item>Minutes</item>
+        <item>Chapters</item>
+    </string-array>
+</resources>

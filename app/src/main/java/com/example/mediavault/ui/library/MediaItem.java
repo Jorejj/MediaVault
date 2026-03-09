@@ -23,6 +23,8 @@ public class MediaItem {
         this.unit = unit;
         this.coverPath = coverPath;
         this.rating = rating;
+        this.type = type;
+        this.ratingValue = ratingValue;
     }
 
     public int getId() { return id; }
@@ -43,5 +45,13 @@ public class MediaItem {
     
     public String getRatingString() {
         return String.valueOf(rating);
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public float getRatingValue() {
+        return ratingValue;
     }
 }

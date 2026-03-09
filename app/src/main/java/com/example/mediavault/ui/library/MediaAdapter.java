@@ -17,9 +17,23 @@ import java.util.List;
 public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHolder> {
 
     private List<MediaItem> mediaItems;
+    private OnItemClickListener listener;
+
+    public interface OnItemClickListener {
+        void onItemClick(MediaItem item);
+    }
 
     public MediaAdapter(List<MediaItem> mediaItems) {
         this.mediaItems = mediaItems;
+    }
+
+    public void setOnItemClickListener(OnItemClickListener listener) {
+        this.listener = listener;
+    }
+
+    public void updateList(List<MediaItem> newList) {
+        this.mediaItems = newList;
+        notifyDataSetChanged();
     }
 
     @NonNull

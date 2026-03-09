@@ -6,9 +6,17 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.database.Cursor;
 import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
+import android.widget.ImageButton;
+import android.widget.LinearLayout;
+import android.widget.PopupMenu;
+import android.widget.Toast;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -18,7 +26,12 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.mediavault.DatabaseHelper;
 import com.example.mediavault.DescriptionActivity;
 import com.example.mediavault.R;
+import com.google.android.material.chip.Chip;
+import com.google.android.material.chip.ChipGroup;
+
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 public class LibraryFragment extends Fragment {
@@ -49,6 +62,7 @@ public class LibraryFragment extends Fragment {
         mediaItems = new ArrayList<>();
         adapter = new MediaAdapter(mediaItems);
         recyclerView.setAdapter(adapter);
+    }
 
         refreshLibrary();
 

@@ -2,4 +2,7 @@
 <resources>
     <attr name="colorCardBackground" format="color" />
     <attr name="colorBottomNav" format="color" />
+    <attr name="colorTextPrimary" format="color" />
+    <attr name="colorTextSecondary" format="color" />
+    <attr name="colorIconTint" format="color" />
 </resources>

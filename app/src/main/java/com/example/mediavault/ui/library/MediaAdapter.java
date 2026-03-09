@@ -9,9 +9,11 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.example.mediavault.DescriptionActivity;
 import com.example.mediavault.R;
 
+import java.io.File;
 import java.util.List;
 
 public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHolder> {
@@ -48,15 +50,33 @@ public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHol
         MediaItem item = mediaItems.get(position);
         if (holder.title != null) holder.title.setText(item.getTitle() != null ? item.getTitle() : "Unknown");
         if (holder.subtitle != null) holder.subtitle.setText(item.getSubtitle() != null ? item.getSubtitle() : "");
-        if (holder.rating != null) holder.rating.setText(item.getRatingString());
-        
+        if (holder.rating != null) holder.rating.setText("★ " + item.getRatingValue());
+
+        if (item.getCoverPath() != null && !item.getCoverPath().isEmpty()) {
+            File imageFile = new File(item.getCoverPath());
+            if (imageFile.exists()) {
+                Glide.with(holder.poster.getContext())
+                        .load(imageFile)
+                        .centerCrop()
+                        .placeholder(R.color.grey_300)
+                        .into(holder.poster);
+            } else {
+                Glide.with(holder.poster.getContext())
+                        .load(item.getCoverPath()) // Try as URL/URI if not a direct file
+                        .centerCrop()
+                        .placeholder(R.color.grey_300)
+                        .into(holder.poster);
+            }
+        } else {
+            holder.poster.setImageResource(R.color.grey_300);
+        }
+
         holder.itemView.setOnClickListener(v -> {
             Intent intent = new Intent(v.getContext(), DescriptionActivity.class);
             intent.putExtra(DescriptionActivity.EXTRA_MEDIA_ID, item.getId());
             v.getContext().startActivity(intent);
         });
     }
-
     @Override
     public int getItemCount() {
         return mediaItems.size();

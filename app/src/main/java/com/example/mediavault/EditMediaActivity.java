@@ -14,8 +14,11 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
+import com.bumptech.glide.Glide;
 import com.google.android.material.appbar.CollapsingToolbarLayout;
 import com.google.android.material.textfield.TextInputEditText;
+
+import java.io.File;
 
 public class EditMediaActivity extends AppCompatActivity {
 
@@ -25,7 +28,7 @@ public class EditMediaActivity extends AppCompatActivity {
     private DatabaseHelper dbHelper;
     private String coverPath;
 
-    private TextInputEditText etTitle, etGenre, etReview;
+    private TextInputEditText etTitle, etGenre, etReview, etImage;
     private ImageView ivCover;
     private EditText etProgress, etTotal;
     private Spinner spinnerType, spinnerStatus, spinnerUnit;
@@ -63,6 +66,7 @@ public class EditMediaActivity extends AppCompatActivity {
         etTitle = findViewById(R.id.et_edit_title);
         etGenre = findViewById(R.id.et_edit_genre);
         etReview = findViewById(R.id.et_edit_review);
+        etImage = findViewById(R.id.et_edit_image);
         ivCover = findViewById(R.id.iv_edit_cover);
         etProgress = findViewById(R.id.et_edit_progress);
         etTotal = findViewById(R.id.et_edit_total);
@@ -91,12 +95,21 @@ public class EditMediaActivity extends AppCompatActivity {
             etTotal.setText(String.valueOf(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_TOTAL_COUNT))));
             rbRating.setRating(cursor.getFloat(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_RATING)));
             coverPath = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_IMAGE_PATH));
+            etImage.setText(coverPath);
+            android.util.Log.d("EditMedia", "Loading cover: " + coverPath);
 
             setSpinnerToValue(spinnerType, cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_MEDIA_TYPE)));
             setSpinnerToValue(spinnerStatus, cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_STATUS)));
             setSpinnerToValue(spinnerUnit, cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_UNIT)));
 
-            // In a real app, use Glide to load coverPath into ivCover
+            if (coverPath != null && !coverPath.isEmpty()) {
+                File file = new File(coverPath);
+                if (file.exists()) {
+                    Glide.with(this).load(file).centerCrop().into(ivCover);
+                } else {
+                    Glide.with(this).load(coverPath).centerCrop().into(ivCover);
+                }
+            }
             
             cursor.close();
         }
@@ -120,6 +133,7 @@ public class EditMediaActivity extends AppCompatActivity {
         String progressStr = etProgress.getText().toString().trim();
         String totalStr = etTotal.getText().toString().trim();
         String unit = spinnerUnit.getSelectedItem().toString();
+        String newImage = etImage.getText().toString().trim();
         float rating = rbRating.getRating();
 
         if (TextUtils.isEmpty(title) || TextUtils.isEmpty(totalStr)) {
@@ -135,7 +149,7 @@ public class EditMediaActivity extends AppCompatActivity {
             return;
         }
 
-        if (dbHelper.updateMedia(mediaId, title, type, genre, status, progress, total, unit, coverPath, rating, review)) {
+        if (dbHelper.updateMedia(mediaId, title, type, genre, status, progress, total, unit, newImage, rating, review)) {
             Toast.makeText(this, "Changes saved", Toast.LENGTH_SHORT).show();
             sendBroadcast(new Intent(DescriptionActivity.ACTION_MEDIA_UPDATED));
             finish();

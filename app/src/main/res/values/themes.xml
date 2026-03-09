@@ -21,4 +21,7 @@
         <item name="colorTextSecondary">@color/grey_600</item>
         <item name="colorIconTint">@color/black</item>
     </style>
+
+    <style name="Theme.MediaVault.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
+    <style name="Theme.MediaVault.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
 </resources>

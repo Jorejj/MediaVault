@@ -76,4 +76,5 @@
     <string name="image_url_path">Image URL/Path</string>
     <string name="author">Author</string>
     <string name="done">Done</string>
+    <string name="go_back">Go Back</string>
 </resources>

@@ -27,13 +27,35 @@
 
         <activity
             android:name=".MainActivity"
-            android:exported="false" />
+            android:exported="false"
+            android:configChanges="orientation|screenSize" />
 
         <activity
             android:name=".AddMediaActivity"
             android:exported="false"
             android:label="Add New Media"
+            android:theme="@style/Theme.MediaVault"
+            android:configChanges="orientation|screenSize" />
+
+        <activity
+            android:name=".DescriptionActivity"
+            android:exported="false"
+            android:label="Media Details"
             android:theme="@style/Theme.MediaVault" />
+
+        <activity
+            android:name=".EditMediaActivity"
+            android:exported="false"
+            android:label="Edit Media"
+            android:theme="@style/Theme.MediaVault" />
+
+        <receiver
+            android:name=".receiver.MediaReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.example.mediavault.ACTION_MEDIA_UPDATED" />
+            </intent-filter>
+        </receiver>
 
     </application>
 

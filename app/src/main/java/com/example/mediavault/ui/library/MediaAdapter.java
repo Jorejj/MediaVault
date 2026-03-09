@@ -1,5 +1,6 @@
 package com.example.mediavault.ui.library;
 
+import android.content.Intent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -8,6 +9,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.example.mediavault.DescriptionActivity;
 import com.example.mediavault.R;
 
 import java.util.List;
@@ -44,14 +46,14 @@ public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHol
     @Override
     public void onBindViewHolder(@NonNull MediaViewHolder holder, int position) {
         MediaItem item = mediaItems.get(position);
-        holder.title.setText(item.getTitle());
-        holder.subtitle.setText(item.getSubtitle());
-        holder.rating.setText(item.getRating());
+        if (holder.title != null) holder.title.setText(item.getTitle() != null ? item.getTitle() : "Unknown");
+        if (holder.subtitle != null) holder.subtitle.setText(item.getSubtitle() != null ? item.getSubtitle() : "");
+        if (holder.rating != null) holder.rating.setText(item.getRatingString());
         
         holder.itemView.setOnClickListener(v -> {
-            if (listener != null) {
-                listener.onItemClick(item);
-            }
+            Intent intent = new Intent(v.getContext(), DescriptionActivity.class);
+            intent.putExtra(DescriptionActivity.EXTRA_MEDIA_ID, item.getId());
+            v.getContext().startActivity(intent);
         });
     }
 

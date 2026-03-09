@@ -3,46 +3,58 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    app:cardBackgroundColor="@color/white"
+    app:cardBackgroundColor="?attr/colorCardBackground"
     app:cardCornerRadius="16dp"
-    app:cardElevation="0dp"
-    android:layout_marginBottom="12dp">
+    app:cardElevation="2dp"
+    android:layout_marginBottom="12dp"
+    app:strokeWidth="1dp"
+    app:strokeColor="@color/grey_200">
 
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="16dp">
+        android:padding="12dp">
 
-        <ImageView
-            android:id="@+id/iv_thumbnail"
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/iv_thumbnail_container"
             android:layout_width="60dp"
-            android:layout_height="60dp"
+            android:layout_height="80dp"
             android:layout_marginEnd="16dp"
-            android:background="@drawable/rounded_corners"/>
+            app:cardCornerRadius="8dp"
+            app:cardElevation="0dp">
+
+            <ImageView
+                android:id="@+id/iv_thumbnail"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:src="@color/grey_300"/>
+        </com.google.android.material.card.MaterialCardView>
 
         <TextView
             android:id="@+id/tv_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_toEndOf="@id/iv_thumbnail"
+            android:layout_toEndOf="@id/iv_thumbnail_container"
             android:layout_toStartOf="@+id/tv_timestamp"
             android:ellipsize="end"
             android:maxLines="1"
             android:text="Title of the Movie . Anime"
-            android:textColor="@color/black"
-            android:textStyle="bold" />
+            android:textColor="?attr/colorTextPrimary"
+            android:textStyle="bold"
+            android:textSize="14sp" />
 
         <TextView
             android:id="@+id/tv_subtitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_below="@id/tv_title"
-            android:layout_toEndOf="@id/iv_thumbnail"
+            android:layout_toEndOf="@id/iv_thumbnail_container"
             android:layout_toStartOf="@+id/tv_timestamp"
             android:ellipsize="end"
             android:maxLines="1"
             android:text="Anime - Episode 12 / 25"
-            android:textColor="@color/grey_600"
+            android:textColor="@color/accent_blue"
             android:textSize="12sp" />
 
         <TextView
@@ -53,13 +65,13 @@
             android:layout_alignTop="@id/tv_title"
             android:text="2h ago"
             android:textColor="@color/grey_600"
-            android:textSize="12sp" />
+            android:textSize="11sp" />
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_below="@id/tv_subtitle"
-            android:layout_toEndOf="@id/iv_thumbnail"
+            android:layout_toEndOf="@id/iv_thumbnail_container"
             android:layout_marginTop="8dp"
             android:gravity="center_vertical"
             android:orientation="horizontal">
@@ -81,8 +93,23 @@
                 android:gravity="end"
                 android:text="48%"
                 android:textColor="@color/grey_600"
-                android:textSize="12sp" />
+                android:textSize="11sp" />
         </LinearLayout>
+
+        <TextView
+            android:id="@+id/tv_status_pill"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/tv_subtitle"
+            android:layout_marginTop="32dp"
+            android:layout_toEndOf="@id/iv_thumbnail_container"
+            android:background="@drawable/rating_pill_bg"
+            android:paddingHorizontal="8dp"
+            android:paddingVertical="2dp"
+            android:text="Ongoing"
+            android:textSize="10sp"
+            android:textColor="@color/white"
+            android:visibility="gone"/>
 
     </RelativeLayout>
 </com.google.android.material.card.MaterialCardView>

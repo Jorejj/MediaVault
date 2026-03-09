@@ -6,20 +6,23 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
 
+import com.bumptech.glide.Glide;
 import com.example.mediavault.DatabaseHelper;
 import com.example.mediavault.DescriptionActivity;
 import com.example.mediavault.R;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.button.MaterialButton;
+
+import java.io.File;
 import java.util.Locale;
 
 public class HomeFragment extends Fragment {
@@ -54,9 +57,15 @@ public class HomeFragment extends Fragment {
         
         updateOverviewStats();
         setupNavigation(view);
-        setupRecentActivities();
         
         return view;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        updateOverviewStats();
+        setupRecentActivities();
     }
 
     private void setupRecentActivities() {
@@ -74,6 +83,7 @@ public class HomeFragment extends Fragment {
                 int typeIndex = cursor.getColumnIndex(DatabaseHelper.COL_MEDIA_TYPE);
                 int progressIndex = cursor.getColumnIndex(DatabaseHelper.COL_CURRENT_PROGRESS);
                 int totalIndex = cursor.getColumnIndex(DatabaseHelper.COL_TOTAL_COUNT);
+                int imageIndex = cursor.getColumnIndex(DatabaseHelper.COL_IMAGE_PATH);
 
                 do {
                     if (count >= 4) break;
@@ -86,11 +96,13 @@ public class HomeFragment extends Fragment {
                     String type = cursor.getString(typeIndex);
                     int progress = cursor.getInt(progressIndex);
                     int total = cursor.getInt(totalIndex);
+                    String imagePath = cursor.getString(imageIndex);
                     
                     TextView tvTitle = itemView.findViewById(R.id.tv_title);
                     TextView tvSubtitle = itemView.findViewById(R.id.tv_subtitle);
                     TextView tvPercent = itemView.findViewById(R.id.tv_progress_percentage);
                     ProgressBar progressBar = itemView.findViewById(R.id.progress_bar);
+                    ImageView ivThumbnail = itemView.findViewById(R.id.iv_thumbnail);
                     
                     if (tvTitle != null) tvTitle.setText(title);
                     if (tvSubtitle != null) tvSubtitle.setText(type);
@@ -100,6 +112,19 @@ public class HomeFragment extends Fragment {
                         if (progressBar != null) {
                             progressBar.setMax(total);
                             progressBar.setProgress(progress);
+                        }
+                    }
+
+                    if (ivThumbnail != null) {
+                        if (imagePath != null && !imagePath.isEmpty()) {
+                            File file = new File(imagePath);
+                            if (file.exists()) {
+                                Glide.with(this).load(file).centerCrop().into(ivThumbnail);
+                            } else {
+                                Glide.with(this).load(imagePath).placeholder(R.drawable.app_logo).error(R.drawable.app_logo).centerCrop().into(ivThumbnail);
+                            }
+                        } else {
+                            ivThumbnail.setImageResource(R.drawable.app_logo);
                         }
                     }
 

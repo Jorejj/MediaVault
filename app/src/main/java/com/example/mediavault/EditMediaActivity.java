@@ -3,12 +3,13 @@ package com.example.mediavault;
 import android.content.Intent;
 import android.database.Cursor;
 import android.os.Bundle;
+import android.text.Editable;
 import android.text.TextUtils;
-import android.widget.Button;
-import android.widget.EditText;
+import android.text.TextWatcher;
+import android.widget.ArrayAdapter;
+import android.widget.AutoCompleteTextView;
 import android.widget.ImageView;
 import android.widget.RatingBar;
-import android.widget.Spinner;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -16,6 +17,7 @@ import androidx.appcompat.widget.Toolbar;
 
 import com.bumptech.glide.Glide;
 import com.google.android.material.appbar.CollapsingToolbarLayout;
+import com.google.android.material.button.MaterialButton;
 import com.google.android.material.textfield.TextInputEditText;
 
 import java.io.File;
@@ -26,14 +28,13 @@ public class EditMediaActivity extends AppCompatActivity {
 
     private int mediaId;
     private DatabaseHelper dbHelper;
-    private String coverPath;
 
     private TextInputEditText etTitle, etGenre, etReview, etImage;
     private ImageView ivCover;
-    private EditText etProgress, etTotal;
-    private Spinner spinnerType, spinnerStatus, spinnerUnit;
+    private TextInputEditText etProgress, etTotal;
+    private AutoCompleteTextView autoType, autoStatus, autoUnit;
     private RatingBar rbRating;
-    private Button btnSave;
+    private MaterialButton btnSave;
     private CollapsingToolbarLayout collapsingToolbar;
 
     @Override
@@ -50,7 +51,9 @@ public class EditMediaActivity extends AppCompatActivity {
 
         dbHelper = new DatabaseHelper(this);
         initViews();
+        setupDropdowns();
         loadMediaData();
+        setupImagePreviewListener();
     }
 
     private void initViews() {
@@ -58,10 +61,10 @@ public class EditMediaActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
         if (getSupportActionBar() != null) {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+            getSupportActionBar().setTitle(""); // Title handled by CollapsingToolbar
         }
 
         collapsingToolbar = findViewById(R.id.toolbar_layout);
-        collapsingToolbar.setTitle("Edit Media");
 
         etTitle = findViewById(R.id.et_edit_title);
         etGenre = findViewById(R.id.et_edit_genre);
@@ -70,13 +73,76 @@ public class EditMediaActivity extends AppCompatActivity {
         ivCover = findViewById(R.id.iv_edit_cover);
         etProgress = findViewById(R.id.et_edit_progress);
         etTotal = findViewById(R.id.et_edit_total);
-        spinnerType = findViewById(R.id.spinner_edit_type);
-        spinnerStatus = findViewById(R.id.spinner_edit_status);
-        spinnerUnit = findViewById(R.id.spinner_edit_unit);
+        autoType = findViewById(R.id.spinner_edit_type_auto);
+        autoStatus = findViewById(R.id.spinner_edit_status_auto);
+        autoUnit = findViewById(R.id.spinner_edit_unit_auto);
         rbRating = findViewById(R.id.rb_edit_rating);
         btnSave = findViewById(R.id.btn_edit_save);
 
         btnSave.setOnClickListener(v -> saveChanges());
+
+        // Update title in real-time
+        etTitle.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                collapsingToolbar.setTitle(s);
+            }
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+    }
+
+    private void setupDropdowns() {
+        String[] types = getResources().getStringArray(R.array.media_types);
+        ArrayAdapter<String> adapterType = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, types);
+        autoType.setAdapter(adapterType);
+
+        String[] statuses = getResources().getStringArray(R.array.media_statuses);
+        ArrayAdapter<String> adapterStatus = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, statuses);
+        autoStatus.setAdapter(adapterStatus);
+
+        String[] units = getResources().getStringArray(R.array.capacity_units);
+        ArrayAdapter<String> adapterUnit = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, units);
+        autoUnit.setAdapter(adapterUnit);
+    }
+
+    private void setupImagePreviewListener() {
+        etImage.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                updateImageHeader(s.toString());
+            }
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+    }
+
+    private void updateImageHeader(String path) {
+        if (path == null || path.isEmpty()) {
+            ivCover.setImageResource(R.drawable.app_logo);
+            return;
+        }
+
+        File file = new File(path);
+        if (file.exists()) {
+            Glide.with(this)
+                    .load(file)
+                    .centerCrop()
+                    .placeholder(R.drawable.app_logo)
+                    .error(R.drawable.app_logo)
+                    .into(ivCover);
+        } else {
+            Glide.with(this)
+                    .load(path)
+                    .centerCrop()
+                    .placeholder(R.drawable.app_logo)
+                    .error(R.drawable.app_logo)
+                    .into(ivCover);
+        }
     }
 
     @Override
@@ -88,51 +154,37 @@ public class EditMediaActivity extends AppCompatActivity {
     private void loadMediaData() {
         Cursor cursor = dbHelper.getMediaById(mediaId);
         if (cursor != null && cursor.moveToFirst()) {
-            etTitle.setText(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_TITLE)));
+            String title = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_TITLE));
+            etTitle.setText(title);
+            collapsingToolbar.setTitle(title);
+
             etGenre.setText(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_GENRE)));
             etReview.setText(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_REVIEW)));
             etProgress.setText(String.valueOf(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_CURRENT_PROGRESS))));
             etTotal.setText(String.valueOf(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_TOTAL_COUNT))));
             rbRating.setRating(cursor.getFloat(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_RATING)));
-            coverPath = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_IMAGE_PATH));
-            etImage.setText(coverPath);
-            android.util.Log.d("EditMedia", "Loading cover: " + coverPath);
+            
+            String imagePath = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_IMAGE_PATH));
+            etImage.setText(imagePath);
+            updateImageHeader(imagePath);
 
-            setSpinnerToValue(spinnerType, cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_MEDIA_TYPE)));
-            setSpinnerToValue(spinnerStatus, cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_STATUS)));
-            setSpinnerToValue(spinnerUnit, cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_UNIT)));
-
-            if (coverPath != null && !coverPath.isEmpty()) {
-                File file = new File(coverPath);
-                if (file.exists()) {
-                    Glide.with(this).load(file).centerCrop().into(ivCover);
-                } else {
-                    Glide.with(this).load(coverPath).centerCrop().into(ivCover);
-                }
-            }
+            autoType.setText(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_MEDIA_TYPE)), false);
+            autoStatus.setText(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_STATUS)), false);
+            autoUnit.setText(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_UNIT)), false);
             
             cursor.close();
         }
     }
 
-    private void setSpinnerToValue(Spinner spinner, String value) {
-        for (int i = 0; i < spinner.getCount(); i++) {
-            if (spinner.getItemAtPosition(i).toString().equalsIgnoreCase(value)) {
-                spinner.setSelection(i);
-                break;
-            }
-        }
-    }
-
     private void saveChanges() {
         String title = etTitle.getText().toString().trim();
-        String type = spinnerType.getSelectedItem().toString();
-        String status = spinnerStatus.getSelectedItem().toString();
+        String type = autoType.getText().toString();
+        String status = autoStatus.getText().toString();
         String genre = etGenre.getText().toString().trim();
         String review = etReview.getText().toString().trim();
         String progressStr = etProgress.getText().toString().trim();
         String totalStr = etTotal.getText().toString().trim();
-        String unit = spinnerUnit.getSelectedItem().toString();
+        String unit = autoUnit.getText().toString();
         String newImage = etImage.getText().toString().trim();
         float rating = rbRating.getRating();
 
@@ -141,20 +193,24 @@ public class EditMediaActivity extends AppCompatActivity {
             return;
         }
 
-        int progress = Integer.parseInt(progressStr);
-        int total = Integer.parseInt(totalStr);
+        try {
+            int progress = Integer.parseInt(progressStr);
+            int total = Integer.parseInt(totalStr);
 
-        if (progress > total) {
-            Toast.makeText(this, "Progress cannot exceed Total Capacity", Toast.LENGTH_SHORT).show();
-            return;
-        }
+            if (progress > total) {
+                Toast.makeText(this, "Progress cannot exceed Total Capacity", Toast.LENGTH_SHORT).show();
+                return;
+            }
 
-        if (dbHelper.updateMedia(mediaId, title, type, genre, status, progress, total, unit, newImage, rating, review)) {
-            Toast.makeText(this, "Changes saved", Toast.LENGTH_SHORT).show();
-            sendBroadcast(new Intent(DescriptionActivity.ACTION_MEDIA_UPDATED));
-            finish();
-        } else {
-            Toast.makeText(this, "Error: Could not save changes", Toast.LENGTH_SHORT).show();
+            if (dbHelper.updateMedia(mediaId, title, type, genre, status, progress, total, unit, newImage, rating, review)) {
+                Toast.makeText(this, "Changes saved", Toast.LENGTH_SHORT).show();
+                sendBroadcast(new Intent(DescriptionActivity.ACTION_MEDIA_UPDATED));
+                finish();
+            } else {
+                Toast.makeText(this, "Error: Could not save changes", Toast.LENGTH_SHORT).show();
+            }
+        } catch (NumberFormatException e) {
+            Toast.makeText(this, "Invalid progress or total value", Toast.LENGTH_SHORT).show();
         }
     }
 }

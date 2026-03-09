@@ -24,10 +24,12 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.bumptech.glide.Glide;
 import com.google.android.material.appbar.CollapsingToolbarLayout;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -94,20 +96,28 @@ public class DescriptionActivity extends AppCompatActivity {
         rvReviews = findViewById(R.id.rv_description_reviews);
 
         FloatingActionButton fabBack = findViewById(R.id.fab_description_back);
-        fabBack.setOnClickListener(v -> finish());
+        if (fabBack != null) {
+            fabBack.setOnClickListener(v -> finish());
+        }
 
         Button btnEdit = findViewById(R.id.btn_description_edit);
-        btnEdit.setOnClickListener(v -> {
-            Intent intent = new Intent(this, EditMediaActivity.class);
-            intent.putExtra(EditMediaActivity.EXTRA_MEDIA_ID, mediaId);
-            startActivity(intent);
-        });
+        if (btnEdit != null) {
+            btnEdit.setOnClickListener(v -> {
+                Intent intent = new Intent(this, EditMediaActivity.class);
+                intent.putExtra(EditMediaActivity.EXTRA_MEDIA_ID, mediaId);
+                startActivity(intent);
+            });
+        }
 
         Button btnShare = findViewById(R.id.btn_description_share);
-        btnShare.setOnClickListener(v -> shareMedia());
+        if (btnShare != null) {
+            btnShare.setOnClickListener(v -> shareMedia());
+        }
 
         Button btnDelete = findViewById(R.id.btn_description_delete);
-        btnDelete.setOnClickListener(v -> showDeleteConfirmation());
+        if (btnDelete != null) {
+            btnDelete.setOnClickListener(v -> showDeleteConfirmation());
+        }
     }
 
     private void setupReviews() {
@@ -212,6 +222,7 @@ public class DescriptionActivity extends AppCompatActivity {
                 int capacityIndex = cursor.getColumnIndex(DatabaseHelper.COL_TOTAL_COUNT);
                 int unitIndex = cursor.getColumnIndex(DatabaseHelper.COL_UNIT);
                 int ratingIndex = cursor.getColumnIndex(DatabaseHelper.COL_RATING);
+                int imageIndex = cursor.getColumnIndex(DatabaseHelper.COL_IMAGE_PATH);
 
                 mediaTitle = titleIndex != -1 ? cursor.getString(titleIndex) : "Unknown";
                 String type = typeIndex != -1 ? cursor.getString(typeIndex) : "N/A";
@@ -222,6 +233,7 @@ public class DescriptionActivity extends AppCompatActivity {
                 int capacity = capacityIndex != -1 ? cursor.getInt(capacityIndex) : 0;
                 String unit = unitIndex != -1 ? cursor.getString(unitIndex) : "";
                 float rating = ratingIndex != -1 ? cursor.getFloat(ratingIndex) : 0f;
+                String imagePath = imageIndex != -1 ? cursor.getString(imageIndex) : null;
 
                 tvTitle.setText(mediaTitle);
                 collapsingToolbar.setTitle(mediaTitle);
@@ -233,6 +245,19 @@ public class DescriptionActivity extends AppCompatActivity {
                 pbProgress.setMax(capacity > 0 ? capacity : 100);
                 pbProgress.setProgress(progress);
                 rbRating.setRating(rating);
+
+                if (ivCover != null) {
+                    if (imagePath != null && !imagePath.isEmpty()) {
+                        File file = new File(imagePath);
+                        if (file.exists()) {
+                            Glide.with(this).load(file).centerCrop().into(ivCover);
+                        } else {
+                            Glide.with(this).load(imagePath).placeholder(R.drawable.app_logo).error(R.drawable.app_logo).centerCrop().into(ivCover);
+                        }
+                    } else {
+                        ivCover.setImageResource(R.drawable.app_logo);
+                    }
+                }
             } else {
                 Toast.makeText(this, "Error: Media record not found", Toast.LENGTH_SHORT).show();
                 finish();

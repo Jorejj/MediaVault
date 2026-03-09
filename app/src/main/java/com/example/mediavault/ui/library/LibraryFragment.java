@@ -62,7 +62,6 @@ public class LibraryFragment extends Fragment {
         mediaItems = new ArrayList<>();
         adapter = new MediaAdapter(mediaItems);
         recyclerView.setAdapter(adapter);
-    }
 
         refreshLibrary();
 

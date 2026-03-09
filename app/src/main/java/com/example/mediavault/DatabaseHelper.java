@@ -5,12 +5,14 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import java.util.HashSet;
+import java.util.Set;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     // Database Information
     private static final String DATABASE_NAME = "MediaVault.db";
-    private static final int DATABASE_VERSION = 6; // Incremented for schema fixes and review column
+    private static final int DATABASE_VERSION = 7; // Incremented to ensure upgrade runs
     public static final String TABLE_MEDIA = "media_library";
     public static final String TABLE_PROGRESS_LOG = "progress_log";
 
@@ -92,33 +94,51 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         
         db.execSQL(createLogTable);
 
-        // Automated Trigger for last_updated
-        String createTrigger = "CREATE TRIGGER update_media_modtime " +
+        createTrigger(db);
+    }
+
+    private void createTrigger(SQLiteDatabase db) {
+        String createTrigger = "CREATE TRIGGER IF NOT EXISTS update_media_modtime " +
                 "AFTER UPDATE ON " + TABLE_MEDIA + " " +
                 "FOR EACH ROW BEGIN " +
                 "UPDATE " + TABLE_MEDIA + " SET " + COL_LAST_UPDATED + " = CURRENT_TIMESTAMP " +
                 "WHERE " + COL_ID + " = OLD." + COL_ID + "; END;";
-        
         db.execSQL(createTrigger);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        if (oldVersion < 6) {
-            // Check if review column exists, if not add it
-            Cursor cursor = db.rawQuery("PRAGMA table_info(" + TABLE_MEDIA + ")", null);
-            boolean hasReview = false;
-            while (cursor.moveToNext()) {
-                if (COL_REVIEW.equals(cursor.getString(1))) {
-                    hasReview = true;
-                    break;
-                }
-            }
-            cursor.close();
-            if (!hasReview) {
+        if (oldVersion < 7) {
+            Set<String> columns = getTableColumns(db, TABLE_MEDIA);
+            
+            if (!columns.contains(COL_REVIEW)) {
                 db.execSQL("ALTER TABLE " + TABLE_MEDIA + " ADD COLUMN " + COL_REVIEW + " TEXT");
             }
+            if (!columns.contains(COL_DATE_ADDED)) {
+                db.execSQL("ALTER TABLE " + TABLE_MEDIA + " ADD COLUMN " + COL_DATE_ADDED + " DATETIME DEFAULT CURRENT_TIMESTAMP");
+            }
+            if (!columns.contains(COL_LAST_UPDATED)) {
+                db.execSQL("ALTER TABLE " + TABLE_MEDIA + " ADD COLUMN " + COL_LAST_UPDATED + " DATETIME DEFAULT CURRENT_TIMESTAMP");
+            }
+            if (!columns.contains(COL_IS_FAVORITE)) {
+                db.execSQL("ALTER TABLE " + TABLE_MEDIA + " ADD COLUMN " + COL_IS_FAVORITE + " INTEGER DEFAULT 0");
+            }
+            
+            // Ensure the trigger exists
+            createTrigger(db);
         }
+    }
+
+    private Set<String> getTableColumns(SQLiteDatabase db, String tableName) {
+        Set<String> columns = new HashSet<>();
+        Cursor cursor = db.rawQuery("PRAGMA table_info(" + tableName + ")", null);
+        if (cursor != null) {
+            while (cursor.moveToNext()) {
+                columns.add(cursor.getString(1));
+            }
+            cursor.close();
+        }
+        return columns;
     }
 
     // --- CRUD OPERATIONS ---

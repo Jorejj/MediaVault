@@ -1,13 +1,16 @@
 package com.example.mediavault;
 
+import android.annotation.SuppressLint;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.database.Cursor;
 import android.os.Bundle;
+import android.text.method.ScrollingMovementMethod;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.LayoutInflater;
@@ -27,7 +30,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.bumptech.glide.Glide;
 import com.google.android.material.appbar.CollapsingToolbarLayout;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -43,7 +45,7 @@ public class DescriptionActivity extends AppCompatActivity {
     private String mediaTitle;
     
     private ImageView ivCover;
-    private TextView tvTitle, tvType, tvGenre, tvStatus, tvProgressText, tvMyReview;
+    private TextView tvTitle, tvType, tvGenre, tvStatus, tvProgressText, tvMyReview, tvDescription;
     private ProgressBar pbProgress;
     private RatingBar rbRating;
     private CollapsingToolbarLayout collapsingToolbar;
@@ -76,6 +78,7 @@ public class DescriptionActivity extends AppCompatActivity {
         setupReviews();
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     private void initViews() {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -91,13 +94,23 @@ public class DescriptionActivity extends AppCompatActivity {
         tvStatus = findViewById(R.id.tv_description_status);
         tvProgressText = findViewById(R.id.tv_description_progress_text);
         tvMyReview = findViewById(R.id.tv_description_my_review);
+        tvDescription = findViewById(R.id.tv_description_text);
         pbProgress = findViewById(R.id.pb_description_progress);
         rbRating = findViewById(R.id.rb_description_rating);
         rvReviews = findViewById(R.id.rv_description_reviews);
 
-        FloatingActionButton fabBack = findViewById(R.id.fab_description_back);
-        if (fabBack != null) {
-            fabBack.setOnClickListener(v -> finish());
+        // Make description scrollable inside NestedScrollView
+        if (tvDescription != null) {
+            tvDescription.setMovementMethod(new ScrollingMovementMethod());
+            tvDescription.setOnTouchListener((v, event) -> {
+                if (v.canScrollVertically(1) || v.canScrollVertically(-1)) {
+                    v.getParent().requestDisallowInterceptTouchEvent(true);
+                    if ((event.getAction() & MotionEvent.ACTION_MASK) == MotionEvent.ACTION_UP) {
+                        v.getParent().requestDisallowInterceptTouchEvent(false);
+                    }
+                }
+                return false;
+            });
         }
 
         Button btnEdit = findViewById(R.id.btn_description_edit);
@@ -217,6 +230,7 @@ public class DescriptionActivity extends AppCompatActivity {
                 int typeIndex = cursor.getColumnIndex(DatabaseHelper.COL_MEDIA_TYPE);
                 int genreIndex = cursor.getColumnIndex(DatabaseHelper.COL_GENRE);
                 int statusIndex = cursor.getColumnIndex(DatabaseHelper.COL_STATUS);
+                int descriptionIndex = cursor.getColumnIndex(DatabaseHelper.COL_DESCRIPTION);
                 int reviewIndex = cursor.getColumnIndex(DatabaseHelper.COL_REVIEW);
                 int progressIndex = cursor.getColumnIndex(DatabaseHelper.COL_CURRENT_PROGRESS);
                 int capacityIndex = cursor.getColumnIndex(DatabaseHelper.COL_TOTAL_COUNT);
@@ -228,6 +242,7 @@ public class DescriptionActivity extends AppCompatActivity {
                 String type = typeIndex != -1 ? cursor.getString(typeIndex) : "N/A";
                 String genre = genreIndex != -1 ? cursor.getString(genreIndex) : "";
                 String status = statusIndex != -1 ? cursor.getString(statusIndex) : "Planning";
+                String description = descriptionIndex != -1 ? cursor.getString(descriptionIndex) : "";
                 String review = reviewIndex != -1 ? cursor.getString(reviewIndex) : "";
                 int progress = progressIndex != -1 ? cursor.getInt(progressIndex) : 0;
                 int capacity = capacityIndex != -1 ? cursor.getInt(capacityIndex) : 0;
@@ -240,6 +255,11 @@ public class DescriptionActivity extends AppCompatActivity {
                 tvType.setText(type.toUpperCase());
                 tvGenre.setText(genre);
                 tvStatus.setText(status);
+                
+                if (description != null && !description.isEmpty()) {
+                    tvDescription.setText(description);
+                }
+
                 tvProgressText.setText(progress + " / " + capacity + " " + unit);
                 tvMyReview.setText(review != null && !review.isEmpty() ? review : "No personal review yet.");
                 pbProgress.setMax(capacity > 0 ? capacity : 100);

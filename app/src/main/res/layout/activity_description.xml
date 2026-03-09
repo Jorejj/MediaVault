@@ -130,7 +130,10 @@
                 android:textColor="@color/grey_600"
                 android:textSize="14sp"
                 android:lineSpacingExtra="4dp"
-                android:text="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat." />
+                android:maxLines="8"
+                android:scrollbars="vertical"
+                android:fadeScrollbars="false"
+                android:text="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat." />
 
             <com.google.android.material.divider.MaterialDivider
                 android:layout_width="match_parent"
@@ -266,18 +269,5 @@
 
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
-
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_description_back"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="16dp"
-        android:src="@drawable/ic_plus"
-        app:layout_anchor="@id/app_bar"
-        app:layout_anchorGravity="bottom|start"
-        android:contentDescription="@string/go_back"
-        app:tint="@color/white"
-        app:fabSize="normal"
-        android:rotation="225" />
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

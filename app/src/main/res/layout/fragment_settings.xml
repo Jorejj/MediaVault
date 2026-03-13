@@ -39,14 +39,14 @@
         android:layout_marginTop="16dp"
         app:layout_constraintTop_toBottomOf="@id/img_logo"
         app:layout_constraintBottom_toBottomOf="parent"
-        android:paddingBottom="100dp"
         android:clipToPadding="false">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingHorizontal="16dp">
+            android:paddingHorizontal="16dp"
+            android:paddingBottom="100dp">
 
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
@@ -131,6 +131,7 @@
                     </RelativeLayout>
 
                     <RelativeLayout
+                        android:id="@+id/row_terms"
                         android:layout_width="match_parent"
                         android:layout_height="60dp"
                         android:paddingHorizontal="16dp"
@@ -230,6 +231,7 @@
                     <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#1A888888"/>
 
                     <RelativeLayout
+                        android:id="@+id/row_privacy"
                         android:layout_width="match_parent"
                         android:layout_height="60dp"
                         android:paddingHorizontal="16dp"
@@ -288,125 +290,4 @@
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 
-
-    <androidx.coordinatorlayout.widget.CoordinatorLayout
-        android:layout_width="match_parent"
-        android:layout_height="100dp"
-        app:layout_constraintBottom_toBottomOf="parent">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="70dp"
-            android:layout_gravity="bottom"
-            android:background="?attr/colorBottomNav"
-            android:orientation="horizontal"
-            android:weightSum="5"
-            android:gravity="center_vertical"
-            android:elevation="10dp">
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="center">
-
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/ic_settings1"
-                    app:tint="@color/main_blue"/>
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Home"
-                    android:textSize="10sp"
-                    android:textColor="@color/main_blue"
-                    android:layout_marginTop="4dp"/>
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="center">
-
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/ic_settings1"
-                    app:tint="?attr/colorIconTint"/>
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Library"
-                    android:textSize="10sp"
-                    android:textColor="?attr/colorTextSecondary"
-                    android:layout_marginTop="4dp"/>
-            </LinearLayout>
-
-            <Space
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"/>
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="center">
-
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/ic_settings1"
-                    app:tint="?attr/colorIconTint"/>
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Stats"
-                    android:textSize="10sp"
-                    android:textColor="?attr/colorTextSecondary"
-                    android:layout_marginTop="4dp"/>
-            </LinearLayout>
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="match_parent"
-                android:layout_weight="1"
-                android:orientation="vertical"
-                android:gravity="center">
-
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:src="@drawable/ic_settings1"
-                    app:tint="?attr/colorIconTint"/>
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="Settings"
-                    android:textSize="10sp"
-                    android:textColor="?attr/colorTextSecondary"
-                    android:layout_marginTop="4dp"/>
-            </LinearLayout>
-
-        </LinearLayout>
-
-        <com.google.android.material.floatingactionbutton.FloatingActionButton
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center_horizontal|bottom"
-            android:layout_marginBottom="35dp"
-            android:src="@drawable/ic_settings1"
-            app:backgroundTint="@color/main_blue"
-            app:tint="@android:color/white"
-            app:elevation="6dp"
-            app:fabSize="normal" />
-
-    </androidx.coordinatorlayout.widget.CoordinatorLayout>
-
 </androidx.constraintlayout.widget.ConstraintLayout>
-`

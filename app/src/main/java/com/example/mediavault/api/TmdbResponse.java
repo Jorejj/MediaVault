@@ -13,6 +13,9 @@ public class TmdbResponse {
     }
 
     public static class TmdbItem {
+        @SerializedName("id")
+        private int id;
+
         @SerializedName("title")
         private String title; // For movies
 
@@ -30,6 +33,10 @@ public class TmdbResponse {
 
         @SerializedName("first_air_date")
         private String firstAirDate;
+
+        public int getId() {
+            return id;
+        }
 
         public String getTitle() {
             return title != null ? title : name;

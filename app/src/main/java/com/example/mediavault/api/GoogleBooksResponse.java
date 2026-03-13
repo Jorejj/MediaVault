@@ -31,6 +31,12 @@ public class GoogleBooksResponse {
         @SerializedName("pageCount")
         private Integer pageCount;
 
+        @SerializedName("authors")
+        private List<String> authors;
+
+        @SerializedName("categories")
+        private List<String> categories;
+
         @SerializedName("imageLinks")
         private ImageLinks imageLinks;
 
@@ -46,6 +52,14 @@ public class GoogleBooksResponse {
             return pageCount;
         }
 
+        public List<String> getAuthors() {
+            return authors;
+        }
+
+        public List<String> getCategories() {
+            return categories;
+        }
+
         public ImageLinks getImageLinks() {
             return imageLinks;
         }
@@ -54,9 +68,12 @@ public class GoogleBooksResponse {
     public static class ImageLinks {
         @SerializedName("thumbnail")
         private String thumbnail;
+        
+        @SerializedName("smallThumbnail")
+        private String smallThumbnail;
 
         public String getThumbnail() {
-            return thumbnail;
+            return thumbnail != null ? thumbnail : smallThumbnail;
         }
     }
 }

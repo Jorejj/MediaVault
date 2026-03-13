@@ -34,8 +34,10 @@ import com.example.mediavault.api.JikanApiService;
 import com.example.mediavault.api.JikanResponse;
 import com.example.mediavault.api.MediaSearchAdapter;
 import com.example.mediavault.api.MediaSearchResult;
+import com.example.mediavault.api.MovieDetailResponse;
 import com.example.mediavault.api.TmdbApiService;
 import com.example.mediavault.api.TmdbResponse;
+import com.example.mediavault.api.TvDetailResponse;
 import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
@@ -44,6 +46,7 @@ import com.google.android.material.textfield.TextInputEditText;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -225,8 +228,8 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
             searchBooks(query);
         } else if (target.contains("Movie")) {
             searchTmdb(query, "Movie");
-        } else if (target.contains("TV")) {
-            searchTmdb(query, "TV Show");
+        } else if (target.contains("Series")) {
+            searchTmdb(query, "Series");
         } else {
             pbSearchLoading.setVisibility(View.GONE);
             rvApiResults.setVisibility(View.VISIBLE);
@@ -283,8 +286,8 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                     results.add(new MediaSearchResult(
                             data.getTitle(),
                             type,
-                            "", 
-                            "", 
+                            data.getDisplayGenres(), 
+                            data.getCreator(), 
                             data.getSynopsis(),
                             imageUrl,
                             type.equals("Anime") ? data.getEpisodes() : data.getChapters(),
@@ -318,13 +321,26 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                             String imageUrl = null;
                             if (info.getImageLinks() != null) {
                                 imageUrl = info.getImageLinks().getThumbnail();
+                                if (imageUrl != null && imageUrl.startsWith("http://")) {
+                                    imageUrl = imageUrl.replace("http://", "https://");
+                                }
+                            }
+
+                            String authors = "";
+                            if (info.getAuthors() != null) {
+                                authors = String.join(", ", info.getAuthors());
+                            }
+
+                            String genres = "";
+                            if (info.getCategories() != null) {
+                                genres = String.join(", ", info.getCategories());
                             }
 
                             results.add(new MediaSearchResult(
                                     info.getTitle(),
                                     "Book",
-                                    "",
-                                    "", 
+                                    genres,
+                                    authors, 
                                     info.getDescription(),
                                     imageUrl,
                                     info.getPageCount(),
@@ -360,33 +376,27 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         call.enqueue(new Callback<TmdbResponse>() {
             @Override
             public void onResponse(@NonNull Call<TmdbResponse> call, @NonNull Response<TmdbResponse> response) {
-                pbSearchLoading.setVisibility(View.GONE);
-                btnApiSearchSubmit.setEnabled(true);
-                rvApiResults.setVisibility(View.VISIBLE);
-
                 if (response.isSuccessful() && response.body() != null) {
                     List<MediaSearchResult> results = new ArrayList<>();
-                    if (response.body().getResults() != null && !response.body().getResults().isEmpty()) {
-                        for (TmdbResponse.TmdbItem item : response.body().getResults()) {
-                            String imageUrl = null;
-                            if (item.getPosterPath() != null) {
-                                imageUrl = "https://image.tmdb.org/t/p/w500" + item.getPosterPath();
-                            }
-
-                            results.add(new MediaSearchResult(
-                                    item.getTitle(),
-                                    type,
-                                    "", 
-                                    "", 
-                                    item.getOverview(),
-                                    imageUrl,
-                                    null, // Capacity requires detail call
-                                    type.equals("Movie") ? "Minutes" : "Episodes"
-                            ));
+                    List<TmdbResponse.TmdbItem> items = response.body().getResults();
+                    if (items != null && !items.isEmpty()) {
+                        final int[] pending = {items.size()};
+                        for (TmdbResponse.TmdbItem item : items) {
+                            fetchTmdbDetails(service, item, type, results, () -> {
+                                pending[0]--;
+                                if (pending[0] == 0) {
+                                    pbSearchLoading.setVisibility(View.GONE);
+                                    btnApiSearchSubmit.setEnabled(true);
+                                    rvApiResults.setVisibility(View.VISIBLE);
+                                    searchAdapter.setResults(results);
+                                    showSuccessSnackbar("Found " + results.size() + " results.");
+                                }
+                            });
                         }
-                        searchAdapter.setResults(results);
-                        showSuccessSnackbar("Found " + results.size() + " results.");
                     } else {
+                        pbSearchLoading.setVisibility(View.GONE);
+                        btnApiSearchSubmit.setEnabled(true);
+                        rvApiResults.setVisibility(View.VISIBLE);
                         tvNoResults.setVisibility(View.VISIBLE);
                     }
                 } else {
@@ -399,6 +409,75 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                 handleSearchError("Network timeout or error");
             }
         });
+    }
+
+    private void fetchTmdbDetails(TmdbApiService service, TmdbResponse.TmdbItem item, String type, List<MediaSearchResult> results, Runnable onComplete) {
+        if (type.equals("Movie")) {
+            service.getMovieDetails(item.getId(), TMDB_API_KEY).enqueue(new Callback<MovieDetailResponse>() {
+                @Override
+                public void onResponse(Call<MovieDetailResponse> call, Response<MovieDetailResponse> response) {
+                    Integer runtime = null;
+                    String genres = "";
+                    String director = "";
+                    if (response.isSuccessful() && response.body() != null) {
+                        runtime = response.body().getRuntime();
+                        if (response.body().getGenres() != null) {
+                            genres = response.body().getGenres().stream().map(MovieDetailResponse.Genre::getName).collect(Collectors.joining(", "));
+                        }
+                        director = response.body().getDirector();
+                    }
+                    addTmdbResult(item, type, genres, director, runtime, "Minutes", results);
+                    onComplete.run();
+                }
+
+                @Override
+                public void onFailure(Call<MovieDetailResponse> call, Throwable t) {
+                    addTmdbResult(item, type, "", "", null, "Minutes", results);
+                    onComplete.run();
+                }
+            });
+        } else {
+            service.getTvDetails(item.getId(), TMDB_API_KEY).enqueue(new Callback<TvDetailResponse>() {
+                @Override
+                public void onResponse(Call<TvDetailResponse> call, Response<TvDetailResponse> response) {
+                    Integer episodes = null;
+                    String genres = "";
+                    String creator = "";
+                    if (response.isSuccessful() && response.body() != null) {
+                        episodes = response.body().getNumberOfEpisodes();
+                        if (response.body().getGenres() != null) {
+                            genres = response.body().getGenres().stream().map(TvDetailResponse.Genre::getName).collect(Collectors.joining(", "));
+                        }
+                        creator = response.body().getDisplayCreators();
+                    }
+                    addTmdbResult(item, type, genres, creator, episodes, "Episodes", results);
+                    onComplete.run();
+                }
+
+                @Override
+                public void onFailure(Call<TvDetailResponse> call, Throwable t) {
+                    addTmdbResult(item, type, "", "", null, "Episodes", results);
+                    onComplete.run();
+                }
+            });
+        }
+    }
+
+    private void addTmdbResult(TmdbResponse.TmdbItem item, String type, String genres, String creator, Integer capacity, String unit, List<MediaSearchResult> results) {
+        String imageUrl = null;
+        if (item.getPosterPath() != null) {
+            imageUrl = "https://image.tmdb.org/t/p/w500" + item.getPosterPath();
+        }
+        results.add(new MediaSearchResult(
+                item.getTitle(),
+                type.equals("Movie") ? "Movie" : "Series",
+                genres,
+                creator, 
+                item.getOverview(),
+                imageUrl,
+                capacity,
+                unit
+        ));
     }
 
     private void handleSearchError(String message) {
@@ -419,10 +498,18 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
     public void onItemClick(MediaSearchResult result) {
         etManualTitle.setText(result.getTitle());
         setSpinnerToValue(spinnerManualType, result.getType());
+        spinnerManualType.setEnabled(result.getType() == null || result.getType().isEmpty());
+        
         etManualTotal.setText(result.getCapacity() != null ? String.valueOf(result.getCapacity()) : "");
+        etManualTotal.setEnabled(result.getCapacity() == null);
+        
         setSpinnerToValue(spinnerTotalUnit, result.getUnit());
+        spinnerTotalUnit.setEnabled(result.getUnit() == null || result.getUnit().isEmpty() || result.getUnit().equals("Unknown"));
+
         etManualImage.setText(result.getImageUrl());
         etManualDescription.setText(result.getDescription());
+        etManualGenre.setText(result.getGenre());
+        etManualAuthor.setText(result.getAuthor());
         toggleGroup.check(R.id.btn_mode_manual);
 
         String apiName = spinnerApiTarget.getSelectedItem().toString();

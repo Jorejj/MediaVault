@@ -12,6 +12,7 @@
         <item>Manga (Jikan)</item>
         <item>Books (Google Books)</item>
         <item>Movies (TMDB)</item>
+        <item>Series (TMDB)</item>
     </string-array>
     <string-array name="media_statuses">
         <item>Planning</item>

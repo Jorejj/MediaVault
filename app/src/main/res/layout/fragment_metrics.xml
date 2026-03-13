@@ -13,8 +13,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingLeft="16dp"
-        android:paddingRight="16dp"
+        android:paddingHorizontal="20dp"
         android:paddingTop="16dp"
         android:paddingBottom="120dp"
         android:clipToPadding="false">

@@ -23,7 +23,11 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.button.MaterialButton;
 
 import java.io.File;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.Locale;
+import java.util.TimeZone;
 
 public class HomeFragment extends Fragment {
 
@@ -84,6 +88,7 @@ public class HomeFragment extends Fragment {
                 int progressIndex = cursor.getColumnIndex(DatabaseHelper.COL_CURRENT_PROGRESS);
                 int totalIndex = cursor.getColumnIndex(DatabaseHelper.COL_TOTAL_COUNT);
                 int imageIndex = cursor.getColumnIndex(DatabaseHelper.COL_IMAGE_PATH);
+                int updatedIndex = cursor.getColumnIndex(DatabaseHelper.COL_LAST_UPDATED);
 
                 do {
                     if (count >= 4) break;
@@ -97,15 +102,19 @@ public class HomeFragment extends Fragment {
                     int progress = cursor.getInt(progressIndex);
                     int total = cursor.getInt(totalIndex);
                     String imagePath = cursor.getString(imageIndex);
+                    String lastUpdated = cursor.getString(updatedIndex);
                     
                     TextView tvTitle = itemView.findViewById(R.id.tv_title);
                     TextView tvSubtitle = itemView.findViewById(R.id.tv_subtitle);
                     TextView tvPercent = itemView.findViewById(R.id.tv_progress_percentage);
+                    TextView tvTimestamp = itemView.findViewById(R.id.tv_timestamp);
                     ProgressBar progressBar = itemView.findViewById(R.id.progress_bar);
                     ImageView ivThumbnail = itemView.findViewById(R.id.iv_thumbnail);
                     
                     if (tvTitle != null) tvTitle.setText(title);
                     if (tvSubtitle != null) tvSubtitle.setText(type);
+                    if (tvTimestamp != null) tvTimestamp.setText(getTimeAgo(lastUpdated));
+                    
                     if (total > 0) {
                         int percent = (int) ((progress / (float) total) * 100);
                         if (tvPercent != null) tvPercent.setText(percent + "%");
@@ -138,6 +147,33 @@ public class HomeFragment extends Fragment {
                 } while (cursor.moveToNext());
             }
             cursor.close();
+        }
+    }
+
+    private String getTimeAgo(String dateString) {
+        if (dateString == null) return "just now";
+        
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+        
+        try {
+            Date date = sdf.parse(dateString);
+            if (date == null) return "just now";
+            
+            long time = date.getTime();
+            long now = System.currentTimeMillis();
+            long diff = now - time;
+            
+            if (diff < 60000) return "just now";
+            if (diff < 3600000) return (diff / 60000) + "m ago";
+            if (diff < 86400000) return (diff / 3600000) + "h ago";
+            if (diff < 604800000) return (diff / 86400000) + "d ago";
+            
+            SimpleDateFormat displaySdf = new SimpleDateFormat("MMM dd", Locale.getDefault());
+            return displaySdf.format(date);
+            
+        } catch (ParseException e) {
+            return "just now";
         }
     }
 

@@ -1,11 +1,16 @@
 package com.example.mediavault.ui.settings;
 
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,6 +30,7 @@ import com.example.mediavault.DatabaseHelper;
 import com.example.mediavault.R;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -32,6 +38,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
 
 public class SettingsFragment extends Fragment {
 
@@ -231,45 +239,86 @@ public class SettingsFragment extends Fragment {
             if (cursor != null) cursor.close();
             return;
         }
+        cursor.close();
 
-        Context context = getContext();
-        if (context == null) return;
+        String fileName = "MediaVault_Export_" + System.currentTimeMillis() + ".csv";
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            saveCsvToDownloadsApi29(fileName);
+        } else {
+            saveCsvToDownloadsLegacy(fileName);
+        }
+    }
 
-        File exportDir = new File(context.getCacheDir(), "exports");
-        if (!exportDir.exists()) exportDir.mkdirs();
+    private void saveCsvToDownloadsApi29(String fileName) {
+        ContentValues values = new ContentValues();
+        values.put(MediaStore.Downloads.DISPLAY_NAME, fileName);
+        values.put(MediaStore.Downloads.MIME_TYPE, "text/csv");
+        values.put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/MediaVault");
 
-        File file = new File(exportDir, "MediaVault_Export.csv");
-        try {
-            FileWriter writer = new FileWriter(file);
+        ContentResolver resolver = requireContext().getContentResolver();
+        Uri uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+
+        if (uri != null) {
+            writeCsvToUri(uri);
+        } else {
+            Toast.makeText(getContext(), "Failed to create file", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void saveCsvToDownloadsLegacy(String fileName) {
+        File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+        File mediaVaultDir = new File(downloadsDir, "MediaVault");
+        if (!mediaVaultDir.exists()) mediaVaultDir.mkdirs();
+        
+        File file = new File(mediaVaultDir, fileName);
+        try (FileOutputStream out = new FileOutputStream(file)) {
+            writeCsvToOutputStream(out);
+            Toast.makeText(getContext(), "Exported to Downloads/MediaVault", Toast.LENGTH_LONG).show();
+        } catch (IOException e) {
+            e.printStackTrace();
+            Toast.makeText(getContext(), "Export failed", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void writeCsvToUri(Uri uri) {
+        try (OutputStream out = requireContext().getContentResolver().openOutputStream(uri)) {
+            if (out != null) {
+                writeCsvToOutputStream(out);
+                Toast.makeText(getContext(), "Data exported to Downloads/MediaVault", Toast.LENGTH_LONG).show();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+            Toast.makeText(getContext(), "Export failed", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void writeCsvToOutputStream(OutputStream out) throws IOException {
+        try (Cursor cursor = dbHelper.getAllMedia();
+             BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(out, StandardCharsets.UTF_8))) {
+
+            if (cursor == null || cursor.getCount() == 0) return;
+
             String[] columns = cursor.getColumnNames();
             for (int i = 0; i < columns.length; i++) {
-                writer.append(columns[i]);
-                if (i < columns.length - 1) writer.append(",");
+                writer.write("\"" + columns[i] + "\"");
+                if (i < columns.length - 1) writer.write(",");
             }
-            writer.append("\n");
+            writer.newLine();
 
             while (cursor.moveToNext()) {
                 for (int i = 0; i < columns.length; i++) {
                     String val = cursor.getString(i);
-                    writer.append(val != null ? val.replace(",", ";") : "");
-                    if (i < columns.length - 1) writer.append(",");
+                    if (val == null) {
+                        writer.write("\"\"");
+                    } else {
+                        writer.write("\"" + val.replace("\"", "\"\"") + "\"");
+                    }
+                    if (i < columns.length - 1) writer.write(",");
                 }
-                writer.append("\n");
+                writer.newLine();
             }
             writer.flush();
-            writer.close();
-            cursor.close();
-
-            Uri contentUri = FileProvider.getUriForFile(context, context.getPackageName() + ".fileprovider", file);
-            Intent intent = new Intent(Intent.ACTION_SEND);
-            intent.setType("text/csv");
-            intent.putExtra(Intent.EXTRA_STREAM, contentUri);
-            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            startActivity(Intent.createChooser(intent, "Export Data"));
-
-        } catch (IOException e) {
-            e.printStackTrace();
-            Toast.makeText(getContext(), "Export failed", Toast.LENGTH_SHORT).show();
         }
     }
 

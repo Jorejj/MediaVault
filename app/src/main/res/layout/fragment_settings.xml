@@ -5,7 +5,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#F5F5F5">
+    android:background="?android:attr/windowBackground">
 
     <ImageView
         android:id="@+id/img_logo"
@@ -26,7 +26,7 @@
         android:text="Settings"
         android:textSize="20sp"
         android:textStyle="bold"
-        android:textColor="#000000"
+        android:textColor="?attr/colorTextPrimary"
         app:layout_constraintBottom_toBottomOf="@id/img_logo"
         app:layout_constraintTop_toTopOf="@id/img_logo"
         app:layout_constraintStart_toStartOf="parent"
@@ -53,7 +53,7 @@
                 android:layout_height="wrap_content"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="2dp"
-                app:cardBackgroundColor="@android:color/white"
+                app:cardBackgroundColor="?attr/colorCardBackground"
                 android:layout_marginBottom="20dp">
 
                 <LinearLayout
@@ -68,9 +68,9 @@
                         android:text="Settings"
                         android:textStyle="bold"
                         android:textSize="14sp"
-                        android:textColor="#888888"/>
+                        android:textColor="?attr/colorTextSecondary"/>
 
-                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#F0F0F0"/>
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#1A888888"/>
 
                     <RelativeLayout
                         android:layout_width="match_parent"
@@ -78,18 +78,56 @@
                         android:paddingHorizontal="16dp">
 
                         <ImageView android:id="@+id/icon_darkmode" android:layout_width="24dp" android:layout_height="24dp"
-                            android:src="@drawable/ic_settings1" android:layout_centerVertical="true" app:tint="#333333"/>
+                            android:src="@drawable/ic_settings1" android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
 
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                             android:text="Dark Mode" android:layout_toEndOf="@id/icon_darkmode" android:layout_marginStart="16dp"
-                            android:layout_centerVertical="true" android:textSize="16sp" android:textStyle="bold" android:textColor="#333333"/>
+                            android:layout_centerVertical="true" android:textSize="16sp" android:textStyle="bold" android:textColor="?attr/colorTextPrimary"/>
 
                         <androidx.appcompat.widget.SwitchCompat android:id="@+id/switch_theme"
                             android:layout_width="wrap_content" android:layout_height="wrap_content"
                             android:layout_alignParentEnd="true"
                             android:layout_centerVertical="true"
                             android:checked="false"
-                            app:trackTint="#EAEFEF"/>
+                            app:trackTint="#1A888888"/>
+                    </RelativeLayout>
+
+                    <RelativeLayout
+                        android:id="@+id/row_export_data"
+                        android:layout_width="match_parent"
+                        android:layout_height="60dp"
+                        android:paddingHorizontal="16dp"
+                        android:clickable="true" android:focusable="true" android:background="?attr/selectableItemBackground">
+
+                        <ImageView android:id="@+id/icon_export" android:layout_width="24dp" android:layout_height="24dp"
+                            android:src="@drawable/ic_settings1" android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
+
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Export Data" android:layout_toEndOf="@id/icon_export" android:layout_marginStart="16dp"
+                            android:layout_centerVertical="true" android:textSize="16sp" android:textStyle="bold" android:textColor="?attr/colorTextPrimary"/>
+
+                        <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                            android:src="@drawable/ic_chevron_right" android:layout_alignParentEnd="true"
+                            android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
+                    </RelativeLayout>
+
+                    <RelativeLayout
+                        android:id="@+id/row_clear_database"
+                        android:layout_width="match_parent"
+                        android:layout_height="60dp"
+                        android:paddingHorizontal="16dp"
+                        android:clickable="true" android:focusable="true" android:background="?attr/selectableItemBackground">
+
+                        <ImageView android:id="@+id/icon_clear" android:layout_width="24dp" android:layout_height="24dp"
+                            android:src="@drawable/ic_settings1" android:layout_centerVertical="true" app:tint="#FF0000"/>
+
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Clear Database" android:layout_toEndOf="@id/icon_clear" android:layout_marginStart="16dp"
+                            android:layout_centerVertical="true" android:textSize="16sp" android:textStyle="bold" android:textColor="#FF0000"/>
+
+                        <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                            android:src="@drawable/ic_chevron_right" android:layout_alignParentEnd="true"
+                            android:layout_centerVertical="true" app:tint="#FF0000"/>
                     </RelativeLayout>
 
                     <RelativeLayout
@@ -99,15 +137,15 @@
                         android:clickable="true" android:focusable="true" android:background="?attr/selectableItemBackground">
 
                         <ImageView android:id="@+id/icon_terms" android:layout_width="24dp" android:layout_height="24dp"
-                            android:src="@drawable/ic_settings1" android:layout_centerVertical="true" app:tint="#333333"/>
+                            android:src="@drawable/ic_settings1" android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
 
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                             android:text="Terms of Use" android:layout_toEndOf="@id/icon_terms" android:layout_marginStart="16dp"
-                            android:layout_centerVertical="true" android:textSize="16sp" android:textStyle="bold" android:textColor="#333333"/>
+                            android:layout_centerVertical="true" android:textSize="16sp" android:textStyle="bold" android:textColor="?attr/colorTextPrimary"/>
 
                         <ImageView android:layout_width="20dp" android:layout_height="20dp"
                             android:src="@drawable/ic_chevron_right" android:layout_alignParentEnd="true"
-                            android:layout_centerVertical="true" app:tint="#333333"/>
+                            android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
                     </RelativeLayout>
 
                     <RelativeLayout
@@ -118,15 +156,15 @@
                         android:clickable="true" android:focusable="true" android:background="?attr/selectableItemBackground">
 
                         <ImageView android:id="@+id/icon_backup" android:layout_width="24dp" android:layout_height="24dp"
-                            android:src="@drawable/ic_settings1" android:layout_centerVertical="true" app:tint="#333333"/>
+                            android:src="@drawable/ic_settings1" android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
 
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                             android:text="Backup &amp; Restore" android:layout_toEndOf="@id/icon_backup" android:layout_marginStart="16dp"
-                            android:layout_centerVertical="true" android:textSize="16sp" android:textStyle="bold" android:textColor="#333333"/>
+                            android:layout_centerVertical="true" android:textSize="16sp" android:textStyle="bold" android:textColor="?attr/colorTextPrimary"/>
 
                         <ImageView android:layout_width="20dp" android:layout_height="20dp"
                             android:src="@drawable/ic_chevron_right" android:layout_alignParentEnd="true"
-                            android:layout_centerVertical="true" app:tint="#333333"/>
+                            android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
                     </RelativeLayout>
 
                     <RelativeLayout
@@ -136,15 +174,15 @@
                         android:clickable="true" android:focusable="true" android:background="?attr/selectableItemBackground">
 
                         <ImageView android:id="@+id/icon_shake" android:layout_width="24dp" android:layout_height="24dp"
-                            android:src="@drawable/ic_settings1" android:layout_centerVertical="true" app:tint="#333333"/>
+                            android:src="@drawable/ic_settings1" android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
 
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                             android:text="Shake Sensitivity" android:layout_toEndOf="@id/icon_shake" android:layout_marginStart="16dp"
-                            android:layout_centerVertical="true" android:textSize="16sp" android:textStyle="bold" android:textColor="#333333"/>
+                            android:layout_centerVertical="true" android:textSize="16sp" android:textStyle="bold" android:textColor="?attr/colorTextPrimary"/>
 
                         <ImageView android:layout_width="20dp" android:layout_height="20dp"
                             android:src="@drawable/ic_chevron_right" android:layout_alignParentEnd="true"
-                            android:layout_centerVertical="true" app:tint="#333333"/>
+                            android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
                     </RelativeLayout>
 
                     <RelativeLayout
@@ -154,15 +192,15 @@
                         android:clickable="true" android:focusable="true" android:background="?attr/selectableItemBackground">
 
                         <ImageView android:id="@+id/icon_vault" android:layout_width="24dp" android:layout_height="24dp"
-                            android:src="@drawable/ic_settings1" android:layout_centerVertical="true" app:tint="#333333"/>
+                            android:src="@drawable/ic_settings1" android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
 
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                             android:text="Vault Management" android:layout_toEndOf="@id/icon_vault" android:layout_marginStart="16dp"
-                            android:layout_centerVertical="true" android:textSize="16sp" android:textStyle="bold" android:textColor="#333333"/>
+                            android:layout_centerVertical="true" android:textSize="16sp" android:textStyle="bold" android:textColor="?attr/colorTextPrimary"/>
 
                         <ImageView android:layout_width="20dp" android:layout_height="20dp"
                             android:src="@drawable/ic_chevron_right" android:layout_alignParentEnd="true"
-                            android:layout_centerVertical="true" app:tint="#333333"/>
+                            android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
                     </RelativeLayout>
 
                 </LinearLayout>
@@ -173,7 +211,7 @@
                 android:layout_height="wrap_content"
                 app:cardCornerRadius="16dp"
                 app:cardElevation="2dp"
-                app:cardBackgroundColor="@android:color/white">
+                app:cardBackgroundColor="?attr/colorCardBackground">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -187,9 +225,9 @@
                         android:text="More"
                         android:textStyle="bold"
                         android:textSize="14sp"
-                        android:textColor="#888888"/>
+                        android:textColor="?attr/colorTextSecondary"/>
 
-                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#F0F0F0"/>
+                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#1A888888"/>
 
                     <RelativeLayout
                         android:layout_width="match_parent"
@@ -198,15 +236,15 @@
                         android:clickable="true" android:focusable="true" android:background="?attr/selectableItemBackground">
 
                         <ImageView android:id="@+id/icon_privacy" android:layout_width="24dp" android:layout_height="24dp"
-                            android:src="@drawable/ic_settings1" android:layout_centerVertical="true" app:tint="#333333"/>
+                            android:src="@drawable/ic_settings1" android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
 
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                             android:text="Privacy Policy" android:layout_toEndOf="@id/icon_privacy" android:layout_marginStart="16dp"
-                            android:layout_centerVertical="true" android:textSize="16sp" android:textStyle="bold" android:textColor="#333333"/>
+                            android:layout_centerVertical="true" android:textSize="16sp" android:textStyle="bold" android:textColor="?attr/colorTextPrimary"/>
 
                         <ImageView android:layout_width="20dp" android:layout_height="20dp"
                             android:src="@drawable/ic_chevron_right" android:layout_alignParentEnd="true"
-                            android:layout_centerVertical="true" app:tint="#333333"/>
+                            android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
                     </RelativeLayout>
 
                     <RelativeLayout
@@ -216,15 +254,15 @@
                         android:clickable="true" android:focusable="true" android:background="?attr/selectableItemBackground">
 
                         <ImageView android:id="@+id/icon_help" android:layout_width="24dp" android:layout_height="24dp"
-                            android:src="@drawable/ic_settings1" android:layout_centerVertical="true" app:tint="#333333"/>
+                            android:src="@drawable/ic_settings1" android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
 
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                             android:text="Help" android:layout_toEndOf="@id/icon_help" android:layout_marginStart="16dp"
-                            android:layout_centerVertical="true" android:textSize="16sp" android:textStyle="bold" android:textColor="#333333"/>
+                            android:layout_centerVertical="true" android:textSize="16sp" android:textStyle="bold" android:textColor="?attr/colorTextPrimary"/>
 
                         <ImageView android:layout_width="20dp" android:layout_height="20dp"
                             android:src="@drawable/ic_chevron_right" android:layout_alignParentEnd="true"
-                            android:layout_centerVertical="true" app:tint="#333333"/>
+                            android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
                     </RelativeLayout>
 
                     <RelativeLayout
@@ -235,15 +273,15 @@
                         android:clickable="true" android:focusable="true" android:background="?attr/selectableItemBackground">
 
                         <ImageView android:id="@+id/icon_about" android:layout_width="24dp" android:layout_height="24dp"
-                            android:src="@drawable/ic_settings1" android:layout_centerVertical="true" app:tint="#333333"/>
+                            android:src="@drawable/ic_settings1" android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
 
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                             android:text="About" android:layout_toEndOf="@id/icon_about" android:layout_marginStart="16dp"
-                            android:layout_centerVertical="true" android:textSize="16sp" android:textStyle="bold" android:textColor="#333333"/>
+                            android:layout_centerVertical="true" android:textSize="16sp" android:textStyle="bold" android:textColor="?attr/colorTextPrimary"/>
 
                         <ImageView android:layout_width="20dp" android:layout_height="20dp"
                             android:src="@drawable/ic_chevron_right" android:layout_alignParentEnd="true"
-                            android:layout_centerVertical="true" app:tint="#333333"/>
+                            android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
                     </RelativeLayout>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
@@ -260,7 +298,7 @@
             android:layout_width="match_parent"
             android:layout_height="70dp"
             android:layout_gravity="bottom"
-            android:background="@android:color/white"
+            android:background="?attr/colorBottomNav"
             android:orientation="horizontal"
             android:weightSum="5"
             android:gravity="center_vertical"
@@ -277,13 +315,13 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:src="@drawable/ic_settings1"
-                    app:tint="#0088FF"/>
+                    app:tint="@color/main_blue"/>
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Home"
                     android:textSize="10sp"
-                    android:textColor="#0088FF"
+                    android:textColor="@color/main_blue"
                     android:layout_marginTop="4dp"/>
             </LinearLayout>
 
@@ -298,13 +336,13 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:src="@drawable/ic_settings1"
-                    app:tint="#444444"/>
+                    app:tint="?attr/colorIconTint"/>
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Library"
                     android:textSize="10sp"
-                    android:textColor="#444444"
+                    android:textColor="?attr/colorTextSecondary"
                     android:layout_marginTop="4dp"/>
             </LinearLayout>
 
@@ -324,13 +362,13 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:src="@drawable/ic_settings1"
-                    app:tint="#444444"/>
+                    app:tint="?attr/colorIconTint"/>
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Stats"
                     android:textSize="10sp"
-                    android:textColor="#444444"
+                    android:textColor="?attr/colorTextSecondary"
                     android:layout_marginTop="4dp"/>
             </LinearLayout>
 
@@ -345,13 +383,13 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:src="@drawable/ic_settings1"
-                    app:tint="#444444"/>
+                    app:tint="?attr/colorIconTint"/>
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Settings"
                     android:textSize="10sp"
-                    android:textColor="#444444"
+                    android:textColor="?attr/colorTextSecondary"
                     android:layout_marginTop="4dp"/>
             </LinearLayout>
 
@@ -363,7 +401,7 @@
             android:layout_gravity="center_horizontal|bottom"
             android:layout_marginBottom="35dp"
             android:src="@drawable/ic_settings1"
-            app:backgroundTint="#0088FF"
+            app:backgroundTint="@color/main_blue"
             app:tint="@android:color/white"
             app:elevation="6dp"
             app:fabSize="normal" />
@@ -371,3 +409,4 @@
     </androidx.coordinatorlayout.widget.CoordinatorLayout>
 
 </androidx.constraintlayout.widget.ConstraintLayout>
+`

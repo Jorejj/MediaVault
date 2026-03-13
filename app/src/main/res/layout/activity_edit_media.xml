@@ -253,7 +253,10 @@
                         android:scaleX="0.8"
                         android:scaleY="0.8"
                         android:transformPivotX="0dp"
-                        style="?android:attr/ratingBarStyleIndicator"
+                        style="?android:attr/ratingBarStyle"
+                        android:isIndicator="false"
+                        android:clickable="true"
+                        android:focusable="true"
                         android:progressTint="@color/accent_blue"
                         android:secondaryProgressTint="@color/accent_blue" />
 

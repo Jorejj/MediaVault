@@ -11,14 +11,21 @@
 
     <style name="Theme.MediaVault" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="colorPrimary">@color/main_blue</item>
-        <item name="colorSecondary">@color/black</item>
+        <item name="colorPrimaryVariant">@color/logo_text</item>
+        <item name="colorOnPrimary">@color/white</item>
 
-        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+        <item name="colorSecondary">@color/accent_blue</item>
+        <item name="colorSecondaryVariant">@color/vault_accent_blue</item>
+        <item name="colorOnSecondary">@color/white</item>
+
+        <item name="android:statusBarColor">?attr/colorCardBackground</item>
+        <item name="android:windowLightStatusBar">true</item>
+
         <item name="android:windowBackground">@color/bg_main</item>
         <item name="colorCardBackground">@color/bg_card</item>
         <item name="colorBottomNav">@color/nav_bg</item>
         <item name="colorTextPrimary">@color/text_primary</item>
-        <item name="colorTextSecondary">@color/grey_600</item>
+        <item name="colorTextSecondary">@color/text_secondary</item>
         <item name="colorIconTint">@color/black</item>
     </style>
 

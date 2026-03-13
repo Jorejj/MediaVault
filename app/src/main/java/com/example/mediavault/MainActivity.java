@@ -46,16 +46,10 @@ public class MainActivity extends AppCompatActivity {
             navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
                 int id = destination.getId();
                 
-                // Show bottom navigation on main screens including Settings
-                if (id == R.id.nav_home || id == R.id.nav_library || id == R.id.nav_metrics || id == R.id.nav_settings) {
+                // Show bottom navigation on main screens
+                if (id == R.id.nav_home || id == R.id.nav_library || id == R.id.nav_metrics || id == R.id.nav_settings || id == R.id.nav_shake) {
                     if (bottomAppBar != null) bottomAppBar.setVisibility(View.VISIBLE);
-                    
-                    // Hide FAB on settings to avoid "extra button" UI bug
-                    if (id == R.id.nav_settings) {
-                        fab.hide();
-                    } else {
-                        fab.show();
-                    }
+                    fab.show();
                 } else {
                     // Hide bottom bar and FAB on other screens like Add Media, About, etc.
                     fab.hide();

@@ -81,6 +81,10 @@ public class EditMediaActivity extends AppCompatActivity {
 
         btnSave.setOnClickListener(v -> saveChanges());
 
+        rbRating.setOnRatingBarChangeListener((ratingBar, rating, fromUser) -> {
+            // Rating updated by user interaction
+        });
+
         // Update title in real-time
         etTitle.addTextChangedListener(new TextWatcher() {
             @Override

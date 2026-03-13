@@ -51,6 +51,7 @@
                 android:background="@drawable/rating_pill_bg"
                 android:padding="4dp"
                 android:text="★ 4.6"
+                android:textColor="?attr/colorTextPrimary"
                 android:textSize="10sp" />
         </LinearLayout>
     </LinearLayout>

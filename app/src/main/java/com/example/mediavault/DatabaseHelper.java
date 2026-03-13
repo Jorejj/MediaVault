@@ -341,6 +341,56 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return count;
     }
 
+    public Cursor getRandomPlanningMedia() {
+        SQLiteDatabase db = this.getReadableDatabase();
+        return db.rawQuery("SELECT * FROM " + TABLE_MEDIA + " WHERE " + COL_STATUS + " = 'Planning' ORDER BY RANDOM() LIMIT 1", null);
+    }
+
+    public void seedDatabase() {
+        SQLiteDatabase db = this.getWritableDatabase();
+        String[] titles = {
+            "Inception", "The Matrix", "Interstellar", "One Piece", "Naruto", 
+            "Breaking Bad", "Stranger Things", "1984", "The Hobbit", "Dracula",
+            "Joker", "Avatar", "Titanic", "Bleach", "Death Note", 
+            "Sherlock Holmes", "The Witcher", "Mandalorian", "Attack on Titan", "Demon Slayer",
+            "Pulp Fiction", "Gladiator", "The Office", "Friends", "Harry Potter",
+            "Dune", "Spider-Man", "Batman", "Soul", "Your Name"
+        };
+        String[] types = {"Movie", "Series", "Book", "Manga"};
+        String[] genres = {"Action", "Sci-Fi", "Drama", "Fantasy", "Comedy", "Horror"};
+        String[] statuses = {"Ongoing", "Completed", "Planning", "Dropped"};
+        String[] creators = {"Christopher Nolan", "Eiichiro Oda", "George Orwell", "Hajime Isayama", "J.K. Rowling"};
+
+        for (String title : titles) {
+            ContentValues v = new ContentValues();
+            String type = types[(int) (Math.random() * types.length)];
+            String status = statuses[(int) (Math.random() * statuses.length)];
+            int total = 0;
+            String unit = "";
+            
+            if (type.equals("Movie")) { total = 90 + (int)(Math.random()*90); unit = "Minutes"; }
+            else if (type.equals("Series")) { total = 10 + (int)(Math.random()*50); unit = "Episodes"; }
+            else if (type.equals("Book")) { total = 200 + (int)(Math.random()*300); unit = "Pages"; }
+            else { total = 50 + (int)(Math.random()*150); unit = "Chapters"; }
+
+            int progress = status.equals("Completed") ? total : (status.equals("Planning") ? 0 : (int)(Math.random() * total));
+
+            v.put(COL_TITLE, title + " (Demo)");
+            v.put(COL_MEDIA_TYPE, type);
+            v.put(COL_GENRE, genres[(int)(Math.random()*genres.length)]);
+            v.put(COL_CREATOR, creators[(int)(Math.random()*creators.length)]);
+            v.put(COL_TOTAL_COUNT, total);
+            v.put(COL_UNIT, unit);
+            v.put(COL_STATUS, status);
+            v.put(COL_CURRENT_PROGRESS, progress);
+            v.put(COL_RATING, 3.0f + (float)(Math.random() * 2.0f));
+            v.put(COL_DESCRIPTION, "This is a seeded demo entry for " + title);
+            
+            db.insertWithOnConflict(TABLE_MEDIA, null, v, SQLiteDatabase.CONFLICT_IGNORE);
+        }
+        db.close();
+    }
+
     public void clearAllMedia() {
         SQLiteDatabase db = this.getWritableDatabase();
         db.execSQL("DELETE FROM " + TABLE_PROGRESS_LOG);

@@ -1,7 +1,11 @@
 package com.example.mediavault.ui.home;
 
+import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
+import android.hardware.Sensor;
+import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -9,6 +13,7 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -19,8 +24,10 @@ import com.bumptech.glide.Glide;
 import com.example.mediavault.DatabaseHelper;
 import com.example.mediavault.DescriptionActivity;
 import com.example.mediavault.R;
+import com.example.mediavault.ShakeDetector;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.io.File;
 import java.text.ParseException;
@@ -214,5 +221,12 @@ public class HomeFragment extends Fragment {
 
         tvViewDetailedStats.setOnClickListener(toMetrics);
         btnAnalyzeHabits.setOnClickListener(toMetrics);
+
+        View cardShake = view.findViewById(R.id.card_shake);
+        if (cardShake != null) {
+            cardShake.setOnClickListener(v -> {
+                Navigation.findNavController(v).navigate(R.id.action_home_to_shake);
+            });
+        }
     }
 }

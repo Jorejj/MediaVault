@@ -76,6 +76,8 @@ public class SettingsFragment extends Fragment {
         View rowPrivacy = view.findViewById(R.id.row_privacy);
         View rowBackup = view.findViewById(R.id.row_backup);
         View rowHelp = view.findViewById(R.id.icon_help).getParent() instanceof View ? (View) view.findViewById(R.id.icon_help).getParent() : null;
+        View rowShake = view.findViewById(R.id.icon_shake).getParent() instanceof View ? (View) view.findViewById(R.id.icon_shake).getParent() : null;
+        View rowVault = view.findViewById(R.id.icon_vault).getParent() instanceof View ? (View) view.findViewById(R.id.icon_vault).getParent() : null;
         RelativeLayout btnAbout = view.findViewById(R.id.btn_about);
 
         // Theme preference persistence
@@ -121,6 +123,16 @@ public class SettingsFragment extends Fragment {
             rowHelp.setOnClickListener(v -> showHelpDialog());
         }
 
+        // 9. Shake Sensitivity
+        if (rowShake != null) {
+            rowShake.setOnClickListener(v -> showShakeSensitivityDialog());
+        }
+
+        // 10. Vault Management (Seed Data)
+        if (rowVault != null) {
+            rowVault.setOnClickListener(v -> showSeedDataDialog());
+        }
+
         // 8. Navigation to About Page
         if (btnAbout != null) {
             btnAbout.setOnClickListener(v -> {
@@ -129,6 +141,38 @@ public class SettingsFragment extends Fragment {
         }
 
         return view;
+    }
+
+    private void showSeedDataDialog() {
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Vault Management")
+                .setMessage("Would you like to populate your library with 30 random demo entries? (Duplicate titles will be ignored)")
+                .setPositiveButton("Seed Data", (dialog, which) -> {
+                    dbHelper.seedDatabase();
+                    Toast.makeText(getContext(), "Library seeded with 30 items!", Toast.LENGTH_SHORT).show();
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void showShakeSensitivityDialog() {
+        String[] options = {"High (Easy)", "Medium (Normal)", "Low (Hard)"};
+        float[] values = {1.5f, 2.7f, 4.0f};
+        
+        float currentVal = sharedPreferences.getFloat("shake_sensitivity", 2.7f);
+        int currentSelection = 1; // Default to Medium
+        if (currentVal <= 1.5f) currentSelection = 0;
+        else if (currentVal >= 4.0f) currentSelection = 2;
+
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Shake Sensitivity")
+                .setSingleChoiceItems(options, currentSelection, (dialog, which) -> {
+                    sharedPreferences.edit().putFloat("shake_sensitivity", values[which]).apply();
+                    Toast.makeText(getContext(), "Sensitivity set to " + options[which], Toast.LENGTH_SHORT).show();
+                    dialog.dismiss();
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     private void showBackupRestoreDialog() {

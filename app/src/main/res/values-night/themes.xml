@@ -1,9 +1,16 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <style name="Theme.MediaVault" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="colorPrimary">@color/main_blue</item>
-        <item name="colorSecondary">@color/white</item>
+        <item name="colorPrimaryVariant">@color/logo_text</item>
+        <item name="colorOnPrimary">@color/white</item>
 
-        <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
+        <item name="colorSecondary">@color/vault_accent_blue</item>
+        <item name="colorSecondaryVariant">@color/accent_blue_variant</item>
+        <item name="colorOnSecondary">@color/white</item>
+
+        <item name="android:statusBarColor">?attr/colorCardBackground</item>
+        <item name="android:windowLightStatusBar">false</item>
+
         <item name="android:windowBackground">@color/bg_main_dark</item>
         <item name="colorCardBackground">@color/bg_card_dark</item>
         <item name="colorBottomNav">@color/nav_bg_dark</item>

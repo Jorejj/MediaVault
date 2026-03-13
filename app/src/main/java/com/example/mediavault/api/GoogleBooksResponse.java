@@ -25,6 +25,9 @@ public class GoogleBooksResponse {
         @SerializedName("title")
         private String title;
 
+        @SerializedName("description")
+        private String description;
+
         @SerializedName("pageCount")
         private Integer pageCount;
 
@@ -33,6 +36,10 @@ public class GoogleBooksResponse {
 
         public String getTitle() {
             return title;
+        }
+
+        public String getDescription() {
+            return description;
         }
 
         public Integer getPageCount() {

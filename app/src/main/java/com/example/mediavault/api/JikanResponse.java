@@ -16,6 +16,9 @@ public class JikanResponse {
         @SerializedName("title")
         private String title;
 
+        @SerializedName("synopsis")
+        private String synopsis;
+
         @SerializedName("episodes")
         private Integer episodes;
 
@@ -27,6 +30,10 @@ public class JikanResponse {
 
         public String getTitle() {
             return title;
+        }
+
+        public String getSynopsis() {
+            return synopsis;
         }
 
         public Integer getEpisodes() {

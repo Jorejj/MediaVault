@@ -23,7 +23,6 @@ import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -35,6 +34,8 @@ import com.example.mediavault.api.JikanApiService;
 import com.example.mediavault.api.JikanResponse;
 import com.example.mediavault.api.MediaSearchAdapter;
 import com.example.mediavault.api.MediaSearchResult;
+import com.example.mediavault.api.TmdbApiService;
+import com.example.mediavault.api.TmdbResponse;
 import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.snackbar.Snackbar;
@@ -53,6 +54,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class AddMediaActivity extends AppCompatActivity implements MediaSearchAdapter.OnItemClickListener {
 
     private static final String TAG = "AddMediaDB_Error";
+    private static final String TMDB_API_KEY = "b839069f4d8893e2d87c422727980edc";
 
     private View layoutSearchApi, layoutManualEntry, coordinatorLayout;
     private MaterialButtonToggleGroup toggleGroup;
@@ -67,7 +69,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
     private Button btnApiSearchSubmit;
     
     // Manual Entry Components
-    private TextInputEditText etManualTitle, etManualGenre, etManualImage, etManualAuthor;
+    private TextInputEditText etManualTitle, etManualGenre, etManualImage, etManualAuthor, etManualDescription;
     private EditText etManualProgress, etManualTotal;
     private Spinner spinnerManualType, spinnerManualStatus, spinnerTotalUnit;
     private RatingBar rbManualRating;
@@ -75,7 +77,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
 
     private DatabaseHelper dbHelper;
     private NetworkReceiver networkReceiver;
-    private Retrofit jikanRetrofit, googleBooksRetrofit;
+    private Retrofit jikanRetrofit, googleBooksRetrofit, tmdbRetrofit;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -101,6 +103,11 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
 
         googleBooksRetrofit = new Retrofit.Builder()
                 .baseUrl("https://www.googleapis.com/books/v1/")
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        tmdbRetrofit = new Retrofit.Builder()
+                .baseUrl("https://api.themoviedb.org/3/")
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
     }
@@ -130,6 +137,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         rbManualRating = findViewById(R.id.rb_manual_rating);
         etManualImage = findViewById(R.id.et_manual_image);
         etManualAuthor = findViewById(R.id.et_manual_author);
+        etManualDescription = findViewById(R.id.et_manual_description);
         btnManualDone = findViewById(R.id.btn_manual_done);
     }
 
@@ -215,11 +223,16 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
             searchManga(query);
         } else if (target.contains("Books")) {
             searchBooks(query);
+        } else if (target.contains("Movie")) {
+            searchTmdb(query, "Movie");
+        } else if (target.contains("TV")) {
+            searchTmdb(query, "TV Show");
         } else {
             pbSearchLoading.setVisibility(View.GONE);
             rvApiResults.setVisibility(View.VISIBLE);
             btnApiSearchSubmit.setEnabled(true);
-            Toast.makeText(this, "Movies (TMDB) requires API key", Toast.LENGTH_SHORT).show();
+            tvNoResults.setVisibility(View.VISIBLE);
+            tvNoResults.setText("Unsupported target");
         }
     }
 
@@ -272,6 +285,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                             type,
                             "", 
                             "", 
+                            data.getSynopsis(),
                             imageUrl,
                             type.equals("Anime") ? data.getEpisodes() : data.getChapters(),
                             type.equals("Anime") ? "Episodes" : "Chapters"
@@ -311,6 +325,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                                     "Book",
                                     "",
                                     "", 
+                                    info.getDescription(),
                                     imageUrl,
                                     info.getPageCount(),
                                     "Pages"
@@ -328,6 +343,59 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
 
             @Override
             public void onFailure(@NonNull Call<GoogleBooksResponse> call, @NonNull Throwable t) {
+                handleSearchError("Network timeout or error");
+            }
+        });
+    }
+
+    private void searchTmdb(String query, String type) {
+        TmdbApiService service = tmdbRetrofit.create(TmdbApiService.class);
+        Call<TmdbResponse> call;
+        if (type.equals("Movie")) {
+            call = service.searchMovies(TMDB_API_KEY, query);
+        } else {
+            call = service.searchTv(TMDB_API_KEY, query);
+        }
+
+        call.enqueue(new Callback<TmdbResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<TmdbResponse> call, @NonNull Response<TmdbResponse> response) {
+                pbSearchLoading.setVisibility(View.GONE);
+                btnApiSearchSubmit.setEnabled(true);
+                rvApiResults.setVisibility(View.VISIBLE);
+
+                if (response.isSuccessful() && response.body() != null) {
+                    List<MediaSearchResult> results = new ArrayList<>();
+                    if (response.body().getResults() != null && !response.body().getResults().isEmpty()) {
+                        for (TmdbResponse.TmdbItem item : response.body().getResults()) {
+                            String imageUrl = null;
+                            if (item.getPosterPath() != null) {
+                                imageUrl = "https://image.tmdb.org/t/p/w500" + item.getPosterPath();
+                            }
+
+                            results.add(new MediaSearchResult(
+                                    item.getTitle(),
+                                    type,
+                                    "", 
+                                    "", 
+                                    item.getOverview(),
+                                    imageUrl,
+                                    null, // Capacity requires detail call
+                                    type.equals("Movie") ? "Minutes" : "Episodes"
+                            ));
+                        }
+                        searchAdapter.setResults(results);
+                        showSuccessSnackbar("Found " + results.size() + " results.");
+                    } else {
+                        tvNoResults.setVisibility(View.VISIBLE);
+                    }
+                } else {
+                    handleSearchError("API Error: " + response.code());
+                }
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<TmdbResponse> call, @NonNull Throwable t) {
                 handleSearchError("Network timeout or error");
             }
         });
@@ -354,6 +422,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         etManualTotal.setText(result.getCapacity() != null ? String.valueOf(result.getCapacity()) : "");
         setSpinnerToValue(spinnerTotalUnit, result.getUnit());
         etManualImage.setText(result.getImageUrl());
+        etManualDescription.setText(result.getDescription());
         toggleGroup.check(R.id.btn_mode_manual);
 
         String apiName = spinnerApiTarget.getSelectedItem().toString();
@@ -384,6 +453,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         String capacityStr = etManualTotal.getText().toString().trim();
         String unit = spinnerTotalUnit.getSelectedItem().toString();
         String imageUrl = Objects.requireNonNull(etManualImage.getText()).toString().trim();
+        String description = Objects.requireNonNull(etManualDescription.getText()).toString().trim();
         float rating = rbManualRating.getRating();
 
         if (TextUtils.isEmpty(title) || TextUtils.isEmpty(capacityStr)) {
@@ -417,7 +487,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         }
 
         try {
-            long result = dbHelper.addMedia(title, type, genre, creator, total, unit, null, imageUrl);
+            long result = dbHelper.addMedia(title, type, genre, creator, total, unit, null, imageUrl, description);
             
             if (result != -1) {
                 dbHelper.updateProgress((int) result, progress, status, rating);

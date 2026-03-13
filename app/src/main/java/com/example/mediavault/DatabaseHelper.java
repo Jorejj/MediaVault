@@ -143,7 +143,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     // --- CRUD OPERATIONS ---
-    public long addMedia(String title, String type, String genre, String creator, int totalCount, String unit, String runtime, String imagePath) {
+    public long addMedia(String title, String type, String genre, String creator, int totalCount, String unit, String runtime, String imagePath, String description) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COL_TITLE, title);
@@ -154,6 +154,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COL_UNIT, unit);
         values.put(COL_RUNTIME, runtime);
         values.put(COL_IMAGE_PATH, imagePath);
+        values.put(COL_DESCRIPTION, description);
         long result = db.insert(TABLE_MEDIA, null, values);
         db.close();
         return result;

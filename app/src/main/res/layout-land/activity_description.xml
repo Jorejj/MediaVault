@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg_main">
+    android:background="?android:attr/windowBackground">
 
     <com.google.android.material.appbar.AppBarLayout
         android:id="@+id/app_bar"
@@ -54,7 +54,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:fontFamily="@font/sf_pro_bold"
-                android:textColor="@color/text_primary"
+                android:textColor="?attr/colorTextPrimary"
                 android:textSize="28sp"
                 tools:text="Media Title" />
 
@@ -82,7 +82,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="12dp"
-                    android:textColor="@color/grey_600"
+                    android:textColor="?attr/colorTextSecondary"
                     android:textSize="14sp"
                     android:fontFamily="@font/sf_pro_regular"
                     tools:text="Action, Adventure" />
@@ -104,7 +104,7 @@
                 android:layout_marginTop="24dp"
                 android:fontFamily="@font/sf_pro_bold"
                 android:text="Description"
-                android:textColor="@color/text_primary"
+                android:textColor="?attr/colorTextPrimary"
                 android:textSize="18sp" />
 
             <ScrollView
@@ -118,7 +118,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:fontFamily="@font/sf_pro_regular"
-                    android:textColor="@color/text_secondary"
+                    android:textColor="?attr/colorTextSecondary"
                     android:textSize="14sp"
                     android:lineSpacingExtra="4dp"
                     android:text="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.\n\nCurabitur pretium tincidunt lacus. Nulla gravida orci a odio. Nullam varius, turpis et commodo pharetra, est eros bibendum elit, nec luctus magna felis sollicitudin mauris. Integer in mauris eu nibh euismod gravida. Duis ac tellus et risus vulputate vehicula. Donec lobortis risus a elit. Etiam tempor. Ut ullamcorper, ligula eu tempor congue, eros est euismod turpis, id tincidunt sapien risus a quam. Maecenas fermentum consequat mi. Donec fermentum. Pellentesque malesuada nulla a mi. Duis sapien sem, aliquet nec, commodo eget, consequat quis, neque. Aliquam faucibus, elit ut dictum aliquet, felis nisl adipiscing sapien, sed malesuada diam lacus eget erat." />
@@ -141,7 +141,7 @@
                         android:layout_height="wrap_content"
                         android:fontFamily="@font/sf_pro_bold"
                         android:text="@string/status"
-                        android:textColor="@color/text_primary"
+                        android:textColor="?attr/colorTextPrimary"
                         android:textSize="18sp" />
 
                     <TextView
@@ -150,7 +150,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
                         android:fontFamily="@font/sf_pro_regular"
-                        android:textColor="@color/text_secondary"
+                        android:textColor="?attr/colorTextSecondary"
                         android:textSize="16sp"
                         tools:text="Ongoing" />
                 </LinearLayout>
@@ -166,7 +166,7 @@
                         android:layout_height="wrap_content"
                         android:fontFamily="@font/sf_pro_bold"
                         android:text="@string/progress"
-                        android:textColor="@color/text_primary"
+                        android:textColor="?attr/colorTextPrimary"
                         android:textSize="18sp" />
 
                     <TextView
@@ -175,7 +175,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
                         android:fontFamily="@font/sf_pro_medium"
-                        android:textColor="@color/text_primary"
+                        android:textColor="?attr/colorTextPrimary"
                         android:textSize="14sp"
                         tools:text="12 / 24 Episodes" />
                 </LinearLayout>
@@ -196,7 +196,7 @@
                 android:layout_marginTop="32dp"
                 android:fontFamily="@font/sf_pro_bold"
                 android:text="My Review / Comment"
-                android:textColor="@color/text_primary"
+                android:textColor="?attr/colorTextPrimary"
                 android:textSize="18sp" />
 
             <TextView
@@ -205,7 +205,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:fontFamily="@font/sf_pro_regular"
-                android:textColor="@color/text_secondary"
+                android:textColor="?attr/colorTextSecondary"
                 android:textSize="14sp"
                 android:lineSpacingExtra="4dp"
                 android:fontStyle="italic"
@@ -217,7 +217,7 @@
                 android:layout_marginTop="32dp"
                 android:fontFamily="@font/sf_pro_bold"
                 android:text="Reviews"
-                android:textColor="@color/text_primary"
+                android:textColor="?attr/colorTextPrimary"
                 android:textSize="18sp" />
 
             <androidx.recyclerview.widget.RecyclerView

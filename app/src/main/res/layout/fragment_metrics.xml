@@ -7,7 +7,7 @@
     android:fillViewport="true"
     android:clipToPadding="false"
     android:scrollbarStyle="outsideOverlay"
-    android:background="@color/light_background">
+    android:background="?android:attr/windowBackground">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -48,7 +48,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/mediavault"
-                    android:textColor="@color/black"
+                    android:textColor="?attr/colorTextPrimary"
                     android:textSize="24sp"
                     android:textStyle="bold" />
 
@@ -56,7 +56,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="@string/your_stats"
-                    android:textColor="@color/grey_800"
+                    android:textColor="?attr/colorTextSecondary"
                     android:textSize="16sp" />
             </LinearLayout>
 
@@ -67,7 +67,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            app:cardBackgroundColor="@color/white"
+            app:cardBackgroundColor="?attr/colorCardBackground"
             app:cardCornerRadius="16dp"
             app:cardElevation="4dp">
 
@@ -82,7 +82,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
                     android:text="@string/overview"
-                    android:textColor="@color/grey_600"
+                    android:textColor="?attr/colorTextSecondary"
                     android:textSize="14sp"
                     android:textStyle="bold" />
 
@@ -103,7 +103,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="0"
-                            android:textColor="@color/black"
+                            android:textColor="?attr/colorTextPrimary"
                             android:textSize="24sp"
                             android:textStyle="bold" />
 
@@ -112,7 +112,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginBottom="16dp"
                             android:text="@string/completed_books"
-                            android:textColor="@color/grey_800" />
+                            android:textColor="?attr/colorTextSecondary" />
                     </LinearLayout>
 
                     <LinearLayout
@@ -126,7 +126,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="0"
-                            android:textColor="@color/black"
+                            android:textColor="?attr/colorTextPrimary"
                             android:textSize="24sp"
                             android:textStyle="bold" />
 
@@ -135,7 +135,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginBottom="16dp"
                             android:text="@string/completed_movies"
-                            android:textColor="@color/grey_800" />
+                            android:textColor="?attr/colorTextSecondary" />
                     </LinearLayout>
 
                     <LinearLayout
@@ -149,7 +149,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="0"
-                            android:textColor="@color/black"
+                            android:textColor="?attr/colorTextPrimary"
                             android:textSize="24sp"
                             android:textStyle="bold" />
 
@@ -157,7 +157,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/completed_anime"
-                            android:textColor="@color/grey_800" />
+                            android:textColor="?attr/colorTextSecondary" />
                     </LinearLayout>
 
                     <LinearLayout
@@ -171,7 +171,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="0"
-                            android:textColor="@color/black"
+                            android:textColor="?attr/colorTextPrimary"
                             android:textSize="24sp"
                             android:textStyle="bold" />
 
@@ -179,7 +179,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="@string/completed_series"
-                            android:textColor="@color/grey_800" />
+                            android:textColor="?attr/colorTextSecondary" />
                     </LinearLayout>
 
                 </GridLayout>
@@ -192,7 +192,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            app:cardBackgroundColor="@color/white"
+            app:cardBackgroundColor="?attr/colorCardBackground"
             app:cardCornerRadius="16dp"
             app:cardElevation="4dp">
 
@@ -207,7 +207,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
                     android:text="@string/vault_composition"
-                    android:textColor="@color/black"
+                    android:textColor="?attr/colorTextPrimary"
                     android:textSize="18sp"
                     android:textStyle="bold" />
 
@@ -216,7 +216,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
                     android:text="@string/media_ratio"
-                    android:textColor="@color/grey_600"
+                    android:textColor="?attr/colorTextSecondary"
                     android:textSize="14sp" />
 
                 <com.github.mikephil.charting.charts.PieChart
@@ -232,7 +232,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            app:cardBackgroundColor="@color/white"
+            app:cardBackgroundColor="?attr/colorCardBackground"
             app:cardCornerRadius="16dp"
             app:cardElevation="4dp">
 
@@ -247,7 +247,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
                     android:text="@string/backlog_health"
-                    android:textColor="@color/black"
+                    android:textColor="?attr/colorTextPrimary"
                     android:textSize="18sp"
                     android:textStyle="bold" />
 
@@ -256,7 +256,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
                     android:text="@string/completed_vs_backlog"
-                    android:textColor="@color/grey_600"
+                    android:textColor="?attr/colorTextSecondary"
                     android:textSize="14sp" />
 
                 <LinearLayout
@@ -289,7 +289,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="0% Completed"
-                        android:textColor="@color/grey_800"
+                        android:textColor="?attr/colorTextSecondary"
                         android:textSize="14sp" />
                 </LinearLayout>
 
@@ -301,7 +301,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            app:cardBackgroundColor="@color/white"
+            app:cardBackgroundColor="?attr/colorCardBackground"
             app:cardCornerRadius="16dp"
             app:cardElevation="4dp">
 
@@ -316,7 +316,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
                     android:text="@string/reading_and_watching_habits"
-                    android:textColor="@color/black"
+                    android:textColor="?attr/colorTextPrimary"
                     android:textSize="18sp"
                     android:textStyle="bold" />
 

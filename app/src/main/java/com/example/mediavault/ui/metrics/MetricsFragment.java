@@ -2,6 +2,7 @@ package com.example.mediavault.ui.metrics;
 
 import android.graphics.Color;
 import android.os.Bundle;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -136,9 +137,12 @@ public class MetricsFragment extends Fragment {
 
         chartMonthlyActivity.setData(barData);
         chartMonthlyActivity.getDescription().setEnabled(false);
-        
+
+        int textPrimaryColor = resolveThemeColor(com.example.mediavault.R.attr.colorTextPrimary);
+
         Legend legend = chartMonthlyActivity.getLegend();
         legend.setEnabled(true);
+        legend.setTextColor(textPrimaryColor);
         legend.setVerticalAlignment(Legend.LegendVerticalAlignment.TOP);
         legend.setHorizontalAlignment(Legend.LegendHorizontalAlignment.RIGHT);
 
@@ -151,6 +155,7 @@ public class MetricsFragment extends Fragment {
         xAxis.setPosition(XAxis.XAxisPosition.BOTTOM);
         xAxis.setDrawGridLines(false);
         xAxis.setGranularity(1f);
+        xAxis.setTextColor(textPrimaryColor);
         xAxis.setValueFormatter(new IndexAxisValueFormatter(new String[]{"Pages", "Hours", "Episodes"}));
 
         chartMonthlyActivity.getAxisLeft().setDrawGridLines(false);
@@ -181,6 +186,8 @@ public class MetricsFragment extends Fragment {
             return;
         }
 
+        int textPrimaryColor = resolveThemeColor(com.example.mediavault.R.attr.colorTextPrimary);
+
         PieDataSet dataSet = new PieDataSet(entries, "");
         dataSet.setColors(new int[]{
             ContextCompat.getColor(requireContext(), R.color.accent_blue),
@@ -197,12 +204,22 @@ public class MetricsFragment extends Fragment {
         chartVaultComposition.setData(pieData);
         chartVaultComposition.getDescription().setEnabled(false);
         chartVaultComposition.setHoleColor(Color.TRANSPARENT);
-        chartVaultComposition.setEntryLabelColor(Color.WHITE);
+        chartVaultComposition.setEntryLabelColor(textPrimaryColor);
         chartVaultComposition.setEntryLabelTextSize(11f);
+        chartVaultComposition.setCenterTextColor(textPrimaryColor);
         chartVaultComposition.setRotationEnabled(false);
-        
+
+        Legend legend = chartVaultComposition.getLegend();
+        legend.setTextColor(textPrimaryColor);
+
         chartVaultComposition.animateY(1400);
         chartVaultComposition.invalidate();
+    }
+
+    private int resolveThemeColor(int attrResId) {
+        TypedValue typedValue = new TypedValue();
+        requireContext().getTheme().resolveAttribute(attrResId, typedValue, true);
+        return typedValue.data;
     }
     
     private void setupBacklogHealth() {

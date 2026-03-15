@@ -9,11 +9,11 @@
 
     <ImageView
         android:id="@+id/img_logo"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
-        android:layout_marginStart="24dp"
-        android:layout_marginTop="24dp"
-        android:src="@drawable/app_logo"
+        android:layout_width="@dimen/top_logo_size"
+        android:layout_height="@dimen/top_logo_size"
+        android:layout_marginStart="@dimen/screen_padding_horizontal"
+        android:layout_marginTop="@dimen/screen_padding_vertical"
+        android:src="@drawable/ic_new_logo"
         android:scaleType="fitCenter"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
@@ -23,10 +23,8 @@
         android:id="@+id/tv_screen_title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        style="@style/TextScreenTitle"
         android:text="Settings"
-        android:textSize="20sp"
-        android:textStyle="bold"
-        android:textColor="?attr/colorTextPrimary"
         app:layout_constraintBottom_toBottomOf="@id/img_logo"
         app:layout_constraintTop_toTopOf="@id/img_logo"
         app:layout_constraintStart_toStartOf="parent"
@@ -36,7 +34,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:fillViewport="true"
-        android:layout_marginTop="16dp"
+        android:layout_marginTop="@dimen/screen_section_spacing"
         app:layout_constraintTop_toBottomOf="@id/img_logo"
         app:layout_constraintBottom_toBottomOf="parent"
         android:clipToPadding="false">
@@ -45,14 +43,15 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingHorizontal="16dp"
-            android:paddingBottom="100dp">
+            android:paddingHorizontal="@dimen/screen_padding_horizontal"
+            android:paddingBottom="@dimen/screen_bottom_spacing">
 
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="2dp"
+                android:background="@drawable/glow_glass_bg"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp"
                 app:cardBackgroundColor="?attr/colorCardBackground"
                 android:layout_marginBottom="20dp">
 
@@ -104,6 +103,25 @@
 
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
                             android:text="Export Data" android:layout_toEndOf="@id/icon_export" android:layout_marginStart="16dp"
+                            android:layout_centerVertical="true" android:textSize="16sp" android:textStyle="bold" android:textColor="?attr/colorTextPrimary"/>
+
+                        <ImageView android:layout_width="20dp" android:layout_height="20dp"
+                            android:src="@drawable/ic_chevron_right" android:layout_alignParentEnd="true"
+                            android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
+                    </RelativeLayout>
+
+                    <RelativeLayout
+                        android:id="@+id/row_qr_vault"
+                        android:layout_width="match_parent"
+                        android:layout_height="60dp"
+                        android:paddingHorizontal="16dp"
+                        android:clickable="true" android:focusable="true" android:background="?attr/selectableItemBackground">
+
+                        <ImageView android:id="@+id/icon_qr_vault" android:layout_width="24dp" android:layout_height="24dp"
+                            android:src="@drawable/ic_share_filled" android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
+
+                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="@string/qr_vault" android:layout_toEndOf="@id/icon_qr_vault" android:layout_marginStart="16dp"
                             android:layout_centerVertical="true" android:textSize="16sp" android:textStyle="bold" android:textColor="?attr/colorTextPrimary"/>
 
                         <ImageView android:layout_width="20dp" android:layout_height="20dp"
@@ -210,8 +228,9 @@
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="2dp"
+                android:background="@drawable/glow_glass_bg"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="0dp"
                 app:cardBackgroundColor="?attr/colorCardBackground">
 
                 <LinearLayout

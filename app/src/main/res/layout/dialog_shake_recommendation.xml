@@ -4,9 +4,10 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     app:cardCornerRadius="24dp"
-    app:cardElevation="8dp"
+    android:background="@drawable/glass_card_bg"
+    app:cardElevation="0dp"
     app:strokeWidth="1dp"
-    app:strokeColor="@color/grey_200"
+    app:strokeColor="@color/glass_border"
     app:cardBackgroundColor="?attr/colorCardBackground">
 
     <LinearLayout
@@ -22,7 +23,7 @@
             android:text="MediaVault Pick!"
             android:fontFamily="@font/sf_pro_heavy"
             android:textSize="14sp"
-            android:textColor="@color/accent_blue"
+            android:textColor="@color/netflix_red"
             android:textAllCaps="true"
             android:letterSpacing="0.1"
             android:layout_marginBottom="16dp" />
@@ -40,7 +41,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:scaleType="centerCrop"
-                android:src="@drawable/app_logo" />
+                android:src="@drawable/ic_new_logo" />
         </com.google.android.material.card.MaterialCardView>
 
         <TextView

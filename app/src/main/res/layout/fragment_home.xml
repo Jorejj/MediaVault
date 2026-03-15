@@ -5,384 +5,368 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="?android:attr/windowBackground"
+    android:fillViewport="true"
     tools:context=".ui.home.HomeFragment">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingHorizontal="20dp"
-        android:paddingTop="16dp"
-        android:paddingBottom="120dp"
-        android:clipToPadding="false">
+        android:paddingHorizontal="@dimen/screen_padding_horizontal"
+        android:paddingTop="@dimen/screen_padding_vertical"
+        android:paddingBottom="@dimen/screen_bottom_spacing">
 
-        <!-- App Logo -->
-        <ImageView
-            android:id="@+id/iv_logo"
-            android:layout_width="60dp"
-            android:layout_height="60dp"
-            android:layout_gravity="start"
-            android:src="@drawable/app_logo" />
-
-        <!-- Recent Activity Section -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:layout_marginBottom="12dp"
-            android:text="Recent Activity"
-            android:textColor="?attr/colorTextPrimary"
-            android:textSize="16sp"
-            android:textStyle="bold" />
-
-        <include
-            android:id="@+id/recent_item_1"
-            layout="@layout/item_recent_activity" />
-        <include
-            android:id="@+id/recent_item_2"
-            layout="@layout/item_recent_activity" />
-        <include
-            android:id="@+id/recent_item_3"
-            layout="@layout/item_recent_activity" />
-        <include
-            android:id="@+id/recent_item_4"
-            layout="@layout/item_recent_activity" />
-
-        <!-- Your Media Overview Section -->
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            android:layout_marginBottom="12dp"
-            android:text="Your Media Overview"
-            android:textColor="?attr/colorTextPrimary"
-            android:textSize="16sp"
-            android:textStyle="bold" />
-
-        <com.google.android.material.card.MaterialCardView
+        <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/screen_section_spacing">
+
+            <ImageView
+                android:id="@+id/iv_logo"
+                android:layout_width="@dimen/top_logo_size"
+                android:layout_height="@dimen/top_logo_size"
+                android:src="@drawable/ic_new_logo"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/screen_section_spacing_small"
+                android:orientation="vertical"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/iv_logo"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    style="@style/TextScreenTitle"
+                    android:text="@string/mediavault"
+                    android:textSize="24sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    style="@style/TextBody"
+                    android:text="Your cinematic dashboard"
+                    android:textSize="14sp" />
+            </LinearLayout>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_spotlight"
+            android:layout_width="match_parent"
+            android:layout_height="220dp"
+            android:background="@drawable/glass_card_bg"
             app:cardBackgroundColor="?attr/colorCardBackground"
-            app:cardCornerRadius="16dp"
+            app:cardCornerRadius="22dp"
             app:cardElevation="0dp"
-            app:strokeColor="@color/grey_200"
+            app:strokeColor="@color/glass_border"
             app:strokeWidth="1dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
+                android:layout_height="match_parent"
+                android:gravity="bottom"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="@dimen/card_content_padding">
 
-                <GridLayout
-                    android:layout_width="match_parent"
+                <TextView
+                    android:id="@+id/tv_spotlight_label"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:columnCount="2"
-                    android:rowCount="3">
+                    android:fontFamily="@font/sf_pro_medium"
+                    android:text="Currently Watching / Reading"
+                    android:textColor="?attr/colorTextSecondary"
+                    android:textSize="12sp" />
 
-                    <!-- Watch Time -->
-                    <LinearLayout
-                        android:layout_width="0dp"
+                <TextView
+                    android:id="@+id/tv_spotlight_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:fontFamily="@font/sf_pro_heavy"
+                    android:text="Backlog Spotlight"
+                    android:textColor="?attr/colorTextPrimary"
+                    android:textSize="22sp" />
+
+                <ProgressBar
+                    android:id="@+id/progress_spotlight"
+                    android:layout_width="match_parent"
+                    android:layout_height="10dp"
+                    android:layout_marginTop="14dp"
+                    android:progress="62"
+                    android:progressDrawable="@drawable/custom_progress_bar" />
+
+                <TextView
+                    android:id="@+id/tv_spotlight_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:background="@drawable/rating_pill_bg"
+                    android:paddingHorizontal="10dp"
+                    android:paddingVertical="4dp"
+                    android:text="Ongoing"
+                    android:textColor="@color/ongoing_red"
+                    android:textSize="11sp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/screen_section_spacing_small"
+            android:gravity="top"
+            android:orientation="horizontal">
+
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="0dp"
+                android:layout_height="200dp"
+                android:layout_weight="1"
+                android:background="@drawable/glass_card_bg"
+                app:cardBackgroundColor="?attr/colorCardBackground"
+                app:cardCornerRadius="22dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/glass_border"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:orientation="vertical"
+                    android:padding="14dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_columnWeight="1"
-                        android:layout_marginBottom="16dp"
+                        style="@style/TextSectionTitle"
+                        android:text="@string/binge_calculator"
+                        android:textSize="18sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:text="Total hours watched"
+                        android:textColor="?attr/colorTextSecondary"
+                        android:textSize="11sp" />
+
+                    <TextView
+                        android:id="@+id/tv_watch_time"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        style="@style/TextStatValue"
+                        android:text="0"
+                        android:textSize="22sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Total pages read"
+                        android:textColor="?attr/colorTextSecondary"
+                        android:textSize="11sp" />
+
+                    <TextView
+                        android:id="@+id/tv_pages_read"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        style="@style/TextStatValue"
+                        android:text="0"
+                        android:textSize="22sp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/screen_section_spacing_small"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <com.google.android.material.card.MaterialCardView
+                    android:id="@+id/card_shake"
+                    android:layout_width="match_parent"
+                    android:layout_height="96dp"
+                    android:background="@drawable/glass_card_bg"
+                    android:clickable="true"
+                    android:focusable="true"
+                    app:cardBackgroundColor="?attr/colorCardBackground"
+                    app:cardCornerRadius="22dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/glass_border"
+                    app:strokeWidth="1dp">
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
                         android:gravity="center_vertical"
-                        android:orientation="horizontal">
+                        android:orientation="horizontal"
+                        android:paddingHorizontal="12dp">
 
                         <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@drawable/ic_clock"
-                            app:tint="?attr/colorIconTint" />
+                            android:id="@+id/iv_shake_illustration"
+                            android:layout_width="44dp"
+                            android:layout_height="44dp"
+                            android:src="@drawable/ic_shake" />
 
                         <TextView
-                            android:id="@+id/tv_watch_time"
-                            android:layout_width="wrap_content"
+                            android:layout_width="0dp"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:text="0"
-                            android:textColor="?attr/colorTextPrimary"
-                            android:textSize="18sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="4dp"
-                            android:text="hrs"
-                            android:textColor="?attr/colorTextSecondary"
-                            android:textSize="10sp" />
+                            android:layout_marginStart="10dp"
+                            android:layout_weight="1"
+                            style="@style/TextSectionTitle"
+                            android:text="Shake-to-Decide"
+                            android:textSize="18sp" />
                     </LinearLayout>
+                </com.google.android.material.card.MaterialCardView>
 
-                    <!-- Pages Read -->
+                <com.google.android.material.card.MaterialCardView
+                    android:layout_width="match_parent"
+                    android:layout_height="92dp"
+                    android:layout_marginTop="12dp"
+                    android:background="@drawable/glass_card_bg"
+                    app:cardBackgroundColor="?attr/colorCardBackground"
+                    app:cardCornerRadius="22dp"
+                    app:cardElevation="0dp"
+                    app:strokeColor="@color/glass_border"
+                    app:strokeWidth="1dp">
+
                     <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_columnWeight="1"
-                        android:layout_marginBottom="16dp"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@drawable/ic_library"
-                            app:tint="?attr/colorIconTint" />
-
-                        <TextView
-                            android:id="@+id/tv_pages_read"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:text="0"
-                            android:textColor="?attr/colorTextPrimary"
-                            android:textSize="18sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="4dp"
-                            android:text="Pages"
-                            android:textColor="?attr/colorTextSecondary"
-                            android:textSize="10sp" />
-                    </LinearLayout>
-
-                    <!-- Episodes Watched -->
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_columnWeight="1"
-                        android:layout_marginBottom="16dp"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@drawable/ic_movie"
-                            app:tint="?attr/colorIconTint" />
-
-                        <TextView
-                            android:id="@+id/tv_episodes_watched"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:text="0"
-                            android:textColor="?attr/colorTextPrimary"
-                            android:textSize="18sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="4dp"
-                            android:text="Episodes"
-                            android:textColor="?attr/colorTextSecondary"
-                            android:textSize="10sp" />
-                    </LinearLayout>
-
-                    <!-- Ongoing Items -->
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_columnWeight="1"
-                        android:layout_marginBottom="16dp"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@drawable/ic_add"
-                            app:tint="?attr/colorIconTint" />
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:orientation="vertical"
+                        android:padding="12dp">
 
                         <TextView
                             android:id="@+id/tv_ongoing_items"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
+                            style="@style/TextStatValue"
                             android:text="0"
-                            android:textColor="?attr/colorTextPrimary"
-                            android:textSize="18sp"
-                            android:textStyle="bold" />
+                            android:textSize="22sp" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="4dp"
-                            android:text="Ongoing"
-                            android:textColor="?attr/colorTextSecondary"
-                            android:textSize="10sp" />
+                            android:text="Ongoing titles"
+                            android:textColor="@color/ongoing_red"
+                            android:textSize="12sp" />
                     </LinearLayout>
-
-                    <!-- Avg Rating -->
-                    <LinearLayout
-                        android:layout_width="0dp"
-                        android:layout_height="wrap_content"
-                        android:layout_columnWeight="1"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal">
-
-                        <ImageView
-                            android:layout_width="24dp"
-                            android:layout_height="24dp"
-                            android:src="@drawable/ic_star"
-                            app:tint="?attr/colorIconTint" />
-
-                        <TextView
-                            android:id="@+id/tv_avg_rating"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="8dp"
-                            android:text="0.0"
-                            android:textColor="?attr/colorTextPrimary"
-                            android:textSize="18sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="4dp"
-                            android:text="Rating"
-                            android:textColor="?attr/colorTextSecondary"
-                            android:textSize="10sp" />
-                    </LinearLayout>
-
-                </GridLayout>
-
-                <TextView
-                    android:id="@+id/tv_view_detailed_stats"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center_horizontal"
-                    android:layout_marginTop="24dp"
-                    android:text="View Detailed Stats →"
-                    android:textColor="?attr/colorTextSecondary"
-                    android:textSize="12sp"
-                    android:textStyle="bold"
-                    android:clickable="true"
-                    android:focusable="true" />
-
+                </com.google.android.material.card.MaterialCardView>
             </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
+        </LinearLayout>
 
-        <!-- Binge Calculator Section -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
+            android:layout_marginTop="12dp"
+            android:background="@drawable/glass_card_bg"
             app:cardBackgroundColor="?attr/colorCardBackground"
-            app:cardCornerRadius="16dp"
+            app:cardCornerRadius="22dp"
             app:cardElevation="0dp"
-            app:strokeColor="@color/grey_200"
+            app:strokeColor="@color/glass_border"
             app:strokeWidth="1dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
+                android:orientation="horizontal"
+                android:padding="14dp">
 
                 <LinearLayout
-                    android:layout_width="match_parent"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:gravity="center_vertical"
-                    android:orientation="horizontal">
-
-                    <ImageView
-                        android:layout_width="28dp"
-                        android:layout_height="28dp"
-                        android:src="@drawable/ic_clock"
-                        app:tint="?attr/colorIconTint" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="12dp"
-                        android:text="Binge Calculator"
-                        android:textColor="?attr/colorTextPrimary"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
-                </LinearLayout>
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="See how much time you're spent watching movies and Reading Books"
-                    android:textColor="?attr/colorTextSecondary"
-                    android:textSize="12sp" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_analyze_habits"
-                    style="@style/BlueButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="48dp"
-                    android:layout_marginTop="16dp"
-                    android:paddingStart="24dp"
-                    android:paddingEnd="16dp"
-                    android:text="@string/analyze_habits"
-                    app:icon="@drawable/ic_arrow_forward"
-                    app:iconGravity="end"
-                    app:iconPadding="12dp" />
-
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- Shake to Decide Section -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/card_shake"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="24dp"
-            app:cardBackgroundColor="?attr/colorCardBackground"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="0dp"
-            app:strokeColor="@color/grey_200"
-            app:strokeWidth="1dp"
-            android:clickable="true"
-            android:focusable="true">
-
-            <RelativeLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:padding="16dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_toStartOf="@+id/iv_shake_illustration"
+                    android:layout_weight="1"
                     android:orientation="vertical">
 
                     <TextView
+                        android:id="@+id/tv_episodes_watched"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Shake to Decide!"
+                        android:fontFamily="@font/sf_pro_heavy"
+                        android:text="0"
                         android:textColor="?attr/colorTextPrimary"
-                        android:textSize="16sp"
-                        android:textStyle="bold" />
+                        android:textSize="20sp" />
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:text="Can't decide what to watch and read?\nShake your phone and MediaVault will give you a choices"
+                        android:text="Episodes watched"
                         android:textColor="?attr/colorTextSecondary"
                         android:textSize="11sp" />
-
                 </LinearLayout>
 
-                <ImageView
-                    android:id="@+id/iv_shake_illustration"
-                    android:layout_width="80dp"
-                    android:layout_height="80dp"
-                    android:layout_alignParentEnd="true"
-                    android:layout_centerVertical="true"
-                    android:src="@color/grey_100" />
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
 
-            </RelativeLayout>
+                    <TextView
+                        android:id="@+id/tv_avg_rating"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/sf_pro_heavy"
+                        android:text="0.0"
+                        android:textColor="?attr/colorTextPrimary"
+                        android:textSize="20sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Average rating"
+                        android:textColor="?attr/colorTextSecondary"
+                        android:textSize="11sp" />
+                </LinearLayout>
+            </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_analyze_habits"
+            style="@style/BlueButton"
+            android:layout_width="match_parent"
+            android:layout_height="52dp"
+            android:layout_marginTop="14dp"
+            android:text="@string/analyze_habits" />
+
+        <TextView
+            android:id="@+id/tv_view_detailed_stats"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginTop="10dp"
+            android:text="View Detailed Stats"
+            android:textColor="?attr/colorTextSecondary"
+            android:textSize="13sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="10dp"
+            style="@style/TextSectionTitle"
+            android:text="@string/recent_activity"
+            android:textSize="18sp" />
+
+        <include
+            android:id="@+id/recent_item_1"
+            layout="@layout/item_recent_activity" />
+
+        <include
+            android:id="@+id/recent_item_2"
+            layout="@layout/item_recent_activity" />
+
+        <include
+            android:id="@+id/recent_item_3"
+            layout="@layout/item_recent_activity" />
+
+        <include
+            android:id="@+id/recent_item_4"
+            layout="@layout/item_recent_activity" />
 
     </LinearLayout>
 </androidx.core.widget.NestedScrollView>

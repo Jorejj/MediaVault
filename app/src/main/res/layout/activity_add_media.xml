@@ -17,7 +17,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp">
+            android:paddingHorizontal="@dimen/screen_padding_horizontal"
+            android:paddingTop="@dimen/screen_padding_vertical"
+            android:paddingBottom="@dimen/screen_section_spacing">
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
@@ -26,10 +28,10 @@
 
                 <ImageView
                     android:id="@+id/app_logo"
-                    android:layout_width="60dp"
-                    android:layout_height="60dp"
+                    android:layout_width="@dimen/top_logo_size"
+                    android:layout_height="@dimen/top_logo_size"
                     android:scaleType="fitCenter"
-                    android:src="@drawable/app_logo"
+                    android:src="@drawable/ic_new_logo"
                     android:contentDescription="@string/mediavault"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
@@ -39,11 +41,8 @@
                     android:id="@+id/title"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:fontFamily="@font/sf_pro_bold"
+                    style="@style/TextScreenTitle"
                     android:text="@string/new_media"
-                    android:textColor="?attr/colorTextPrimary"
-                    android:textSize="28sp"
-                    android:textStyle="bold"
                     app:layout_constraintBottom_toBottomOf="@+id/app_logo"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
@@ -95,7 +94,7 @@
             android:layout_height="match_parent"
             android:orientation="vertical"
             android:visibility="visible"
-            android:paddingHorizontal="16dp">
+            android:paddingHorizontal="@dimen/screen_padding_horizontal">
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/til_api_search"
@@ -121,23 +120,21 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
+                android:orientation="vertical">
 
                 <Spinner
                     android:id="@+id/spinner_api_target"
-                    android:layout_width="0dp"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
                     android:entries="@array/api_targets"
                     android:contentDescription="@string/search_api" />
 
                 <Button
                     android:id="@+id/btn_api_search_submit"
-                    style="@style/Widget.MaterialComponents.Button.TextButton"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="8dp"
+                    style="@style/BlueButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="50dp"
+                    android:layout_marginTop="10dp"
                     android:fontFamily="@font/sf_pro_medium"
                     android:text="@string/search"
                     android:textAllCaps="false" />
@@ -181,15 +178,9 @@
 
             </androidx.constraintlayout.widget.ConstraintLayout>
 
-            <Button
-                android:id="@+id/btn_api_action"
-                style="@style/BlueButton"
+            <Space
                 android:layout_width="match_parent"
-                android:layout_height="56dp"
-                android:layout_marginVertical="16dp"
-                android:fontFamily="@font/sf_pro_bold"
-                android:text="@string/save_update_media"
-                android:textAllCaps="false" />
+                android:layout_height="16dp" />
         </LinearLayout>
 
         <!-- Manual Entry View -->
@@ -200,12 +191,16 @@
             android:visibility="gone">
 
             <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_manual_entry"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_margin="16dp"
+                android:layout_margin="@dimen/screen_padding_horizontal"
+                android:background="@drawable/glass_card_bg"
                 app:cardBackgroundColor="?attr/colorCardBackground"
-                app:cardCornerRadius="16dp"
-                app:cardElevation="4dp">
+                app:cardCornerRadius="22dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/glass_border"
+                app:strokeWidth="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -265,18 +260,57 @@
                             android:text="@string/capacity_unit"
                             android:textColor="?attr/colorTextPrimary" />
 
-                        <Spinner
-                            android:id="@+id/spinner_total_unit"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:entries="@array/capacity_units"
-                            android:contentDescription="@string/capacity_unit" />
+                         <Spinner
+                             android:id="@+id/spinner_total_unit"
+                             android:layout_width="match_parent"
+                             android:layout_height="wrap_content"
+                             android:layout_marginTop="4dp"
+                             android:entries="@array/capacity_units"
+                             android:contentDescription="@string/capacity_unit" />
 
                         <LinearLayout
+                            android:id="@+id/layout_duration_slider"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="12dp"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal"
+                            android:visibility="gone">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="Duration"
+                                android:textColor="?attr/colorTextPrimary"
+                                android:textStyle="bold" />
+
+                            <com.google.android.material.slider.Slider
+                                android:id="@+id/slider_manual_duration"
+                                android:layout_width="0dp"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="10dp"
+                                android:layout_weight="1"
+                                android:valueFrom="30"
+                                android:valueTo="360"
+                                android:stepSize="5"
+                                android:value="120"
+                                app:thumbColor="@color/netflix_red"
+                                app:trackColorActive="@color/netflix_red"
+                                app:haloColor="@color/netflix_red_soft" />
+
+                            <TextView
+                                android:id="@+id/tv_duration_value"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="8dp"
+                                android:text="120 min"
+                                android:textColor="?attr/colorTextSecondary" />
+                        </LinearLayout>
+
+                         <LinearLayout
+                             android:layout_width="match_parent"
+                             android:layout_height="wrap_content"
+                             android:layout_marginTop="12dp"
                             android:gravity="center_vertical"
                             android:orientation="horizontal">
 

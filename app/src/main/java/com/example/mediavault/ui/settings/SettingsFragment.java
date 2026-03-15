@@ -5,6 +5,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
@@ -29,8 +30,18 @@ import androidx.navigation.Navigation;
 import com.example.mediavault.DatabaseHelper;
 import com.example.mediavault.R;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.EncodeHintType;
+import com.google.zxing.MultiFormatWriter;
+import com.google.zxing.Result;
+import com.google.zxing.WriterException;
+import com.google.zxing.common.BitMatrix;
+import com.journeyapps.barcodescanner.ScanContract;
+import com.journeyapps.barcodescanner.ScanIntentResult;
+import com.journeyapps.barcodescanner.ScanOptions;
 
 import java.io.BufferedWriter;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -40,6 +51,12 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
+import java.util.EnumMap;
+
+import android.widget.ImageView;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class SettingsFragment extends Fragment {
 
@@ -60,6 +77,27 @@ public class SettingsFragment extends Fragment {
             }
     );
 
+    private final ActivityResultLauncher<String> requestJsonExportLauncher = registerForActivityResult(
+            new ActivityResultContracts.CreateDocument("application/json"),
+            uri -> {
+                if (uri != null) exportVaultJson(uri);
+            }
+    );
+
+    private final ActivityResultLauncher<String[]> requestJsonImportLauncher = registerForActivityResult(
+            new ActivityResultContracts.OpenDocument(),
+            uri -> {
+                if (uri != null) importVaultJson(uri);
+            }
+    );
+
+    private final ActivityResultLauncher<ScanOptions> qrScanLauncher = registerForActivityResult(new ScanContract(),
+            (ScanIntentResult result) -> {
+                if (result != null && result.getContents() != null && !result.getContents().isEmpty()) {
+                    importVaultFromQrPayload(result.getContents());
+                }
+            });
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
@@ -71,6 +109,7 @@ public class SettingsFragment extends Fragment {
         // UI Components
         SwitchCompat switchTheme = view.findViewById(R.id.switch_theme);
         View rowExportData = view.findViewById(R.id.row_export_data);
+        View rowQrVault = view.findViewById(R.id.row_qr_vault);
         View rowClearDatabase = view.findViewById(R.id.row_clear_database);
         View rowTerms = view.findViewById(R.id.row_terms);
         View rowPrivacy = view.findViewById(R.id.row_privacy);
@@ -96,6 +135,10 @@ public class SettingsFragment extends Fragment {
         // 2. Export Data Action
         if (rowExportData != null) {
             rowExportData.setOnClickListener(v -> showExportConfirmationDialog());
+        }
+
+        if (rowQrVault != null) {
+            rowQrVault.setOnClickListener(v -> showQrVaultDialog());
         }
 
         // 3. Clear Database Action
@@ -269,11 +312,243 @@ public class SettingsFragment extends Fragment {
 
     private void showExportConfirmationDialog() {
         new MaterialAlertDialogBuilder(requireContext())
-                .setTitle("Export Data")
-                .setMessage("This will create a CSV file with all your media information. Do you want to proceed?")
-                .setPositiveButton("Export", (dialog, which) -> exportDatabaseToCSV())
-                .setNegativeButton("Cancel", null)
+                .setTitle("Vault Export / Import")
+                .setItems(new String[]{"Export CSV", "Export Vault JSON", "Import Vault JSON"}, (dialog, which) -> {
+                    if (which == 0) {
+                        exportDatabaseToCSV();
+                    } else if (which == 1) {
+                        requestJsonExportLauncher.launch("MediaVault_Export_" + System.currentTimeMillis() + ".json");
+                    } else {
+                        requestJsonImportLauncher.launch(new String[]{"application/json", "text/plain"});
+                    }
+                })
                 .show();
+    }
+
+    private void showQrVaultDialog() {
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("QR Vault")
+                .setItems(new String[]{"Generate Top 10 Favorites QR", "Scan QR and Import"}, (dialog, which) -> {
+                    if (which == 0) {
+                        showTopTenQrDialog();
+                    } else {
+                        ScanOptions options = new ScanOptions();
+                        options.setPrompt("Scan a MediaVault QR");
+                        options.setBeepEnabled(true);
+                        options.setDesiredBarcodeFormats(ScanOptions.QR_CODE);
+                        options.setOrientationLocked(false);
+                        qrScanLauncher.launch(options);
+                    }
+                })
+                .show();
+    }
+
+    private void showTopTenQrDialog() {
+        String payload = buildTopTenPayload();
+        if (payload == null) {
+            Toast.makeText(getContext(), "Add favorites first to generate QR", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        Bitmap qrBitmap = createQrBitmap(payload, 860, 860);
+        if (qrBitmap == null) {
+            Toast.makeText(getContext(), "Unable to generate QR", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        View qrView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_qr_vault, null);
+        ImageView image = qrView.findViewById(R.id.img_qr_code);
+        image.setImageBitmap(qrBitmap);
+
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Top 10 Favorites")
+                .setView(qrView)
+                .setPositiveButton("Done", null)
+                .show();
+    }
+
+    private String buildTopTenPayload() {
+        Cursor cursor = dbHelper.getTopFavoritesForQr(10);
+        if (cursor == null) {
+            return null;
+        }
+        JSONArray items = new JSONArray();
+        try {
+            while (cursor.moveToNext()) {
+                JSONObject item = new JSONObject();
+                item.put("title", cursor.getString(0));
+                item.put("type", cursor.getString(1));
+                item.put("genre", cursor.getString(2));
+                item.put("total", cursor.getInt(3));
+                item.put("unit", cursor.getString(4));
+                item.put("progress", cursor.getInt(5));
+                item.put("status", cursor.getString(6));
+                item.put("priority", cursor.getString(7));
+                item.put("rating", cursor.getDouble(8));
+                items.put(item);
+            }
+        } catch (JSONException e) {
+            cursor.close();
+            return null;
+        }
+        cursor.close();
+
+        if (items.length() == 0) {
+            return null;
+        }
+
+        JSONObject root = new JSONObject();
+        try {
+            root.put("schema", "mediavault-qr-v1");
+            root.put("items", items);
+        } catch (JSONException e) {
+            return null;
+        }
+        return root.toString();
+    }
+
+    private Bitmap createQrBitmap(String content, int width, int height) {
+        try {
+            EnumMap<EncodeHintType, Object> hints = new EnumMap<>(EncodeHintType.class);
+            hints.put(EncodeHintType.MARGIN, 1);
+            BitMatrix matrix = new MultiFormatWriter().encode(content, BarcodeFormat.QR_CODE, width, height, hints);
+            Bitmap bmp = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+            for (int x = 0; x < width; x++) {
+                for (int y = 0; y < height; y++) {
+                    bmp.setPixel(x, y, matrix.get(x, y) ? 0xFF000000 : 0xFFFFFFFF);
+                }
+            }
+            return bmp;
+        } catch (WriterException e) {
+            return null;
+        }
+    }
+
+    private void importVaultFromQrPayload(String rawJson) {
+        try {
+            JSONObject root = new JSONObject(rawJson);
+            JSONArray items = root.optJSONArray("items");
+            if (items == null || items.length() == 0) {
+                Toast.makeText(getContext(), "QR has no media items", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            int imported = 0;
+            for (int i = 0; i < items.length(); i++) {
+                JSONObject item = items.getJSONObject(i);
+                long id = dbHelper.addImportedBacklogItem(
+                        item.optString("title", "Untitled"),
+                        item.optString("type", "Series"),
+                        item.optString("genre", ""),
+                        item.optInt("total", 1),
+                        item.optString("unit", "Episodes"),
+                        item.optString("priority", "Medium")
+                );
+                if (id != -1) {
+                    imported++;
+                }
+            }
+            Toast.makeText(getContext(), "Imported " + imported + " items from QR", Toast.LENGTH_SHORT).show();
+        } catch (JSONException e) {
+            Toast.makeText(getContext(), "Invalid QR payload", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void exportVaultJson(Uri uri) {
+        try (OutputStream out = requireContext().getContentResolver().openOutputStream(uri);
+             Cursor cursor = dbHelper.getAllMedia()) {
+            if (out == null || cursor == null) {
+                Toast.makeText(getContext(), "Export failed", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            JSONArray items = new JSONArray();
+            while (cursor.moveToNext()) {
+                JSONObject item = new JSONObject();
+                item.put("title", cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_TITLE)));
+                item.put("type", cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_MEDIA_TYPE)));
+                item.put("genre", cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_GENRE)));
+                item.put("creator", cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_CREATOR)));
+                item.put("total", cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_TOTAL_COUNT)));
+                item.put("unit", cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_UNIT)));
+                item.put("progress", cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_CURRENT_PROGRESS)));
+                item.put("status", cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_STATUS)));
+                item.put("rating", cursor.getDouble(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_RATING)));
+                item.put("review", cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_REVIEW)));
+                item.put("journal", cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_JOURNAL)));
+                item.put("mood", cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_MOOD)));
+                item.put("priority", cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_PRIORITY)));
+                item.put("favorite", cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_IS_FAVORITE)) == 1);
+                item.put("image", cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_IMAGE_PATH)));
+                item.put("description", cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_DESCRIPTION)));
+                items.put(item);
+            }
+
+            JSONObject root = new JSONObject();
+            root.put("schema", "mediavault-json-v1");
+            root.put("items", items);
+            out.write(root.toString(2).getBytes(StandardCharsets.UTF_8));
+            Toast.makeText(getContext(), "Vault JSON exported", Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            Toast.makeText(getContext(), "JSON export failed", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void importVaultJson(Uri uri) {
+        try (InputStream in = requireContext().getContentResolver().openInputStream(uri)) {
+            if (in == null) {
+                Toast.makeText(getContext(), "Import failed", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+            byte[] chunk = new byte[1024];
+            int len;
+            while ((len = in.read(chunk)) != -1) {
+                buffer.write(chunk, 0, len);
+            }
+            JSONObject root = new JSONObject(buffer.toString(StandardCharsets.UTF_8.name()));
+            JSONArray items = root.optJSONArray("items");
+            if (items == null) {
+                Toast.makeText(getContext(), "Invalid JSON backup", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            int imported = 0;
+            for (int i = 0; i < items.length(); i++) {
+                JSONObject item = items.getJSONObject(i);
+                long id = dbHelper.addMedia(
+                        item.optString("title", "Untitled"),
+                        item.optString("type", "Series"),
+                        item.optString("genre", ""),
+                        item.optString("creator", ""),
+                        Math.max(item.optInt("total", 1), 1),
+                        item.optString("unit", "Episodes"),
+                        null,
+                        item.optString("image", ""),
+                        item.optString("description", "")
+                );
+                if (id != -1) {
+                    dbHelper.updateMedia((int) id,
+                            item.optString("title", "Untitled"),
+                            item.optString("type", "Series"),
+                            item.optString("genre", ""),
+                            item.optString("status", "Planning"),
+                            Math.max(item.optInt("progress", 0), 0),
+                            Math.max(item.optInt("total", 1), 1),
+                            item.optString("unit", "Episodes"),
+                            item.optString("image", ""),
+                            (float) item.optDouble("rating", 0.0),
+                            item.optString("review", ""),
+                            item.optString("journal", ""),
+                            item.optString("mood", ""),
+                            item.optString("priority", "Medium"),
+                            item.optBoolean("favorite", false));
+                    imported++;
+                }
+            }
+            Toast.makeText(getContext(), "Imported " + imported + " items from JSON", Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            Toast.makeText(getContext(), "JSON import failed", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void exportDatabaseToCSV() {

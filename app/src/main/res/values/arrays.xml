@@ -26,4 +26,9 @@
         <item>Minutes</item>
         <item>Chapters</item>
     </string-array>
+    <string-array name="priority_levels">
+        <item>High</item>
+        <item>Medium</item>
+        <item>Low</item>
+    </string-array>
 </resources>

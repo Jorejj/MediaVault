@@ -33,7 +33,11 @@ public class MainActivity extends AppCompatActivity {
             BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
             FloatingActionButton fab = findViewById(R.id.fab_add);
             View bottomAppBar = findViewById(R.id.bottom_app_bar);
-            
+
+            int navIconSize = (int) getResources().getDimension(R.dimen.bottom_nav_icon_size);
+            bottomNav.setItemIconSize(navIconSize);
+            bottomNav.setItemHorizontalTranslationEnabled(false);
+             
             // Setup Bottom Navigation with NavController
             NavigationUI.setupWithNavController(bottomNav, navController);
 

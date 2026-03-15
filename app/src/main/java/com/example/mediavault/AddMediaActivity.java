@@ -8,13 +8,16 @@ import android.database.sqlite.SQLiteConstraintException;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
+import android.text.InputType;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.RatingBar;
 import android.widget.Spinner;
@@ -40,6 +43,8 @@ import com.example.mediavault.api.TmdbResponse;
 import com.example.mediavault.api.TvDetailResponse;
 import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.slider.Slider;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputEditText;
 
@@ -77,6 +82,12 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
     private Spinner spinnerManualType, spinnerManualStatus, spinnerTotalUnit;
     private RatingBar rbManualRating;
     private Button btnManualDone;
+    private LinearLayout layoutDurationSlider;
+    private Slider sliderManualDuration;
+    private TextView tvDurationValue;
+    private TextView tvLabelProgress;
+    private TextView tvLabelTotal;
+    private MaterialCardView cardManualEntry;
 
     private DatabaseHelper dbHelper;
     private NetworkReceiver networkReceiver;
@@ -142,6 +153,12 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         etManualAuthor = findViewById(R.id.et_manual_author);
         etManualDescription = findViewById(R.id.et_manual_description);
         btnManualDone = findViewById(R.id.btn_manual_done);
+        layoutDurationSlider = findViewById(R.id.layout_duration_slider);
+        sliderManualDuration = findViewById(R.id.slider_manual_duration);
+        tvDurationValue = findViewById(R.id.tv_duration_value);
+        tvLabelProgress = findViewById(R.id.label_progress);
+        tvLabelTotal = findViewById(R.id.label_total);
+        cardManualEntry = findViewById(R.id.card_manual_entry);
     }
 
     private void setupToggle() {
@@ -499,6 +516,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         etManualTitle.setText(result.getTitle());
         setSpinnerToValue(spinnerManualType, result.getType());
         spinnerManualType.setEnabled(result.getType() == null || result.getType().isEmpty());
+        updateManualCapacityUI();
         
         etManualTotal.setText(result.getCapacity() != null ? String.valueOf(result.getCapacity()) : "");
         etManualTotal.setEnabled(result.getCapacity() == null);
@@ -527,7 +545,85 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
     }
 
     private void setupManualEntry() {
+        spinnerManualType.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                updateManualCapacityUI();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                updateManualCapacityUI();
+            }
+        });
+
+        sliderManualDuration.addOnChangeListener((slider, value, fromUser) -> {
+            int minutes = (int) value;
+            tvDurationValue.setText(minutes + " min");
+            etManualTotal.setText(String.valueOf(minutes));
+        });
+
+        updateManualCapacityUI();
         btnManualDone.setOnClickListener(v -> saveToDatabase());
+    }
+
+    private void updateManualCapacityUI() {
+        String type = spinnerManualType.getSelectedItem() != null ? spinnerManualType.getSelectedItem().toString() : "";
+        if ("Book".equalsIgnoreCase(type)) {
+            layoutDurationSlider.setVisibility(View.GONE);
+            setSpinnerToValue(spinnerTotalUnit, "Pages");
+            tvLabelProgress.setText("Pages Read");
+            tvLabelTotal.setText("Total Pages");
+            if (cardManualEntry != null) {
+                cardManualEntry.setStrokeColor(ContextCompat.getColor(this, R.color.bookly_blue));
+            }
+            etManualTotal.setHint("Total Pages");
+            etManualTotal.setInputType(InputType.TYPE_CLASS_NUMBER);
+        } else if ("Movie".equalsIgnoreCase(type)) {
+            layoutDurationSlider.setVisibility(View.VISIBLE);
+            setSpinnerToValue(spinnerTotalUnit, "Minutes");
+            tvLabelProgress.setText("Watched");
+            tvLabelTotal.setText("Duration");
+            if (cardManualEntry != null) {
+                cardManualEntry.setStrokeColor(ContextCompat.getColor(this, R.color.netflix_red));
+            }
+            int minutes = (int) sliderManualDuration.getValue();
+            tvDurationValue.setText(minutes + " min");
+            etManualTotal.setText(String.valueOf(minutes));
+            etManualTotal.setHint("Duration (minutes)");
+            etManualTotal.setInputType(InputType.TYPE_CLASS_NUMBER);
+        } else if ("Anime".equalsIgnoreCase(type) || "Series".equalsIgnoreCase(type)) {
+            layoutDurationSlider.setVisibility(View.GONE);
+            setSpinnerToValue(spinnerTotalUnit, "Episodes");
+            tvLabelProgress.setText("Progress");
+            tvLabelTotal.setText("Episodes");
+            if (cardManualEntry != null) {
+                int accent = "Series".equalsIgnoreCase(type)
+                        ? ContextCompat.getColor(this, R.color.netflix_red)
+                        : ContextCompat.getColor(this, R.color.crunchy_orange);
+                cardManualEntry.setStrokeColor(accent);
+            }
+            etManualTotal.setHint("Total Episodes");
+            etManualTotal.setInputType(InputType.TYPE_CLASS_NUMBER);
+        } else if ("Manga".equalsIgnoreCase(type)) {
+            layoutDurationSlider.setVisibility(View.GONE);
+            setSpinnerToValue(spinnerTotalUnit, "Chapters");
+            tvLabelProgress.setText("Progress");
+            tvLabelTotal.setText("Chapters");
+            if (cardManualEntry != null) {
+                cardManualEntry.setStrokeColor(ContextCompat.getColor(this, R.color.crunchy_orange));
+            }
+            etManualTotal.setHint("Total Chapters");
+            etManualTotal.setInputType(InputType.TYPE_CLASS_NUMBER);
+        } else {
+            layoutDurationSlider.setVisibility(View.GONE);
+            tvLabelProgress.setText("Progress");
+            tvLabelTotal.setText("Total");
+            if (cardManualEntry != null) {
+                cardManualEntry.setStrokeColor(ContextCompat.getColor(this, R.color.glass_border));
+            }
+            etManualTotal.setHint("Total");
+        }
     }
 
     private void saveToDatabase() {

@@ -77,4 +77,11 @@
     <string name="author">Author</string>
     <string name="done">Done</string>
     <string name="go_back">Go Back</string>
+    <string name="qr_vault">QR Vault</string>
+    <string name="export_vault_json">Export Vault JSON</string>
+    <string name="import_vault_json">Import Vault JSON</string>
+    <string name="share_top10_qr">Share Top 10 QR</string>
+    <string name="scan_qr_import">Scan QR to Import</string>
+    <string name="widget_quick_plus">Quick +1</string>
+    <string name="widget_no_ongoing">No ongoing title</string>
 </resources>

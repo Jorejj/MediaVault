@@ -18,6 +18,8 @@ import androidx.appcompat.widget.Toolbar;
 import com.bumptech.glide.Glide;
 import com.google.android.material.appbar.CollapsingToolbarLayout;
 import com.google.android.material.button.MaterialButton;
+import com.google.android.material.chip.ChipGroup;
+import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.android.material.textfield.TextInputEditText;
 
 import java.io.File;
@@ -29,11 +31,13 @@ public class EditMediaActivity extends AppCompatActivity {
     private int mediaId;
     private DatabaseHelper dbHelper;
 
-    private TextInputEditText etTitle, etGenre, etReview, etImage;
+    private TextInputEditText etTitle, etGenre, etReview, etImage, etJournal;
     private ImageView ivCover;
     private TextInputEditText etProgress, etTotal;
-    private AutoCompleteTextView autoType, autoStatus, autoUnit;
+    private AutoCompleteTextView autoType, autoStatus, autoUnit, autoPriority;
     private RatingBar rbRating;
+    private ChipGroup chipGroupMood;
+    private SwitchMaterial switchFavorite;
     private MaterialButton btnSave;
     private CollapsingToolbarLayout collapsingToolbar;
 
@@ -69,6 +73,7 @@ public class EditMediaActivity extends AppCompatActivity {
         etTitle = findViewById(R.id.et_edit_title);
         etGenre = findViewById(R.id.et_edit_genre);
         etReview = findViewById(R.id.et_edit_review);
+        etJournal = findViewById(R.id.et_edit_journal);
         etImage = findViewById(R.id.et_edit_image);
         ivCover = findViewById(R.id.iv_edit_cover);
         etProgress = findViewById(R.id.et_edit_progress);
@@ -76,7 +81,10 @@ public class EditMediaActivity extends AppCompatActivity {
         autoType = findViewById(R.id.spinner_edit_type_auto);
         autoStatus = findViewById(R.id.spinner_edit_status_auto);
         autoUnit = findViewById(R.id.spinner_edit_unit_auto);
+        autoPriority = findViewById(R.id.spinner_edit_priority_auto);
         rbRating = findViewById(R.id.rb_edit_rating);
+        chipGroupMood = findViewById(R.id.chip_group_mood);
+        switchFavorite = findViewById(R.id.switch_edit_favorite);
         btnSave = findViewById(R.id.btn_edit_save);
 
         btnSave.setOnClickListener(v -> saveChanges());
@@ -110,6 +118,10 @@ public class EditMediaActivity extends AppCompatActivity {
         String[] units = getResources().getStringArray(R.array.capacity_units);
         ArrayAdapter<String> adapterUnit = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, units);
         autoUnit.setAdapter(adapterUnit);
+
+        String[] priorities = getResources().getStringArray(R.array.priority_levels);
+        ArrayAdapter<String> adapterPriority = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, priorities);
+        autoPriority.setAdapter(adapterPriority);
     }
 
     private void setupImagePreviewListener() {
@@ -127,7 +139,7 @@ public class EditMediaActivity extends AppCompatActivity {
 
     private void updateImageHeader(String path) {
         if (path == null || path.isEmpty()) {
-            ivCover.setImageResource(R.drawable.app_logo);
+            ivCover.setImageResource(R.drawable.ic_new_logo);
             return;
         }
 
@@ -136,15 +148,15 @@ public class EditMediaActivity extends AppCompatActivity {
             Glide.with(this)
                     .load(file)
                     .centerCrop()
-                    .placeholder(R.drawable.app_logo)
-                    .error(R.drawable.app_logo)
+                    .placeholder(R.drawable.ic_new_logo)
+                    .error(R.drawable.ic_new_logo)
                     .into(ivCover);
         } else {
             Glide.with(this)
                     .load(path)
                     .centerCrop()
-                    .placeholder(R.drawable.app_logo)
-                    .error(R.drawable.app_logo)
+                    .placeholder(R.drawable.ic_new_logo)
+                    .error(R.drawable.ic_new_logo)
                     .into(ivCover);
         }
     }
@@ -164,6 +176,7 @@ public class EditMediaActivity extends AppCompatActivity {
 
             etGenre.setText(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_GENRE)));
             etReview.setText(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_REVIEW)));
+            etJournal.setText(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_JOURNAL)));
             etProgress.setText(String.valueOf(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_CURRENT_PROGRESS))));
             etTotal.setText(String.valueOf(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_TOTAL_COUNT))));
             rbRating.setRating(cursor.getFloat(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_RATING)));
@@ -175,6 +188,9 @@ public class EditMediaActivity extends AppCompatActivity {
             autoType.setText(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_MEDIA_TYPE)), false);
             autoStatus.setText(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_STATUS)), false);
             autoUnit.setText(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_UNIT)), false);
+            autoPriority.setText(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_PRIORITY)), false);
+            switchFavorite.setChecked(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_IS_FAVORITE)) == 1);
+            applyMoodToChips(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_MOOD)));
             
             cursor.close();
         }
@@ -186,9 +202,13 @@ public class EditMediaActivity extends AppCompatActivity {
         String status = autoStatus.getText().toString();
         String genre = etGenre.getText().toString().trim();
         String review = etReview.getText().toString().trim();
+        String journal = etJournal.getText().toString().trim();
         String progressStr = etProgress.getText().toString().trim();
         String totalStr = etTotal.getText().toString().trim();
         String unit = autoUnit.getText().toString();
+        String priority = autoPriority.getText().toString();
+        String mood = getSelectedMood();
+        boolean isFavorite = switchFavorite.isChecked();
         String newImage = etImage.getText().toString().trim();
         float rating = rbRating.getRating();
 
@@ -206,7 +226,7 @@ public class EditMediaActivity extends AppCompatActivity {
                 return;
             }
 
-            if (dbHelper.updateMedia(mediaId, title, type, genre, status, progress, total, unit, newImage, rating, review)) {
+            if (dbHelper.updateMedia(mediaId, title, type, genre, status, progress, total, unit, newImage, rating, review, journal, mood, priority, isFavorite)) {
                 Toast.makeText(this, "Changes saved", Toast.LENGTH_SHORT).show();
                 sendBroadcast(new Intent(DescriptionActivity.ACTION_MEDIA_UPDATED));
                 finish();
@@ -215,6 +235,43 @@ public class EditMediaActivity extends AppCompatActivity {
             }
         } catch (NumberFormatException e) {
             Toast.makeText(this, "Invalid progress or total value", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private String getSelectedMood() {
+        int checkedId = chipGroupMood.getCheckedChipId();
+        if (checkedId == R.id.chip_mood_excited) return "Excited";
+        if (checkedId == R.id.chip_mood_happy) return "Happy";
+        if (checkedId == R.id.chip_mood_neutral) return "Neutral";
+        if (checkedId == R.id.chip_mood_sad) return "Sad";
+        if (checkedId == R.id.chip_mood_mindblown) return "Mind-blown";
+        return "";
+    }
+
+    private void applyMoodToChips(String mood) {
+        if (mood == null) {
+            chipGroupMood.clearCheck();
+            return;
+        }
+        switch (mood) {
+            case "Excited":
+                chipGroupMood.check(R.id.chip_mood_excited);
+                break;
+            case "Happy":
+                chipGroupMood.check(R.id.chip_mood_happy);
+                break;
+            case "Neutral":
+                chipGroupMood.check(R.id.chip_mood_neutral);
+                break;
+            case "Sad":
+                chipGroupMood.check(R.id.chip_mood_sad);
+                break;
+            case "Mind-blown":
+                chipGroupMood.check(R.id.chip_mood_mindblown);
+                break;
+            default:
+                chipGroupMood.clearCheck();
+                break;
         }
     }
 }

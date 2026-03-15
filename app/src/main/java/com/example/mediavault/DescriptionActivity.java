@@ -45,7 +45,7 @@ public class DescriptionActivity extends AppCompatActivity {
     private String mediaTitle;
     
     private ImageView ivCover;
-    private TextView tvTitle, tvType, tvGenre, tvStatus, tvProgressText, tvMyReview, tvDescription;
+    private TextView tvTitle, tvType, tvGenre, tvStatus, tvPriority, tvMood, tvProgressText, tvMyReview, tvJournal, tvDescription;
     private ProgressBar pbProgress;
     private RatingBar rbRating;
     private CollapsingToolbarLayout collapsingToolbar;
@@ -92,8 +92,11 @@ public class DescriptionActivity extends AppCompatActivity {
         tvType = findViewById(R.id.tv_description_type);
         tvGenre = findViewById(R.id.tv_description_genre);
         tvStatus = findViewById(R.id.tv_description_status);
+        tvPriority = findViewById(R.id.tv_description_priority);
+        tvMood = findViewById(R.id.tv_description_mood);
         tvProgressText = findViewById(R.id.tv_description_progress_text);
         tvMyReview = findViewById(R.id.tv_description_my_review);
+        tvJournal = findViewById(R.id.tv_description_journal);
         tvDescription = findViewById(R.id.tv_description_text);
         pbProgress = findViewById(R.id.pb_description_progress);
         rbRating = findViewById(R.id.rb_description_rating);
@@ -232,6 +235,9 @@ public class DescriptionActivity extends AppCompatActivity {
                 int statusIndex = cursor.getColumnIndex(DatabaseHelper.COL_STATUS);
                 int descriptionIndex = cursor.getColumnIndex(DatabaseHelper.COL_DESCRIPTION);
                 int reviewIndex = cursor.getColumnIndex(DatabaseHelper.COL_REVIEW);
+                int journalIndex = cursor.getColumnIndex(DatabaseHelper.COL_JOURNAL);
+                int moodIndex = cursor.getColumnIndex(DatabaseHelper.COL_MOOD);
+                int priorityIndex = cursor.getColumnIndex(DatabaseHelper.COL_PRIORITY);
                 int progressIndex = cursor.getColumnIndex(DatabaseHelper.COL_CURRENT_PROGRESS);
                 int capacityIndex = cursor.getColumnIndex(DatabaseHelper.COL_TOTAL_COUNT);
                 int unitIndex = cursor.getColumnIndex(DatabaseHelper.COL_UNIT);
@@ -244,6 +250,9 @@ public class DescriptionActivity extends AppCompatActivity {
                 String status = statusIndex != -1 ? cursor.getString(statusIndex) : "Planning";
                 String description = descriptionIndex != -1 ? cursor.getString(descriptionIndex) : "";
                 String review = reviewIndex != -1 ? cursor.getString(reviewIndex) : "";
+                String journal = journalIndex != -1 ? cursor.getString(journalIndex) : "";
+                String mood = moodIndex != -1 ? cursor.getString(moodIndex) : "";
+                String priority = priorityIndex != -1 ? cursor.getString(priorityIndex) : "Medium";
                 int progress = progressIndex != -1 ? cursor.getInt(progressIndex) : 0;
                 int capacity = capacityIndex != -1 ? cursor.getInt(capacityIndex) : 0;
                 String unit = unitIndex != -1 ? cursor.getString(unitIndex) : "";
@@ -255,6 +264,8 @@ public class DescriptionActivity extends AppCompatActivity {
                 tvType.setText(type.toUpperCase());
                 tvGenre.setText(genre);
                 tvStatus.setText(status);
+                tvPriority.setText(priority);
+                tvMood.setText(formatMood(mood));
                 
                 if (description != null && !description.isEmpty()) {
                     tvDescription.setText(description);
@@ -262,6 +273,7 @@ public class DescriptionActivity extends AppCompatActivity {
 
                 tvProgressText.setText(progress + " / " + capacity + " " + unit);
                 tvMyReview.setText(review != null && !review.isEmpty() ? review : "No personal review yet.");
+                tvJournal.setText(journal != null && !journal.isEmpty() ? journal : "No journal memory yet.");
                 pbProgress.setMax(capacity > 0 ? capacity : 100);
                 pbProgress.setProgress(progress);
                 rbRating.setRating(rating);
@@ -272,10 +284,10 @@ public class DescriptionActivity extends AppCompatActivity {
                         if (file.exists()) {
                             Glide.with(this).load(file).centerCrop().into(ivCover);
                         } else {
-                            Glide.with(this).load(imagePath).placeholder(R.drawable.app_logo).error(R.drawable.app_logo).centerCrop().into(ivCover);
+                            Glide.with(this).load(imagePath).placeholder(R.drawable.ic_new_logo).error(R.drawable.ic_new_logo).centerCrop().into(ivCover);
                         }
                     } else {
-                        ivCover.setImageResource(R.drawable.app_logo);
+                        ivCover.setImageResource(R.drawable.ic_new_logo);
                     }
                 }
             } else {
@@ -321,5 +333,25 @@ public class DescriptionActivity extends AppCompatActivity {
     public boolean onSupportNavigateUp() {
         finish();
         return true;
+    }
+
+    private String formatMood(String mood) {
+        if (mood == null || mood.isEmpty()) {
+            return "Not set";
+        }
+        switch (mood) {
+            case "Excited":
+                return "\uD83D\uDE0D Excited";
+            case "Happy":
+                return "\uD83D\uDE0A Happy";
+            case "Neutral":
+                return "\uD83D\uDE10 Neutral";
+            case "Sad":
+                return "\uD83D\uDE22 Sad";
+            case "Mind-blown":
+                return "\uD83E\uDD2F Mind-blown";
+            default:
+                return mood;
+        }
     }
 }

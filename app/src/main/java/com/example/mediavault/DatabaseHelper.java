@@ -378,6 +378,22 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return genre;
     }
 
+    public java.util.Map<String, Integer> getGenreCounts() {
+        java.util.Map<String, Integer> counts = new java.util.HashMap<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT " + COL_GENRE + ", COUNT(*) FROM " + TABLE_MEDIA + " WHERE " + COL_STATUS + " != 'Recently Deleted' GROUP BY " + COL_GENRE, null);
+        if (cursor.moveToFirst()) {
+            do {
+                String genre = cursor.getString(0);
+                if (genre == null || genre.isEmpty()) genre = "Uncategorized";
+                int count = cursor.getInt(1);
+                counts.put(genre, count);
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
+        return counts;
+    }
+
     public int getTotalCountByType(String type) {
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + TABLE_MEDIA + " WHERE " + COL_MEDIA_TYPE + " = ? AND " + COL_STATUS + " != 'Recently Deleted'", new String[]{type});

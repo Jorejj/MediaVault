@@ -123,13 +123,16 @@ public class MetricsFragment extends Fragment {
         entries.add(new BarEntry(2f, (float) totalEpisodes * factor));
 
         BarDataSet dataSet = new BarDataSet(entries, label);
+        int textPrimaryColor = resolveThemeColor(com.example.mediavault.R.attr.colorTextPrimary);
+        int textSecondaryColor = resolveThemeColor(com.example.mediavault.R.attr.colorTextSecondary);
+
         dataSet.setColors(new int[]{
                 ContextCompat.getColor(requireContext(), R.color.accent_blue),
                 ContextCompat.getColor(requireContext(), R.color.accent_cyan),
                 ContextCompat.getColor(requireContext(), R.color.accent_green)
         });
         dataSet.setDrawValues(true);
-        dataSet.setValueTextColor(Color.GRAY);
+        dataSet.setValueTextColor(textSecondaryColor);
         dataSet.setValueTextSize(10f);
 
         BarData barData = new BarData(dataSet);
@@ -137,8 +140,6 @@ public class MetricsFragment extends Fragment {
 
         chartMonthlyActivity.setData(barData);
         chartMonthlyActivity.getDescription().setEnabled(false);
-
-        int textPrimaryColor = resolveThemeColor(com.example.mediavault.R.attr.colorTextPrimary);
 
         Legend legend = chartMonthlyActivity.getLegend();
         legend.setEnabled(true);
@@ -159,6 +160,7 @@ public class MetricsFragment extends Fragment {
         xAxis.setValueFormatter(new IndexAxisValueFormatter(new String[]{"Pages", "Hours", "Episodes"}));
 
         chartMonthlyActivity.getAxisLeft().setDrawGridLines(false);
+        chartMonthlyActivity.getAxisLeft().setTextColor(textPrimaryColor);
         chartMonthlyActivity.getAxisRight().setEnabled(false);
         
         chartMonthlyActivity.animateY(1000);
@@ -166,18 +168,14 @@ public class MetricsFragment extends Fragment {
     }
 
     private void setupVaultCompositionChart() {
-        int books = dbHelper.getTotalCountByType("Book");
-        int anime = dbHelper.getTotalCountByType("Anime");
-        int movies = dbHelper.getTotalCountByType("Movie");
-        int series = dbHelper.getTotalCountByType("Series");
-        int manga = dbHelper.getTotalCountByType("Manga");
+        java.util.Map<String, Integer> genreCounts = dbHelper.getGenreCounts();
 
         ArrayList<PieEntry> entries = new ArrayList<>();
-        if (books > 0) entries.add(new PieEntry(books, "Books"));
-        if (anime > 0) entries.add(new PieEntry(anime, "Anime"));
-        if (movies > 0) entries.add(new PieEntry(movies, "Movies"));
-        if (series > 0) entries.add(new PieEntry(series, "Series"));
-        if (manga > 0) entries.add(new PieEntry(manga, "Manga"));
+        for (java.util.Map.Entry<String, Integer> entry : genreCounts.entrySet()) {
+            if (entry.getValue() > 0) {
+                entries.add(new PieEntry(entry.getValue(), entry.getKey()));
+            }
+        }
 
         if (entries.isEmpty()) {
             chartVaultComposition.setNoDataText("No data available in library");
@@ -189,15 +187,30 @@ public class MetricsFragment extends Fragment {
         int textPrimaryColor = resolveThemeColor(com.example.mediavault.R.attr.colorTextPrimary);
 
         PieDataSet dataSet = new PieDataSet(entries, "");
-        dataSet.setColors(new int[]{
-            ContextCompat.getColor(requireContext(), R.color.accent_blue),
-            ContextCompat.getColor(requireContext(), R.color.accent_cyan),
-            ContextCompat.getColor(requireContext(), R.color.accent_blue_variant),
-            ContextCompat.getColor(requireContext(), R.color.vault_accent_blue),
-            Color.parseColor("#9C27B0") // Purple for Manga
-        });
+        
+        // Dynamic colors for genres
+        int[] colors = new int[]{
+            Color.parseColor("#FF5252"), // Red
+            Color.parseColor("#FF4081"), // Pink
+            Color.parseColor("#E040FB"), // Purple
+            Color.parseColor("#7C4DFF"), // Deep Purple
+            Color.parseColor("#536DFE"), // Indigo
+            Color.parseColor("#448AFF"), // Blue
+            Color.parseColor("#40C4FF"), // Light Blue
+            Color.parseColor("#18FFFF"), // Cyan
+            Color.parseColor("#64FFDA"), // Teal
+            Color.parseColor("#69F0AE"), // Green
+            Color.parseColor("#B2FF59"), // Light Green
+            Color.parseColor("#EEFF41"), // Lime
+            Color.parseColor("#FFFF00"), // Yellow
+            Color.parseColor("#FFD740"), // Amber
+            Color.parseColor("#FFAB40"), // Orange
+            Color.parseColor("#FF6E40")  // Deep Orange
+        };
+        dataSet.setColors(colors);
+        
         dataSet.setSliceSpace(3f);
-        dataSet.setValueTextColor(Color.WHITE);
+        dataSet.setValueTextColor(Color.WHITE); // Keep white for contrast on colored slices
         dataSet.setValueTextSize(12f);
 
         PieData pieData = new PieData(dataSet);
@@ -207,10 +220,11 @@ public class MetricsFragment extends Fragment {
         chartVaultComposition.setEntryLabelColor(textPrimaryColor);
         chartVaultComposition.setEntryLabelTextSize(11f);
         chartVaultComposition.setCenterTextColor(textPrimaryColor);
-        chartVaultComposition.setRotationEnabled(false);
+        chartVaultComposition.setRotationEnabled(true);
 
         Legend legend = chartVaultComposition.getLegend();
         legend.setTextColor(textPrimaryColor);
+        legend.setWordWrapEnabled(true);
 
         chartVaultComposition.animateY(1400);
         chartVaultComposition.invalidate();

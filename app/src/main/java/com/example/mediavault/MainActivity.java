@@ -62,6 +62,13 @@ public class MainActivity extends AppCompatActivity {
                 if (id == R.id.nav_home || id == R.id.nav_library || id == R.id.nav_metrics || id == R.id.nav_settings || id == R.id.nav_shake) {
                     if (bottomAppBar != null) bottomAppBar.setVisibility(View.VISIBLE);
                     fab.show();
+                    
+                    // Prevent nav_shake from highlighting an unrelated menu item
+                    if (id == R.id.nav_shake) {
+                        bottomNav.getMenu().setGroupCheckable(0, false, true);
+                    } else {
+                        bottomNav.getMenu().setGroupCheckable(0, true, true);
+                    }
                 } else {
                     // Hide bottom bar and FAB on other screens like Add Media, About, etc.
                     fab.hide();

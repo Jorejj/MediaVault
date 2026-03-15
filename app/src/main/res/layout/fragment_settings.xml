@@ -32,7 +32,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             style="@style/TextScreenTitle"
-            android:text="MediaVault"
+            android:text="Settings"
             android:textSize="24sp" />
 
         <TextView
@@ -40,7 +40,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             style="@style/TextBody"
-            android:text="Settings"
+            android:text="Configure your app settings and preferences"
             android:textSize="14sp" />
     </LinearLayout>
 
@@ -228,7 +228,7 @@
                             android:src="@drawable/ic_vault" android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
 
                         <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="Vault Management" android:layout_toEndOf="@id/icon_vault" android:layout_marginStart="16dp"
+                            android:text="[DEV] SEED SAMPLE MEDIA" android:layout_toEndOf="@id/icon_vault" android:layout_marginStart="16dp"
                             android:layout_centerVertical="true" android:textSize="16sp" android:textStyle="bold" android:textColor="?attr/colorTextPrimary"/>
 
                         <ImageView android:layout_width="20dp" android:layout_height="20dp"

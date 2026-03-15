@@ -26,18 +26,26 @@ public class MediaItem {
     }
 
     public int getId() { return id; }
+    public void setId(int id) { this.id = id; }
     public String getTitle() { return title; }
+    public void setTitle(String title) { this.title = title; }
     public String getType() { return type; }
+    public void setType(String type) { this.type = type; }
     public String getGenre() { return genre; }
+    public void setGenre(String genre) { this.genre = genre; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
     public int getProgress() { return progress; }
+    public void setProgress(int progress) { this.progress = progress; }
     public int getCapacity() { return capacity; }
+    public void setCapacity(int capacity) { this.capacity = capacity; }
     public String getUnit() { return unit; }
+    public void setUnit(String unit) { this.unit = unit; }
     public String getCoverPath() { return coverPath; }
+    public void setCoverPath(String coverPath) { this.coverPath = coverPath; }
     public float getRating() { return rating; }
+    public void setRating(float rating) { this.rating = rating; }
     
-    // For backward compatibility with MediaAdapter if needed
     public String getSubtitle() {
         return type + " • " + status;
     }

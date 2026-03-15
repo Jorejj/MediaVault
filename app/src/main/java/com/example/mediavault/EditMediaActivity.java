@@ -243,25 +243,30 @@ public class EditMediaActivity extends AppCompatActivity {
             return;
         }
 
-        try {
-            int progress = Integer.parseInt(progressStr);
-            int total = Integer.parseInt(totalStr);
+        new Thread(() -> {
+            String finalImage = ImageUtils.downloadAndSaveImage(EditMediaActivity.this, newImage);
+            runOnUiThread(() -> {
+                try {
+                    int progress = Integer.parseInt(progressStr);
+                    int total = Integer.parseInt(totalStr);
 
-            if (progress > total) {
-                ToastUtils.showCustomToast(this, "Progress cannot exceed Total Capacity");
-                return;
-            }
+                    if (progress > total) {
+                        ToastUtils.showCustomToast(EditMediaActivity.this, "Progress cannot exceed Total Capacity");
+                        return;
+                    }
 
-            if (dbHelper.updateMedia(mediaId, title, type, genre, status, progress, total, unit, newImage, rating, review, journal, mood, priority, isFavorite)) {
-                ToastUtils.showCustomToast(this, "Changes saved");
-                sendBroadcast(new Intent(DescriptionActivity.ACTION_MEDIA_UPDATED));
-                finish();
-            } else {
-                ToastUtils.showCustomToast(this, "Error: Could not save changes");
-            }
-        } catch (NumberFormatException e) {
-            ToastUtils.showCustomToast(this, "Invalid progress or total value");
-        }
+                    if (dbHelper.updateMedia(mediaId, title, type, genre, status, progress, total, unit, finalImage, rating, review, journal, mood, priority, isFavorite)) {
+                        ToastUtils.showCustomToast(EditMediaActivity.this, "Changes saved");
+                        sendBroadcast(new Intent(DescriptionActivity.ACTION_MEDIA_UPDATED));
+                        finish();
+                    } else {
+                        ToastUtils.showCustomToast(EditMediaActivity.this, "Error: Could not save changes");
+                    }
+                } catch (NumberFormatException e) {
+                    ToastUtils.showCustomToast(EditMediaActivity.this, "Invalid progress or total value");
+                }
+            });
+        }).start();
     }
 
     private String getSelectedMood() {

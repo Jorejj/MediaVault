@@ -42,11 +42,12 @@ public class LibraryFragment extends Fragment {
     private List<MediaItem> filteredItems;
     private RecyclerView recyclerView;
     private EditText searchBar;
-    private ChipGroup chipGroup;
+    private ChipGroup chipGroup, chipGroupStatus;
     private View emptyState;
     private ImageButton btnFilter;
     private String currentSearchQuery = "";
     private String currentCategory = "All";
+    private String currentStatusFilter = "All";
     private int currentSortId = R.id.sort_title_asc;
 
     private final BroadcastReceiver updateReceiver = new BroadcastReceiver() {
@@ -69,6 +70,7 @@ public class LibraryFragment extends Fragment {
 
         searchBar = view.findViewById(R.id.search_bar);
         chipGroup = view.findViewById(R.id.chip_group_filter);
+        chipGroupStatus = view.findViewById(R.id.chip_group_status);
         emptyState = view.findViewById(R.id.empty_state_view);
         btnFilter = view.findViewById(R.id.btn_filter);
 
@@ -102,13 +104,13 @@ public class LibraryFragment extends Fragment {
             if (checkedId == R.id.chip_all) {
                 currentCategory = "All";
             } else if (checkedId == R.id.chip_books) {
-                currentCategory = "Book"; // Match DB type
+                currentCategory = "Book";
             } else if (checkedId == R.id.chip_anime) {
                 currentCategory = "Anime";
             } else if (checkedId == R.id.chip_series) {
                 currentCategory = "Series";
             } else if (checkedId == R.id.chip_movies) {
-                currentCategory = "Movie"; // Match DB type
+                currentCategory = "Movie";
             } else if (checkedId == R.id.chip_trash) {
                 currentCategory = "Trash";
             } else {
@@ -118,10 +120,44 @@ public class LibraryFragment extends Fragment {
             applyFilters();
         });
 
+        if (chipGroupStatus != null) {
+            chipGroupStatus.setOnCheckedChangeListener((group, checkedId) -> {
+                if (checkedId == R.id.chip_ongoing) {
+                    currentStatusFilter = "Ongoing";
+                } else if (checkedId == R.id.chip_completed) {
+                    currentStatusFilter = "Completed";
+                } else if (checkedId == R.id.chip_planning) {
+                    currentStatusFilter = "Planning";
+                } else if (checkedId == R.id.chip_dropped) {
+                    currentStatusFilter = "Dropped";
+                } else {
+                    currentStatusFilter = "All";
+                }
+                updateStatusChipAppearance(group, checkedId);
+                applyFilters();
+            });
+        }
+
         btnFilter.setOnClickListener(this::showSortMenu);
     }
 
     private void updateChipAppearance(ChipGroup group, int checkedId) {
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            if (child instanceof Chip) {
+                Chip chip = (Chip) child;
+                if (chip.getId() == checkedId) {
+                    chip.setChipBackgroundColorResource(R.color.netflix_red);
+                    chip.setTextColor(getResources().getColor(R.color.white));
+                } else {
+                    chip.setChipBackgroundColorResource(R.color.chip_unselected_bg);
+                    chip.setTextColor(getResources().getColor(R.color.chip_unselected_text));
+                }
+            }
+        }
+    }
+
+    private void updateStatusChipAppearance(ChipGroup group, int checkedId) {
         for (int i = 0; i < group.getChildCount(); i++) {
             View child = group.getChildAt(i);
             if (child instanceof Chip) {
@@ -157,24 +193,40 @@ public class LibraryFragment extends Fragment {
         filteredItems.clear();
         for (MediaItem item : allMediaItems) {
             boolean matchesCategory;
+            boolean matchesStatus;
+
+            // Handle Category (Type) + Trash
             if (currentCategory.equals("Trash")) {
                 matchesCategory = "Recently Deleted".equals(item.getStatus());
-            } else if ("Recently Deleted".equals(item.getStatus())) {
-                // If not in Trash category, never show deleted items
-                continue; 
-            } else if (currentCategory.equals("All")) {
-                matchesCategory = true;
-            } else if (currentCategory.equals("Book")) {
-                // If "Books" chip is selected, maybe we want both Book and Manga
-                matchesCategory = item.getType().equalsIgnoreCase("Book") || item.getType().equalsIgnoreCase("Manga");
+                // If Trash is selected, we ignore the Status chip group filter
+                matchesStatus = true; 
             } else {
-                matchesCategory = item.getType().equalsIgnoreCase(currentCategory);
+                // Not Trash selected
+                if ("Recently Deleted".equals(item.getStatus())) {
+                    // Item is deleted, but we are not in Trash view -> exclude
+                    continue; 
+                }
+
+                if (currentCategory.equals("All")) {
+                    matchesCategory = true;
+                } else if (currentCategory.equals("Book")) {
+                    matchesCategory = item.getType().equalsIgnoreCase("Book") || item.getType().equalsIgnoreCase("Manga");
+                } else {
+                    matchesCategory = item.getType().equalsIgnoreCase(currentCategory);
+                }
+
+                // Handle Status filter
+                if (currentStatusFilter.equals("All")) {
+                    matchesStatus = true;
+                } else {
+                    matchesStatus = item.getStatus().equalsIgnoreCase(currentStatusFilter);
+                }
             }
 
             boolean matchesSearch = item.getTitle().toLowerCase().contains(currentSearchQuery) ||
                     (item.getGenre() != null && item.getGenre().toLowerCase().contains(currentSearchQuery));
 
-            if (matchesCategory && matchesSearch) {
+            if (matchesCategory && matchesStatus && matchesSearch) {
                 filteredItems.add(item);
             }
         }
@@ -197,7 +249,7 @@ public class LibraryFragment extends Fragment {
         } else if (currentSortId == R.id.sort_title_desc) {
             Collections.sort(filteredItems, (o1, o2) -> o2.getTitle().compareToIgnoreCase(o1.getTitle()));
         } else if (currentSortId == R.id.sort_rating_desc) {
-            Collections.sort(filteredItems, (o1, o2) -> Float.compare(o2.getRating(), o1.getRating()));
+            Collections.sort(filteredItems, (o1, o2) -> Float.compare(o2.getRatingValue(), o1.getRatingValue()));
         } else if (currentSortId == R.id.sort_newest) {
             Collections.sort(filteredItems, (o1, o2) -> Integer.compare(o2.getId(), o1.getId()));
         }
@@ -205,7 +257,7 @@ public class LibraryFragment extends Fragment {
 
     private void refreshLibrary() {
         allMediaItems.clear();
-        Cursor cursor = dbHelper.getAllMedia();
+        Cursor cursor = dbHelper.getAllMediaIncludingTrash();
         if (cursor != null) {
             if (cursor.moveToFirst()) {
                 int idIndex = cursor.getColumnIndex(DatabaseHelper.COL_ID);

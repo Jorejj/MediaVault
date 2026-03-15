@@ -6,26 +6,66 @@ The central hub providing an overview of the user's media library and activities
 
 ### 1. Backlog Spotlight
 A prominent hero card displaying the media the user is currently reading or watching.
-*   **Dynamic Loading:** Features a built-in `ProgressBar` loading spinner. It uses a custom `Glide` RequestListener to automatically hide the spinner once the cover image is successfully rendered or if it fails.
-*   **Priority Logic:** The spotlight automatically queries the database for the most relevant media. It strictly prioritizes items with the `Ongoing` status. If no ongoing items exist, it falls back to the most recently updated `Planning` item.
-*   **Visuals:** Utilizes a frosted glass overlay with high-contrast white text to ensure readability over any colorful media cover art.
+*   **Auto-Fetching:** If cover art is missing, the app automatically triggers a background search via `MediaSearchManager` using the title and type.
+*   **Image Caching:** Once a remote URL is fetched, it is downloaded locally using `ImageUtils` and saved to the app's internal storage. Future loads use the local file for instant rendering.
+*   **Priority Logic:** Prioritizes `Ongoing` items, falling back to the most recent `Planning` item if none are active.
+*   **Clean UI:** Removed loading spinners for a more immediate and seamless visual experience.
 
-### 2. Quick Metrics Overview
-Displays high-level consumption statistics extracted in real-time from the SQLite database.
-*   **Watch Time:** Sums up progress for Movies, Series, and Anime (converted to Hours/Minutes).
-*   **Pages Read:** Aggregates total progress for Books and Manga.
-*   **Ongoing Count:** Tracks how many items are currently being consumed.
-*   **Library Rating:** Shows the average user rating across all non-deleted items.
+### 2. Binge Calculator & Quick Metrics
+A redesigned analytics section featuring a balanced 3-row vertical layout.
+*   **Watch Time:** Displays total hours/minutes consumed from Video-based media.
+*   **Pages Read:** Aggregates progress from Books and Manga.
+*   **Ongoing Titles:** Highlights currently active media with a distinctive red accent.
+*   **Library Stats Card:** A unified three-column card showing total **Episodes**, **Books Read**, and **Average Rating**.
 
 ### 3. Recent Activity
-A dynamic list showing the 4 most recently updated media items. It displays thumbnails, titles, and a "Time Ago" timestamp (e.g., "2h ago", "3d ago") calculated via `getTimeAgo()`.
+A dynamic list of the 4 most recently updated items. 
+*   **Automatic Sync:** Missing cover art for recent items is fetched and cached automatically in the background.
+*   **Time Tracking:** Uses `getTimeAgo()` to display relative timestamps (e.g., "5m ago").
 
 ### 4. Shake to Decide
-An interactive tool helping users pick their next media.
-*   **Interaction:** Uses the device's accelerometer via `ShakeDetector.java`.
-*   **Logic:** Randomly selects an item specifically from the `Planning` backlog using a weighted algorithm (higher priority items have a better chance of being picked).
+An interactive tool helping users pick their next media from the "Planning" backlog.
+*   **Icon Switching:** Dynamically switches from the MediaVault logo to a shaking icon (`ic_shake`) when motion is detected.
+*   **Haptic Feedback:** The device vibrates for 200ms upon successfully picking a title.
+*   **Glassmorphism Dialog:** The result appears in a premium blurred dialog that uses the same glassmorphism effect as the navigation bar, with a significantly darkened background for focus.
+
+## Code Usage Examples
+
+### Local Image Caching
+```java
+// Logic used across the app to ensure fast offline loading
+new Thread(() -> {
+    String localPath = ImageUtils.downloadAndSaveImage(context, remoteUrl);
+    if (localPath != null) {
+        dbHelper.updateImagePath(mediaId, localPath);
+    }
+}).start();
+```
+
+### Auto-Fetching Missing Artwork
+```java
+// Triggered during UI binding if imagePath is null
+if (imagePath == null || imagePath.isEmpty()) {
+    searchManager.searchAndDownloadImage(requireContext(), id, title, type);
+}
+```
+
+### Shake Detection & Vibration
+```java
+mShakeDetector.setOnShakeListener(count -> {
+    vibrate(); // Provide haptic feedback
+    handleShake(); // Pick random media
+});
+
+private void vibrate() {
+    Vibrator v = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
+    v.vibrate(VibrationEffect.createOneShot(200, VibrationEffect.DEFAULT_AMPLITUDE));
+}
+```
 
 ## Related Files
 *   **Logic:** `app/src/main/java/com/example/mediavault/ui/home/HomeFragment.java`
 *   **Layout:** `app/src/main/res/layout/fragment_home.xml`
-*   **Shake Logic:** `app/src/main/java/com/example/mediavault/ShakeDetector.java` & `ShakeFragment.java`
+*   **Image Utility:** `app/src/main/java/com/example/mediavault/ImageUtils.java`
+*   **API Manager:** `app/src/main/java/com/example/mediavault/api/MediaSearchManager.java`
+*   **Shake Logic:** `app/src/main/java/com/example/mediavault/ShakeFragment.java`

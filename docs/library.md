@@ -1,36 +1,51 @@
 # Library & Media Management
 
-The visual grid and management interface for all saved media items, featuring robust soft-delete capabilities.
+The visual grid and management interface for all saved media items, featuring robust soft-delete and automatic metadata enrichment.
 
 ## Features
 
-### 1. Media Grid & Cards
+### 1. Media Grid & Adaptive Cards
 Displays saved media items in a responsive grid.
-*   **Alignment:** All internal card elements (Title, Metadata, Star Rating, and Progress) are **left-aligned** for a consistent and clean reading experience.
-*   **Anchored Progress:** The progress section (Bar + Text) is pinned to the **absolute bottom** of the card using layout weights. This ensures that progress bars across different cards always form a straight horizontal line, regardless of title length.
-*   **Rating Pill:** A centered-text star rating pill using `rating_pill_bg.xml`.
+*   **Automatic Image Enrichment:** As the user scrolls, `MediaAdapter` detects items with missing cover art and triggers an asynchronous search via `MediaSearchManager`.
+*   **Persistent Caching:** Any artwork fetched from the web is automatically downloaded to internal storage. This ensures the library loads instantly and functions offline.
+*   **Unit-Aware Styling:** Cards dynamically change their accent colors (e.g., Orange for Anime, Blue for Books) based on the media type.
 
 ### 2. Recently Deleted (Soft Delete)
 A safety feature that prevents accidental permanent loss of data.
-*   **Logic:** When a user clicks "Delete" on a media item, its status is updated to `Recently Deleted` in the database.
-*   **Filtering:** A dedicated **"Recently Deleted" chip filter** at the top allows users to view these items.
-*   **Recovery:** Items in this view can be restored back to the `Planning` status or **Permanently Deleted** via the 3-dots menu.
+*   **Trash Logic:** Deleting an item moves it to the `Recently Deleted` state. These items are excluded from all dashboard metrics and statistics.
+*   **Contextual Recovery:** Restoring an item from the trash immediately returns it to the `Planning` backlog and refreshes the library view.
 
-### 3. Media Card Options (3-Dots Menu)
-A contextual `PopupMenu` located in the top-right corner of every media poster.
-*   **File:** Managed in `MediaAdapter.java` via the `btn_more_options` click listener.
+### 3. Smart Search & Auto-Fill
+The "Add Media" screen leverages a multi-API network to simplify data entry.
+*   **Comprehensive Coverage:** Queries TMDB (Movies/Series), Jikan (Anime/Manga), Google Books, TVMaze, and Open Library.
+*   **Fallback Logic:** If a primary API (like TMDB) fails to provide an image, the system automatically falls back to secondary sources (like TVMaze) to ensure a complete visual record.
 
-### 4. Search Online (API Integration)
-Integrated into the "Add Media" flow.
-*   **Search Online:** Replaces the generic "Search API" label. It queries TMDB, Jikan, and Google Books.
-*   **Smart Population:** When an item is selected from search results, it auto-fills the manual entry form and hides the `Image URL` field to maintain a streamlined UI.
+### 4. Custom Media Covers
+*   **Manual Override:** Users can manually paste an Image URL or use the **Gallery Picker** in the edit screen to upload personal files. These are also cached locally for performance.
 
-### 5. Edit Media & Gallery Picker
-*   **Image Upload:** In `EditMediaActivity`, the Image URL field features a **Gallery Icon** (`endIconMode="custom"`). Clicking it launches the system image picker, allowing users to upload local images as media covers.
+## Code Usage Examples
+
+### Adapter Auto-Fetch Logic
+```java
+// Inside MediaAdapter.onBindViewHolder
+if (item.getCoverPath() == null) {
+    // Show placeholder and fetch in background
+    holder.poster.setImageResource(R.color.grey_300);
+    searchManager.searchAndDownloadImage(context, item.getId(), item.getTitle(), item.getType());
+}
+```
+
+### Deletion and Recovery
+```java
+// Logic for moving items to 'Soft Delete'
+dbHelper.updateProgress(item.getId(), item.getProgress(), "Recently Deleted", item.getRatingValue());
+
+// Logic for restoring items
+dbHelper.updateProgress(item.getId(), item.getProgress(), "Planning", item.getRatingValue());
+```
 
 ## Related Files
 *   **Fragment Logic:** `app/src/main/java/com/example/mediavault/ui/library/LibraryFragment.java`
 *   **Adapter Logic:** `app/src/main/java/com/example/mediavault/ui/library/MediaAdapter.java`
-*   **Item Layout:** `app/src/main/res/layout/item_media_card.xml`
-*   **Add Logic:** `app/src/main/java/com/main/AddMediaActivity.java`
-*   **Edit Logic:** `app/src/main/java/com/main/EditMediaActivity.java`
+*   **API Manager:** `app/src/main/java/com/example/mediavault/api/MediaSearchManager.java`
+*   **Edit Screen:** `app/src/main/java/com/example/mediavault/EditMediaActivity.java`

@@ -1,36 +1,64 @@
 # Settings, Architecture & Global UI
 
-The core foundation of the MediaVault app, encompassing the design system, database, and system-wide utilities.
+The core foundation of the MediaVault app, encompassing the design system, data layer, and external service integrations.
 
 ## Global Design System
 
-### 1. Glassmorphism & Real-Time Blur
-The app utilizes a consistent "frosted glass" aesthetic across all components.
-*   **Ambient Mesh:** A global background (`ambient_mesh_bg.xml`) consisting of colorful, blurred orbs provides the backdrop for the transparency to work.
-*   **BlurView Integration:** The bottom navigation bar uses the `BlurView` library (`version-1.6.6`) to perform real-time background blurring of the content scrolling beneath it.
-*   **Oval Navigation:** The navbar is styled as a floating pill (`72dp` height, `36dp` corner radius).
+### 1. Glassmorphism & Visual Polish
+The app utilizes a refined glassmorphism aesthetic across the entire interface.
+*   **Real-Time Blur:** Powered by the `BlurView` library with **RenderScript** acceleration. The navbar and premium dialogs perform live sampling of the background content.
+*   **Adaptive Contrast:** Shake-to-Decide recommendation cards use a significantly darkened overlay (`#BF000000`) inside the blur layer to ensure readability while maintaining depth.
+*   **Rounded Geometry:** All glass layers are clipped to match their parent containers' corner radii (typically `22dp` or `28dp`).
 
-### 2. Custom Glassmorphism Toasts
-Standard Android toasts have been replaced with a premium custom implementation.
-*   **Style:** Features a semi-transparent, blurred dark background with a red brand logo and white text.
-*   **Implementation:** Located in `ToastUtils.java`. It dynamically sets up a `BlurView` within the toast layout at runtime to ensure the blur matches the background behind the toast.
+### 2. Standardized 9-Patch Assets
+To maintain visual integrity across different screen sizes, all primary logos and iconography (e.g., `mediavault_logo.9.png`) are implemented as **9-Patch images**, ensuring zero distortion during scaling.
 
 ## Core Architecture
 
-### 1. Database (SQLite)
-A robust local database managing all persistence.
-*   **Schema:** Table `media_library` stores extensive metadata including completion moods, personal journals, and priority levels.
-*   **Constraints:** Includes `CHECK` constraints to ensure data integrity for statuses, units, and ratings.
-*   **Triggers:** Features an `AFTER UPDATE` trigger to automatically refresh the `last_updated` timestamp whenever an item is modified.
+### 1. Centralized Media Search (`MediaSearchManager`)
+A dedicated manager class that encapsulates all external API logic.
+*   **Integrated Services:**
+    *   **Movies/TV:** TMDB (The Movie Database)
+    *   **Anime/Manga:** Jikan (MyAnimeList wrapper)
+    *   **Books:** Google Books & Open Library (Fallback)
+    *   **Series:** TVMaze (Secondary fallback for TV data)
+*   **Intelligent Fallbacks:** Methods are designed to chain multiple API calls. If a primary search returns no image, the manager automatically queries secondary providers.
 
-### 2. Theme Engine
-A system-wide toggle in `SettingsFragment` allows switching between Light and Dark modes.
-*   **Implementation:** Persisted via `SharedPreferences`. The app uses theme attributes (`?attr/colorTextPrimary`, etc.) and mode-specific drawables (`drawable-night/`) to ensure the glassmorphism gradients remain legible in both modes.
+### 2. High-Performance Image Caching
+MediaVault prioritizes speed by eliminating redundant network requests.
+*   **Internal Storage:** Images are saved directly to `context.getFilesDir()`.
+*   **Surgical Database Updates:** The `COL_IMAGE_PATH` is updated only after a successful local save, ensuring the database always points to a valid local file when possible.
+
+## Code Usage Examples
+
+### Safe Blur Setup
+```java
+// Logic used to prevent crashes on unsupported devices
+try {
+    blurView.setupWith(rootView)
+            .setFrameClearDrawable(windowBackground)
+            .setBlurAlgorithm(new RenderScriptBlur(context))
+            .setBlurRadius(20f)
+            .setHasFixedTransformationMatrix(true);
+} catch (Throwable t) {
+    blurView.setBackgroundColor(0x99000000); // Fallback to semi-transparent
+}
+```
+
+### Chained API Search (Example: Books)
+```java
+// Chaining Google Books with OpenLibrary fallback
+private void searchBookImage(int mediaId, String title) {
+    googleBooks.search(title).enqueue(new Callback() {
+        if (noResult) {
+            searchOpenLibraryImage(mediaId, title); // Fallback call
+        }
+    });
+}
+```
 
 ## Related Files
-*   **Custom Toast Utility:** `app/src/main/java/com/example/mediavault/widget/ToastUtils.java`
-*   **Toast Layout:** `app/src/main/res/layout/layout_custom_toast.xml`
-*   **Database Helper:** `app/src/main/java/com/example/mediavault/DatabaseHelper.java`
-*   **Global Layout:** `app/src/main/res/layout/activity_main.xml`
-*   **Settings Logic:** `app/src/main/java/com/example/mediavault/ui/settings/SettingsFragment.java`
-*   **Build Config:** `app/build.gradle.kts` (Managing BlurView and Retrofit dependencies)
+*   **API Manager:** `app/src/main/java/com/example/mediavault/api/MediaSearchManager.java`
+*   **Image Utility:** `app/src/main/java/com/example/mediavault/ImageUtils.java`
+*   **Theme Engine:** `app/src/main/java/com/example/mediavault/ui/settings/SettingsFragment.java`
+*   **Build Config:** `app/build.gradle.kts` (Managing RenderScript and BlurView settings)

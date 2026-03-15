@@ -47,7 +47,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     style="@style/TextScreenTitle"
-                    android:text="@string/mediavault"
+                    android:text="@string/Stats"
                     android:textSize="24sp" />
 
                 <TextView

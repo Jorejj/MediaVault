@@ -188,6 +188,11 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return db.rawQuery("SELECT * FROM " + TABLE_MEDIA + " WHERE " + COL_STATUS + " != 'Recently Deleted' ORDER BY " + COL_LAST_UPDATED + " DESC", null);
     }
 
+    public Cursor getAllMediaIncludingTrash() {
+        SQLiteDatabase db = this.getReadableDatabase();
+        return db.rawQuery("SELECT * FROM " + TABLE_MEDIA + " ORDER BY " + COL_LAST_UPDATED + " DESC", null);
+    }
+
     public Cursor getMediaById(int id) {
         SQLiteDatabase db = this.getReadableDatabase();
         return db.rawQuery("SELECT * FROM " + TABLE_MEDIA + " WHERE " + COL_ID + " = ?", new String[]{String.valueOf(id)});
@@ -269,6 +274,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public boolean deleteMedia(int id) {
         SQLiteDatabase db = this.getWritableDatabase();
         int result = db.delete(TABLE_MEDIA, COL_ID + "=?", new String[]{String.valueOf(id)});
+        db.close();
+        return result > 0;
+    }
+
+    public boolean updateImagePath(int id, String newPath) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COL_IMAGE_PATH, newPath);
+        int result = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(id)});
         db.close();
         return result > 0;
     }
@@ -488,43 +502,74 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     public void seedDatabase() {
         SQLiteDatabase db = this.getWritableDatabase();
-        String[] titles = {
-            "Inception", "The Matrix", "Interstellar", "One Piece", "Naruto", 
-            "Breaking Bad", "Stranger Things", "1984", "The Hobbit", "Dracula",
-            "Joker", "Avatar", "Titanic", "Bleach", "Death Note", 
-            "Sherlock Holmes", "The Witcher", "Mandalorian", "Attack on Titan", "Demon Slayer",
-            "Pulp Fiction", "Gladiator", "The Office", "Friends", "Harry Potter",
-            "Dune", "Spider-Man", "Batman", "Soul", "Your Name"
-        };
-        String[] types = {"Movie", "Series", "Book", "Manga"};
-        String[] genres = {"Action", "Sci-Fi", "Drama", "Fantasy", "Comedy", "Horror"};
-        String[] statuses = {"Ongoing", "Completed", "Planning", "Dropped"};
-        String[] creators = {"Christopher Nolan", "Eiichiro Oda", "George Orwell", "Hajime Isayama", "J.K. Rowling"};
-
-        for (String title : titles) {
-            ContentValues v = new ContentValues();
-            String type = types[(int) (Math.random() * types.length)];
-            String status = statuses[(int) (Math.random() * statuses.length)];
-            int total = 0;
-            String unit = "";
+        
+        Object[][] mediaData = {
+            // Movies
+            {"Inception", "Movie", "Sci-Fi", "Christopher Nolan", 148, "Minutes", "Dream within a dream heist."},
+            {"The Matrix", "Movie", "Sci-Fi", "The Wachowskis", 136, "Minutes", "Reality is a simulation."},
+            {"Interstellar", "Movie", "Sci-Fi", "Christopher Nolan", 169, "Minutes", "Space travel to save humanity."},
+            {"Joker", "Movie", "Drama", "Todd Phillips", 122, "Minutes", "Origin story of the iconic villain."},
+            {"Pulp Fiction", "Movie", "Crime", "Quentin Tarantino", 154, "Minutes", "Intertwining criminal lives."},
+            {"Gladiator", "Movie", "Action", "Ridley Scott", 155, "Minutes", "A betrayed general seeks revenge."},
+            {"Avatar", "Movie", "Sci-Fi", "James Cameron", 162, "Minutes", "Human on an alien planet."},
             
-            if (type.equals("Movie")) { total = 90 + (int)(Math.random()*90); unit = "Minutes"; }
-            else if (type.equals("Series")) { total = 10 + (int)(Math.random()*50); unit = "Episodes"; }
-            else if (type.equals("Book")) { total = 200 + (int)(Math.random()*300); unit = "Pages"; }
-            else { total = 50 + (int)(Math.random()*150); unit = "Chapters"; }
+            // Series
+            {"Breaking Bad", "Series", "Drama", "Vince Gilligan", 62, "Episodes", "Chemistry teacher turns to crime."},
+            {"Stranger Things", "Series", "Sci-Fi", "The Duffer Brothers", 42, "Episodes", "Supernatural mysteries in a small town."},
+            {"The Office", "Series", "Comedy", "Greg Daniels", 201, "Episodes", "Daily lives of office employees."},
+            {"Friends", "Series", "Comedy", "David Crane", 236, "Episodes", "Six friends living in Manhattan."},
+            {"The Witcher", "Series", "Fantasy", "Lauren Schmidt Hissrich", 24, "Episodes", "Monster hunter Geralt of Rivia."},
+            {"Mandalorian", "Series", "Sci-Fi", "Jon Favreau", 24, "Episodes", "Bounty hunter in the Star Wars universe."},
+            
+            // Anime
+            {"One Piece", "Anime", "Adventure", "Eiichiro Oda", 1100, "Episodes", "Monkey D. Luffy seeks the pirate treasure."},
+            {"Naruto", "Anime", "Action", "Masashi Kishimoto", 720, "Episodes", "Ninja seeking recognition and leadership."},
+            {"Attack on Titan", "Anime", "Fantasy", "Hajime Isayama", 89, "Episodes", "Humanity fights giant titans."},
+            {"Demon Slayer", "Anime", "Action", "Koyoharu Gotouge", 55, "Episodes", "Boy fights demons to save his sister."},
+            {"Death Note", "Anime", "Thriller", "Tsugumi Ohba", 37, "Episodes", "Student finds a notebook that kills."},
+            {"Bleach", "Anime", "Action", "Tite Kubo", 366, "Episodes", "Soul Reaper protecting humans from spirits."},
+            {"Your Name", "Anime", "Romance", "Makoto Shinkai", 1, "Episodes", "Two teens swap bodies mysteriously."},
+            
+            // Manga
+            {"Berserk", "Manga", "Dark Fantasy", "Kentaro Miura", 373, "Chapters", "The journey of Guts, a lone mercenary."},
+            {"Solo Leveling", "Manga", "Action", "Chugong", 179, "Chapters", "Weak hunter becomes the strongest."},
+            {"Dragon Ball", "Manga", "Action", "Akira Toriyama", 519, "Chapters", "Goku's quest for the Dragon Balls."},
+            
+            // Books
+            {"1984", "Book", "Dystopian", "George Orwell", 328, "Pages", "Totalitarianism and government surveillance."},
+            {"The Hobbit", "Book", "Fantasy", "J.R.R. Tolkien", 310, "Pages", "Bilbo Baggins' unexpected adventure."},
+            {"Harry Potter", "Book", "Fantasy", "J.K. Rowling", 309, "Pages", "Young wizard's journey at Hogwarts."},
+            {"Dune", "Book", "Sci-Fi", "Frank Herbert", 412, "Pages", "Political struggle on a desert planet."},
+            {"The Great Gatsby", "Book", "Classic", "F. Scott Fitzgerald", 180, "Pages", "Wealth, love, and the American dream."},
+            {"Sherlock Holmes", "Book", "Mystery", "Arthur Conan Doyle", 350, "Pages", "Famous detective solving crimes."},
+            {"Dracula", "Book", "Horror", "Bram Stoker", 418, "Pages", "The original vampire count."}
+        };
 
+        String[] statuses = {"Ongoing", "Completed", "Planning", "Dropped"};
+
+        for (Object[] row : mediaData) {
+            ContentValues v = new ContentValues();
+            String title = (String) row[0];
+            String type = (String) row[1];
+            String genre = (String) row[2];
+            String creator = (String) row[3];
+            int total = (int) row[4];
+            String unit = (String) row[5];
+            String desc = (String) row[6];
+            
+            String status = statuses[(int) (Math.random() * statuses.length)];
             int progress = status.equals("Completed") ? total : (status.equals("Planning") ? 0 : (int)(Math.random() * total));
 
             v.put(COL_TITLE, title + " (Demo)");
             v.put(COL_MEDIA_TYPE, type);
-            v.put(COL_GENRE, genres[(int)(Math.random()*genres.length)]);
-            v.put(COL_CREATOR, creators[(int)(Math.random()*creators.length)]);
+            v.put(COL_GENRE, genre);
+            v.put(COL_CREATOR, creator);
             v.put(COL_TOTAL_COUNT, total);
             v.put(COL_UNIT, unit);
             v.put(COL_STATUS, status);
             v.put(COL_CURRENT_PROGRESS, progress);
             v.put(COL_RATING, 3.0f + (float)(Math.random() * 2.0f));
-            v.put(COL_DESCRIPTION, "This is a seeded demo entry for " + title);
+            v.put(COL_DESCRIPTION, desc);
             
             db.insertWithOnConflict(TABLE_MEDIA, null, v, SQLiteDatabase.CONFLICT_IGNORE);
         }

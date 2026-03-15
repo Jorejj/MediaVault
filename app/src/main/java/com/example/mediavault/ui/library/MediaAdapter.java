@@ -9,10 +9,16 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.DataSource;
+import com.bumptech.glide.load.engine.GlideException;
+import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.target.Target;
+import android.graphics.drawable.Drawable;
 import com.example.mediavault.DescriptionActivity;
 import com.example.mediavault.R;
 import com.google.android.material.card.MaterialCardView;
@@ -26,12 +32,14 @@ import androidx.appcompat.widget.PopupMenu;
 import com.example.mediavault.DatabaseHelper;
 import com.example.mediavault.widget.ToastUtils;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.example.mediavault.api.MediaSearchManager;
 
 public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHolder> {
 
     private List<MediaItem> mediaItems;
     private OnItemClickListener listener;
     private DatabaseHelper dbHelper;
+    private MediaSearchManager searchManager;
 
     public interface OnItemClickListener {
         void onItemClick(MediaItem item);
@@ -57,6 +65,9 @@ public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHol
         if (dbHelper == null) {
             dbHelper = new DatabaseHelper(parent.getContext());
         }
+        if (searchManager == null) {
+            searchManager = new MediaSearchManager();
+        }
         return new MediaViewHolder(view);
     }
 
@@ -77,23 +88,53 @@ public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHol
         }
         styleCardByMediaType(holder, item);
 
+        if (holder.pbPosterLoading != null) holder.pbPosterLoading.setVisibility(View.VISIBLE);
+
         if (item.getCoverPath() != null && !item.getCoverPath().isEmpty()) {
-            File imageFile = new File(item.getCoverPath());
-            if (imageFile.exists()) {
-                Glide.with(holder.poster.getContext())
-                        .load(imageFile)
-                        .centerCrop()
-                        .placeholder(R.color.grey_300)
-                        .into(holder.poster);
-            } else {
-                Glide.with(holder.poster.getContext())
-                        .load(item.getCoverPath()) // Try as URL/URI if not a direct file
-                        .centerCrop()
-                        .placeholder(R.color.grey_300)
-                        .into(holder.poster);
+            String imagePath = item.getCoverPath();
+            
+            // Download image if it's a URL
+            if (imagePath.startsWith("http")) {
+                final String currentImagePath = imagePath;
+                final int currentId = item.getId();
+                new Thread(() -> {
+                    String localPath = com.example.mediavault.ImageUtils.downloadAndSaveImage(holder.poster.getContext(), currentImagePath);
+                    if (localPath != null && !localPath.equals(currentImagePath)) {
+                        dbHelper.updateImagePath(currentId, localPath);
+                        // Update the item object so next bind uses local path
+                        item.setCoverPath(localPath);
+                    }
+                }).start();
             }
+
+            File imageFile = new File(imagePath);
+            Object loadSource = imageFile.exists() ? imageFile : imagePath;
+
+            Glide.with(holder.poster.getContext())
+                    .load(loadSource)
+                    .centerCrop()
+                    .placeholder(R.color.grey_300)
+                    .listener(new RequestListener<Drawable>() {
+                        @Override
+                        public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Drawable> target, boolean isFirstResource) {
+                            if (holder.pbPosterLoading != null) holder.pbPosterLoading.setVisibility(View.GONE);
+                            return false;
+                        }
+
+                        @Override
+                        public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target, DataSource dataSource, boolean isFirstResource) {
+                            if (holder.pbPosterLoading != null) holder.pbPosterLoading.setVisibility(View.GONE);
+                            return false;
+                        }
+                    })
+                    .into(holder.poster);
         } else {
             holder.poster.setImageResource(R.color.grey_300);
+            // Auto-fetch missing cover art
+            if (searchManager != null) {
+                searchManager.searchAndDownloadImage(holder.poster.getContext(), item.getId(), item.getTitle(), item.getType());
+            }
+            if (holder.pbPosterLoading != null) holder.pbPosterLoading.setVisibility(View.GONE);
         }
 
         holder.itemView.setOnClickListener(v -> {
@@ -194,6 +235,7 @@ public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHol
         TextView rating;
         ProgressBar progressBar;
         TextView progressText;
+        ProgressBar pbPosterLoading;
 
         public MediaViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -205,6 +247,7 @@ public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHol
             rating = itemView.findViewById(R.id.media_rating);
             progressBar = itemView.findViewById(R.id.media_progress);
             progressText = itemView.findViewById(R.id.media_progress_text);
+            pbPosterLoading = itemView.findViewById(R.id.pb_poster_loading);
         }
     }
 }

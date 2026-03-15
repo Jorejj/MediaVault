@@ -201,6 +201,70 @@
                         app:chipStrokeWidth="0dp"/>
                 </com.google.android.material.chip.ChipGroup>
             </HorizontalScrollView>
+
+            <HorizontalScrollView
+                android:id="@+id/status_chip_scroll"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:scrollbars="none"
+                android:layout_marginTop="12dp"
+                android:clipToPadding="false"
+                android:paddingHorizontal="@dimen/screen_padding_horizontal"
+                app:layout_constraintTop_toBottomOf="@+id/chip_scroll">
+
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/chip_group_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:singleSelection="true"
+                    app:selectionRequired="false"
+                    app:chipSpacingHorizontal="8dp">
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chip_ongoing"
+                        style="@style/Widget.MaterialComponents.Chip.Choice"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Ongoing"
+                        app:chipBackgroundColor="@color/chip_unselected_bg"
+                        android:textColor="@color/chip_unselected_text"
+                        app:chipCornerRadius="20dp"
+                        app:chipStrokeWidth="0dp"/>
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chip_completed"
+                        style="@style/Widget.MaterialComponents.Chip.Choice"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Completed"
+                        app:chipBackgroundColor="@color/chip_unselected_bg"
+                        android:textColor="@color/chip_unselected_text"
+                        app:chipCornerRadius="20dp"
+                        app:chipStrokeWidth="0dp"/>
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chip_planning"
+                        style="@style/Widget.MaterialComponents.Chip.Choice"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Planning"
+                        app:chipBackgroundColor="@color/chip_unselected_bg"
+                        android:textColor="@color/chip_unselected_text"
+                        app:chipCornerRadius="20dp"
+                        app:chipStrokeWidth="0dp"/>
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chip_dropped"
+                        style="@style/Widget.MaterialComponents.Chip.Choice"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Dropped"
+                        app:chipBackgroundColor="@color/chip_unselected_bg"
+                        android:textColor="@color/chip_unselected_text"
+                        app:chipCornerRadius="20dp"
+                        app:chipStrokeWidth="0dp"/>
+                </com.google.android.material.chip.ChipGroup>
+            </HorizontalScrollView>
         </androidx.constraintlayout.widget.ConstraintLayout>
     </com.google.android.material.appbar.AppBarLayout>
 

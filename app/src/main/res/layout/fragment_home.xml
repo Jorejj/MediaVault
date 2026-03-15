@@ -61,7 +61,7 @@
             android:layout_width="match_parent"
             android:layout_height="220dp"
             android:background="@drawable/glass_card_bg"
-            app:cardBackgroundColor="@android:color/transparent"
+            app:cardBackgroundColor="?attr/colorCardBackground"
             app:cardCornerRadius="22dp"
             app:cardElevation="0dp"
             app:strokeColor="@color/glass_border"
@@ -79,10 +79,11 @@
 
                 <ProgressBar
                     android:id="@+id/pb_spotlight_loading"
-                    android:layout_width="40dp"
-                    android:layout_height="40dp"
+                    android:layout_width="36dp"
+                    android:layout_height="36dp"
                     android:layout_centerInParent="true"
-                    android:visibility="gone" />
+                    android:visibility="gone"
+                    android:indeterminateTint="@color/white" />
 
                 <View
                     android:layout_width="match_parent"
@@ -146,7 +147,7 @@
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="0dp"
-                android:layout_height="200dp"
+                android:layout_height="220dp"
                 android:layout_weight="1"
                 android:background="@drawable/glass_card_bg"
                 app:cardBackgroundColor="@android:color/transparent"
@@ -161,124 +162,171 @@
                     android:orientation="vertical"
                     android:padding="14dp">
 
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        style="@style/TextSectionTitle"
-                        android:text="@string/binge_calculator"
-                        android:textSize="18sp" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="8dp"
-                        android:text="Total hours watched"
-                        android:textColor="?attr/colorTextSecondary"
-                        android:textSize="11sp" />
-
-                    <TextView
-                        android:id="@+id/tv_watch_time"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        style="@style/TextStatValue"
-                        android:text="0"
-                        android:textSize="22sp" />
-
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Total pages read"
-                        android:textColor="?attr/colorTextSecondary"
-                        android:textSize="11sp" />
-
-                    <TextView
-                        android:id="@+id/tv_pages_read"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        style="@style/TextStatValue"
-                        android:text="0"
-                        android:textSize="22sp" />
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/screen_section_spacing_small"
-                android:layout_weight="1"
-                android:orientation="vertical">
-
-                <com.google.android.material.card.MaterialCardView
-                    android:id="@+id/card_shake"
-                    android:layout_width="match_parent"
-                    android:layout_height="96dp"
-                    android:background="@drawable/glass_card_bg"
-                    android:clickable="true"
-                    android:focusable="true"
-                    app:cardBackgroundColor="@android:color/transparent"
-                    app:cardCornerRadius="22dp"
-                    app:cardElevation="0dp"
-                    app:strokeColor="@color/glass_border"
-                    app:strokeWidth="1dp">
-
                     <LinearLayout
                         android:layout_width="match_parent"
-                        android:layout_height="match_parent"
+                        android:layout_height="wrap_content"
                         android:gravity="center_vertical"
                         android:orientation="horizontal"
-                        android:paddingHorizontal="12dp">
+                        android:layout_marginBottom="8dp">
 
                         <ImageView
-                            android:id="@+id/iv_shake_illustration"
-                            android:layout_width="44dp"
-                            android:layout_height="44dp"
-                            android:src="@drawable/ic_shake" />
+                            android:layout_width="18dp"
+                            android:layout_height="18dp"
+                            android:src="@drawable/ic_chart"
+                            app:tint="?attr/colorTextPrimary" />
 
                         <TextView
-                            android:layout_width="0dp"
+                            android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginStart="10dp"
-                            android:layout_weight="1"
+                            android:layout_marginStart="6dp"
                             style="@style/TextSectionTitle"
-                            android:text="Shake-to-Decide"
+                            android:text="@string/binge_calculator"
                             android:textSize="18sp" />
                     </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-
-                <com.google.android.material.card.MaterialCardView
-                    android:layout_width="match_parent"
-                    android:layout_height="92dp"
-                    android:layout_marginTop="12dp"
-                    android:background="@drawable/glass_card_bg"
-                    app:cardBackgroundColor="@android:color/transparent"
-                    app:cardCornerRadius="22dp"
-                    app:cardElevation="0dp"
-                    app:strokeColor="@color/glass_border"
-                    app:strokeWidth="1dp">
 
                     <LinearLayout
                         android:layout_width="match_parent"
-                        android:layout_height="match_parent"
-                        android:orientation="vertical"
-                        android:padding="12dp">
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:gravity="center_vertical"
+                        android:orientation="vertical">
 
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+                            <ImageView
+                                android:layout_width="14dp"
+                                android:layout_height="14dp"
+                                android:src="@drawable/ic_watch"
+                                app:tint="?attr/colorTextSecondary" />
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="6dp"
+                                android:text="Watch Time"
+                                android:textColor="?attr/colorTextSecondary"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+                        <TextView
+                            android:id="@+id/tv_watch_time"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            style="@style/TextStatValue"
+                            android:text="0"
+                            android:textSize="20sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:gravity="center_vertical"
+                        android:orientation="vertical">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+                            <ImageView
+                                android:layout_width="14dp"
+                                android:layout_height="14dp"
+                                android:src="@drawable/ic_library"
+                                app:tint="?attr/colorTextSecondary" />
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="6dp"
+                                android:text="Pages Read"
+                                android:textColor="?attr/colorTextSecondary"
+                                android:textSize="11sp" />
+                        </LinearLayout>
+                        <TextView
+                            android:id="@+id/tv_pages_read"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            style="@style/TextStatValue"
+                            android:text="0"
+                            android:textSize="20sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="0dp"
+                        android:layout_weight="1"
+                        android:gravity="center_vertical"
+                        android:orientation="vertical">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:gravity="center_vertical"
+                            android:orientation="horizontal">
+                            <ImageView
+                                android:layout_width="14dp"
+                                android:layout_height="14dp"
+                                android:src="@drawable/ic_clock"
+                                app:tint="@color/ongoing_red" />
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginStart="6dp"
+                                android:text="Ongoing Titles"
+                                android:textColor="@color/ongoing_red"
+                                android:textSize="11sp" />
+                        </LinearLayout>
                         <TextView
                             android:id="@+id/tv_ongoing_items"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             style="@style/TextStatValue"
                             android:text="0"
-                            android:textSize="22sp" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="Ongoing titles"
                             android:textColor="@color/ongoing_red"
-                            android:textSize="12sp" />
+                            android:textSize="20sp" />
                     </LinearLayout>
-                </com.google.android.material.card.MaterialCardView>
-            </LinearLayout>
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_shake"
+                android:layout_width="0dp"
+                android:layout_height="220dp"
+                android:layout_marginStart="@dimen/screen_section_spacing_small"
+                android:layout_weight="0.65"
+                android:background="@drawable/glass_card_bg"
+                android:clickable="true"
+                android:focusable="true"
+                app:cardBackgroundColor="@android:color/transparent"
+                app:cardCornerRadius="22dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/glass_border"
+                app:strokeWidth="1dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:paddingHorizontal="12dp">
+
+                    <ImageView
+                        android:id="@+id/iv_shake_illustration"
+                        android:layout_width="56dp"
+                        android:layout_height="56dp"
+                        android:src="@drawable/ic_shake" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        style="@style/TextSectionTitle"
+                        android:gravity="center"
+                        android:text="Shake to\nDecide"
+                        android:textSize="16sp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
 
         <com.google.android.material.card.MaterialCardView
@@ -302,12 +350,20 @@
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
+                    android:gravity="center"
                     android:orientation="vertical">
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:src="@drawable/ic_movie"
+                        app:tint="?attr/colorTextPrimary" />
 
                     <TextView
                         android:id="@+id/tv_episodes_watched"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
                         android:fontFamily="@font/sf_pro_heavy"
                         android:text="0"
                         android:textColor="?attr/colorTextPrimary"
@@ -316,21 +372,60 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Episodes watched"
+                        android:text="Episodes"
                         android:textColor="?attr/colorTextSecondary"
-                        android:textSize="11sp" />
+                        android:textSize="10sp" />
                 </LinearLayout>
 
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
+                    android:gravity="center"
                     android:orientation="vertical">
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:src="@drawable/ic_library"
+                        app:tint="?attr/colorTextPrimary" />
+
+                    <TextView
+                        android:id="@+id/tv_books_completed"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
+                        android:fontFamily="@font/sf_pro_heavy"
+                        android:text="0"
+                        android:textColor="?attr/colorTextPrimary"
+                        android:textSize="20sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Books read"
+                        android:textColor="?attr/colorTextSecondary"
+                        android:textSize="10sp" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:gravity="center"
+                    android:orientation="vertical">
+
+                    <ImageView
+                        android:layout_width="18dp"
+                        android:layout_height="18dp"
+                        android:src="@drawable/ic_star"
+                        app:tint="?attr/colorTextPrimary" />
 
                     <TextView
                         android:id="@+id/tv_avg_rating"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="4dp"
                         android:fontFamily="@font/sf_pro_heavy"
                         android:text="0.0"
                         android:textColor="?attr/colorTextPrimary"
@@ -339,9 +434,9 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Average rating"
+                        android:text="Avg Rating"
                         android:textColor="?attr/colorTextSecondary"
-                        android:textSize="11sp" />
+                        android:textSize="10sp" />
                 </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -360,7 +455,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="10dp"
-            android:text="View Detailed Stats"
+            android:text="@string/view_detailed_stats"
             android:textColor="?attr/colorTextSecondary"
             android:textSize="13sp"
             android:textStyle="bold" />

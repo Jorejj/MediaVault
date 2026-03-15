@@ -3,6 +3,7 @@
     <string name="app_name">MediaVault</string>
     <string name="mediavault">MediaVault</string>
     <string name="your_stats">Your Stats</string>
+    <string name="Stats">Stats</string>
     <string name="overview">OVERVIEW</string>
     <string name="completed_books_value">850</string>
     <string name="completed_movies_value">3,450</string>

@@ -60,11 +60,19 @@
                     android:focusable="false" />
 
                 <ImageView
-                    android:id="@+id/iv_shake_icon"
+                    android:id="@+id/iv_shake_idle"
+                    android:layout_width="150dp"
+                    android:layout_height="150dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/mediavault_logo" />
+
+                <ImageView
+                    android:id="@+id/iv_shaking"
                     android:layout_width="180dp"
                     android:layout_height="180dp"
                     android:layout_gravity="center"
-                    android:src="@drawable/ic_shake" />
+                    android:src="@drawable/ic_shake"
+                    android:visibility="gone" />
             </FrameLayout>
         </LinearLayout>
     </com.google.android.material.card.MaterialCardView>

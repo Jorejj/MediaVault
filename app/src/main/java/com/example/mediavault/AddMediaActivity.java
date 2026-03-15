@@ -675,33 +675,42 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
             status = "Completed";
         }
 
-        try {
-            long result = dbHelper.addMedia(title, type, genre, creator, total, unit, null, imageUrl, description);
-            
-            if (result != -1) {
-                dbHelper.updateProgress((int) result, progress, status, rating);
-                
-                Snackbar snackbar = Snackbar.make(coordinatorLayout, "Successfully added to MediaVault!", Snackbar.LENGTH_SHORT);
-                snackbar.getView().setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_green_dark));
-                snackbar.addCallback(new Snackbar.Callback() {
-                    @Override
-                    public void onDismissed(Snackbar transientBottomBar, int event) {
-                        finish();
+        final int finalProgress = progress;
+        final String finalStatus = status;
+        final float finalRating = rating;
+
+        new Thread(() -> {
+            String finalImageUrl = ImageUtils.downloadAndSaveImage(AddMediaActivity.this, imageUrl);
+            runOnUiThread(() -> {
+                try {
+                    long result = dbHelper.addMedia(title, type, genre, creator, total, unit, null, finalImageUrl, description);
+                    
+                    if (result != -1) {
+                        dbHelper.updateProgress((int) result, finalProgress, finalStatus, finalRating);
+                        
+                        Snackbar snackbar = Snackbar.make(coordinatorLayout, "Successfully added to MediaVault!", Snackbar.LENGTH_SHORT);
+                        snackbar.getView().setBackgroundColor(ContextCompat.getColor(AddMediaActivity.this, android.R.color.holo_green_dark));
+                        snackbar.addCallback(new Snackbar.Callback() {
+                            @Override
+                            public void onDismissed(Snackbar transientBottomBar, int event) {
+                                finish();
+                            }
+                        });
+                        snackbar.show();
+                        
+                    } else {
+                        Log.e(TAG, "Insertion failed for title: " + title);
+                        ToastUtils.showCustomToast(AddMediaActivity.this, "Error: Could not save to database.");
                     }
-                });
-                snackbar.show();
-                
-            } else {
-                Log.e(TAG, "Insertion failed for title: " + title);
-                ToastUtils.showCustomToast(this, "Error: Could not save to database.");
-            }
-        } catch (SQLiteConstraintException e) {
-            Log.e(TAG, "Constraint violation: " + e.getMessage());
-            showDuplicateEntryDialog();
-        } catch (Exception e) {
-            Log.e(TAG, "Unexpected DB error: " + e.getMessage());
-            ToastUtils.showCustomToast(this, "A database error occurred.");
-        }
+                } catch (SQLiteConstraintException e) {
+                    Log.e(TAG, "Constraint violation: " + e.getMessage());
+                    showDuplicateEntryDialog();
+                } catch (Exception e) {
+                    Log.e(TAG, "Unexpected DB error: " + e.getMessage());
+                    ToastUtils.showCustomToast(AddMediaActivity.this, "A database error occurred.");
+                }
+            });
+        }).start();
     }
 
     private void showDuplicateEntryDialog() {

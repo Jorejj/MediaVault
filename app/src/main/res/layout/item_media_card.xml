@@ -27,6 +27,16 @@
                 android:layout_height="match_parent"
                 android:scaleType="centerCrop"
                 android:src="@color/grey_300" />
+
+            <ProgressBar
+                android:id="@+id/pb_poster_loading"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:visibility="gone"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
                 
             <ImageView
                 android:id="@+id/btn_more_options"

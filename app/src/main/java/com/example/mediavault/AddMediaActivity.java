@@ -24,6 +24,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.mediavault.widget.ToastUtils;
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -222,7 +223,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
 
     private void performApiSearch() {
         if (!isNetworkAvailable()) {
-            Toast.makeText(this, "No internet connection. Please use Manual Entry.", Toast.LENGTH_SHORT).show();
+            ToastUtils.showCustomToast(this, "No internet connection. Please use Manual Entry.");
             return;
         }
 
@@ -517,23 +518,28 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         setSpinnerToValue(spinnerManualType, result.getType());
         spinnerManualType.setEnabled(result.getType() == null || result.getType().isEmpty());
         updateManualCapacityUI();
-        
+
         etManualTotal.setText(result.getCapacity() != null ? String.valueOf(result.getCapacity()) : "");
         etManualTotal.setEnabled(result.getCapacity() == null);
-        
+
         setSpinnerToValue(spinnerTotalUnit, result.getUnit());
         spinnerTotalUnit.setEnabled(result.getUnit() == null || result.getUnit().isEmpty() || result.getUnit().equals("Unknown"));
 
         etManualImage.setText(result.getImageUrl());
+
+        // Hide image path input when populating from API
+        if (etManualImage.getParent().getParent() instanceof View) {
+            ((View) etManualImage.getParent().getParent()).setVisibility(View.GONE);
+        }
+
         etManualDescription.setText(result.getDescription());
         etManualGenre.setText(result.getGenre());
         etManualAuthor.setText(result.getAuthor());
         toggleGroup.check(R.id.btn_mode_manual);
 
         String apiName = spinnerApiTarget.getSelectedItem().toString();
-        Toast.makeText(this, "Auto-filled data from " + apiName + ". Please review.", Toast.LENGTH_SHORT).show();
+        ToastUtils.showCustomToast(this, "Auto-filled data from " + apiName + ". Please review.");
     }
-
     private void setSpinnerToValue(Spinner spinner, String value) {
         if (value == null) return;
         for (int i = 0; i < spinner.getCount(); i++) {
@@ -652,7 +658,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
             }
             total = Integer.parseInt(capacityStr);
         } catch (NumberFormatException e) {
-            Toast.makeText(this, "Invalid numeric input", Toast.LENGTH_SHORT).show();
+            ToastUtils.showCustomToast(this, "Invalid numeric input");
             return;
         }
 
@@ -687,14 +693,14 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                 
             } else {
                 Log.e(TAG, "Insertion failed for title: " + title);
-                Toast.makeText(this, "Error: Could not save to database.", Toast.LENGTH_SHORT).show();
+                ToastUtils.showCustomToast(this, "Error: Could not save to database.");
             }
         } catch (SQLiteConstraintException e) {
             Log.e(TAG, "Constraint violation: " + e.getMessage());
             showDuplicateEntryDialog();
         } catch (Exception e) {
             Log.e(TAG, "Unexpected DB error: " + e.getMessage());
-            Toast.makeText(this, "A database error occurred.", Toast.LENGTH_SHORT).show();
+            ToastUtils.showCustomToast(this, "A database error occurred.");
         }
     }
 

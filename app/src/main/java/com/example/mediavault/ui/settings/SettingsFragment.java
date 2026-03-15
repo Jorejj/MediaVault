@@ -58,6 +58,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.example.mediavault.widget.ToastUtils;
+
 public class SettingsFragment extends Fragment {
 
     private SharedPreferences sharedPreferences;
@@ -192,7 +194,7 @@ public class SettingsFragment extends Fragment {
                 .setMessage("Would you like to populate your library with 30 random demo entries? (Duplicate titles will be ignored)")
                 .setPositiveButton("Seed Data", (dialog, which) -> {
                     dbHelper.seedDatabase();
-                    Toast.makeText(getContext(), "Library seeded with 30 items!", Toast.LENGTH_SHORT).show();
+                    ToastUtils.showCustomToast(getContext(), "Library seeded with 30 items!");
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
@@ -211,7 +213,7 @@ public class SettingsFragment extends Fragment {
                 .setTitle("Shake Sensitivity")
                 .setSingleChoiceItems(options, currentSelection, (dialog, which) -> {
                     sharedPreferences.edit().putFloat("shake_sensitivity", values[which]).apply();
-                    Toast.makeText(getContext(), "Sensitivity set to " + options[which], Toast.LENGTH_SHORT).show();
+                    ToastUtils.showCustomToast(getContext(), "Sensitivity set to " + options[which]);
                     dialog.dismiss();
                 })
                 .setNegativeButton("Cancel", null)
@@ -243,11 +245,11 @@ public class SettingsFragment extends Fragment {
                     while ((len = in.read(buf)) > 0) {
                         out.write(buf, 0, len);
                     }
-                    Toast.makeText(getContext(), "Backup created successfully", Toast.LENGTH_SHORT).show();
+                    ToastUtils.showCustomToast(getContext(), "Backup created successfully");
                 }
             }
         } catch (IOException e) {
-            Toast.makeText(getContext(), "Backup failed", Toast.LENGTH_SHORT).show();
+            ToastUtils.showCustomToast(getContext(), "Backup failed");
         }
     }
 
@@ -267,10 +269,10 @@ public class SettingsFragment extends Fragment {
                             while ((len = in.read(buf)) > 0) {
                                 out.write(buf, 0, len);
                             }
-                            Toast.makeText(getContext(), "Restore successful. Please restart the app.", Toast.LENGTH_LONG).show();
+                            ToastUtils.showCustomToast(getContext(), "Restore successful. Please restart the app.");
                         }
                     } catch (IOException e) {
-                        Toast.makeText(getContext(), "Restore failed", Toast.LENGTH_SHORT).show();
+                        ToastUtils.showCustomToast(getContext(), "Restore failed");
                     }
                 })
                 .setNegativeButton("Cancel", null)
@@ -346,12 +348,12 @@ public class SettingsFragment extends Fragment {
     private void showTopTenQrDialog() {
         String payload = buildTopTenPayload();
         if (payload == null) {
-            Toast.makeText(getContext(), "Add favorites first to generate QR", Toast.LENGTH_SHORT).show();
+            ToastUtils.showCustomToast(getContext(), "Add favorites first to generate QR");
             return;
         }
         Bitmap qrBitmap = createQrBitmap(payload, 860, 860);
         if (qrBitmap == null) {
-            Toast.makeText(getContext(), "Unable to generate QR", Toast.LENGTH_SHORT).show();
+            ToastUtils.showCustomToast(getContext(), "Unable to generate QR");
             return;
         }
 
@@ -428,7 +430,7 @@ public class SettingsFragment extends Fragment {
             JSONObject root = new JSONObject(rawJson);
             JSONArray items = root.optJSONArray("items");
             if (items == null || items.length() == 0) {
-                Toast.makeText(getContext(), "QR has no media items", Toast.LENGTH_SHORT).show();
+                ToastUtils.showCustomToast(getContext(), "QR has no media items");
                 return;
             }
 
@@ -447,9 +449,9 @@ public class SettingsFragment extends Fragment {
                     imported++;
                 }
             }
-            Toast.makeText(getContext(), "Imported " + imported + " items from QR", Toast.LENGTH_SHORT).show();
+            ToastUtils.showCustomToast(getContext(), "Imported " + imported + " items from QR");
         } catch (JSONException e) {
-            Toast.makeText(getContext(), "Invalid QR payload", Toast.LENGTH_SHORT).show();
+            ToastUtils.showCustomToast(getContext(), "Invalid QR payload");
         }
     }
 
@@ -457,7 +459,7 @@ public class SettingsFragment extends Fragment {
         try (OutputStream out = requireContext().getContentResolver().openOutputStream(uri);
              Cursor cursor = dbHelper.getAllMedia()) {
             if (out == null || cursor == null) {
-                Toast.makeText(getContext(), "Export failed", Toast.LENGTH_SHORT).show();
+                ToastUtils.showCustomToast(getContext(), "Export failed");
                 return;
             }
 
@@ -487,16 +489,16 @@ public class SettingsFragment extends Fragment {
             root.put("schema", "mediavault-json-v1");
             root.put("items", items);
             out.write(root.toString(2).getBytes(StandardCharsets.UTF_8));
-            Toast.makeText(getContext(), "Vault JSON exported", Toast.LENGTH_SHORT).show();
+            ToastUtils.showCustomToast(getContext(), "Vault JSON exported");
         } catch (Exception e) {
-            Toast.makeText(getContext(), "JSON export failed", Toast.LENGTH_SHORT).show();
+            ToastUtils.showCustomToast(getContext(), "JSON export failed");
         }
     }
 
     private void importVaultJson(Uri uri) {
         try (InputStream in = requireContext().getContentResolver().openInputStream(uri)) {
             if (in == null) {
-                Toast.makeText(getContext(), "Import failed", Toast.LENGTH_SHORT).show();
+                ToastUtils.showCustomToast(getContext(), "Import failed");
                 return;
             }
             ByteArrayOutputStream buffer = new ByteArrayOutputStream();
@@ -508,7 +510,7 @@ public class SettingsFragment extends Fragment {
             JSONObject root = new JSONObject(buffer.toString(StandardCharsets.UTF_8.name()));
             JSONArray items = root.optJSONArray("items");
             if (items == null) {
-                Toast.makeText(getContext(), "Invalid JSON backup", Toast.LENGTH_SHORT).show();
+                ToastUtils.showCustomToast(getContext(), "Invalid JSON backup");
                 return;
             }
 
@@ -545,16 +547,16 @@ public class SettingsFragment extends Fragment {
                     imported++;
                 }
             }
-            Toast.makeText(getContext(), "Imported " + imported + " items from JSON", Toast.LENGTH_SHORT).show();
+            ToastUtils.showCustomToast(getContext(), "Imported " + imported + " items from JSON");
         } catch (Exception e) {
-            Toast.makeText(getContext(), "JSON import failed", Toast.LENGTH_SHORT).show();
+            ToastUtils.showCustomToast(getContext(), "JSON import failed");
         }
     }
 
     private void exportDatabaseToCSV() {
         Cursor cursor = dbHelper.getAllMedia();
         if (cursor == null || cursor.getCount() == 0) {
-            Toast.makeText(getContext(), "No data to export", Toast.LENGTH_SHORT).show();
+            ToastUtils.showCustomToast(getContext(), "No data to export");
             if (cursor != null) cursor.close();
             return;
         }
@@ -581,7 +583,7 @@ public class SettingsFragment extends Fragment {
         if (uri != null) {
             writeCsvToUri(uri);
         } else {
-            Toast.makeText(getContext(), "Failed to create file", Toast.LENGTH_SHORT).show();
+            ToastUtils.showCustomToast(getContext(), "Failed to create file");
         }
     }
 
@@ -593,10 +595,10 @@ public class SettingsFragment extends Fragment {
         File file = new File(mediaVaultDir, fileName);
         try (FileOutputStream out = new FileOutputStream(file)) {
             writeCsvToOutputStream(out);
-            Toast.makeText(getContext(), "Exported to Downloads/MediaVault", Toast.LENGTH_LONG).show();
+            ToastUtils.showCustomToast(getContext(), "Exported to Downloads/MediaVault");
         } catch (IOException e) {
             e.printStackTrace();
-            Toast.makeText(getContext(), "Export failed", Toast.LENGTH_SHORT).show();
+            ToastUtils.showCustomToast(getContext(), "Export failed");
         }
     }
 
@@ -604,11 +606,11 @@ public class SettingsFragment extends Fragment {
         try (OutputStream out = requireContext().getContentResolver().openOutputStream(uri)) {
             if (out != null) {
                 writeCsvToOutputStream(out);
-                Toast.makeText(getContext(), "Data exported to Downloads/MediaVault", Toast.LENGTH_LONG).show();
+                ToastUtils.showCustomToast(getContext(), "Data exported to Downloads/MediaVault");
             }
         } catch (IOException e) {
             e.printStackTrace();
-            Toast.makeText(getContext(), "Export failed", Toast.LENGTH_SHORT).show();
+            ToastUtils.showCustomToast(getContext(), "Export failed");
         }
     }
 
@@ -648,7 +650,7 @@ public class SettingsFragment extends Fragment {
                 .setMessage("Are you sure you want to delete ALL your media entries? This action is permanent and cannot be undone.")
                 .setPositiveButton("Clear All", (dialog, which) -> {
                     dbHelper.clearAllMedia();
-                    Toast.makeText(getContext(), "Database cleared successfully", Toast.LENGTH_SHORT).show();
+                    ToastUtils.showCustomToast(getContext(), "Database cleared successfully");
                     // Clear logs as well - DatabaseHelper.clearAllMedia already does this.
                 })
                 .setNegativeButton("Cancel", null)

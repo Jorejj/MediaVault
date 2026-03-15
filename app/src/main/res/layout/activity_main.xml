@@ -3,7 +3,8 @@
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="@drawable/ambient_mesh_bg">
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/nav_host_fragment"
@@ -20,22 +21,33 @@
         android:layout_gravity="bottom"
         android:layout_marginHorizontal="@dimen/bottom_nav_margin_horizontal"
         android:layout_marginBottom="@dimen/bottom_nav_margin_bottom"
-        android:background="@drawable/bottom_nav_glass_bg"
-        app:cardBackgroundColor="?attr/colorCardBackground"
-        app:cardCornerRadius="26dp"
+        app:cardBackgroundColor="@android:color/transparent"
+        app:cardCornerRadius="36dp"
         app:cardElevation="0dp"
         app:strokeColor="@color/glass_border"
         app:strokeWidth="1.5dp">
 
-        <com.google.android.material.bottomnavigation.BottomNavigationView
-            android:id="@+id/bottom_navigation"
-            style="@style/Widget.MediaVault.BottomNavigationView"
+        <eightbitlab.com.blurview.BlurView
+            android:id="@+id/blur_view_nav"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@android:color/transparent"
-            app:elevation="0dp"
-            app:labelVisibilityMode="labeled"
-            app:menu="@menu/bottom_nav_menu" />
+            app:blurOverlayColor="?attr/colorCardBackground">
+
+            <com.google.android.material.bottomnavigation.BottomNavigationView
+                android:id="@+id/bottom_navigation"
+                style="@style/Widget.MediaVault.BottomNavigationView"
+                android:layout_width="match_parent"
+                android:layout_height="72dp"
+                android:background="@android:color/transparent"
+                app:elevation="0dp"
+                app:itemPaddingTop="10dp"
+                app:itemPaddingBottom="6dp"
+                app:itemIconTint="@color/bottom_nav_item_tint"
+                app:itemTextColor="@color/bottom_nav_item_tint"
+                app:labelVisibilityMode="labeled"
+                app:menu="@menu/bottom_nav_menu" />
+                
+        </eightbitlab.com.blurview.BlurView>
     </com.google.android.material.card.MaterialCardView>
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton

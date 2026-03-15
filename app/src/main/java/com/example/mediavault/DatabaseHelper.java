@@ -5,7 +5,10 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
@@ -81,7 +84,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 COL_LAST_UPDATED + " DATETIME DEFAULT CURRENT_TIMESTAMP, " +
                 COL_IS_FAVORITE + " INTEGER DEFAULT 0, " +
                 "CONSTRAINT unique_title UNIQUE (" + COL_TITLE + "), " +
-                "CONSTRAINT check_status CHECK (" + COL_STATUS + " IN ('Ongoing', 'Completed', 'Planning', 'Dropped')), " +
+                "CONSTRAINT check_status CHECK (" + COL_STATUS + " IN ('Ongoing', 'Completed', 'Planning', 'Dropped', 'Recently Deleted')), " +
                 "CONSTRAINT check_capacity_unit CHECK (" + COL_UNIT + " IN ('Pages', 'Episodes', 'Minutes', 'Chapters')), " +
                 "CONSTRAINT check_user_rating CHECK (" + COL_RATING + " >= 0.0 AND " + COL_RATING + " <= 5.0), " +
                 "CONSTRAINT check_priority_level CHECK (" + COL_PRIORITY + " IN ('High', 'Medium', 'Low')), " +
@@ -182,7 +185,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     public Cursor getAllMedia() {
         SQLiteDatabase db = this.getReadableDatabase();
-        return db.rawQuery("SELECT * FROM " + TABLE_MEDIA + " ORDER BY " + COL_LAST_UPDATED + " DESC", null);
+        return db.rawQuery("SELECT * FROM " + TABLE_MEDIA + " WHERE " + COL_STATUS + " != 'Recently Deleted' ORDER BY " + COL_LAST_UPDATED + " DESC", null);
     }
 
     public Cursor getMediaById(int id) {
@@ -256,6 +259,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COL_CURRENT_PROGRESS, newProgress);
         values.put(COL_STATUS, newStatus);
         values.put(COL_RATING, newRating);
+        values.put(COL_LAST_UPDATED, getDateTime());
         int result = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(id)});
         
         db.close();
@@ -291,7 +295,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = this.getReadableDatabase();
         String query = "SELECT SUM(l." + COL_PROGRESS_ADDED + ") FROM " + TABLE_PROGRESS_LOG + " l " +
                 "JOIN " + TABLE_MEDIA + " m ON l." + COL_LOG_MEDIA_ID + " = m." + COL_ID + " " +
-                "WHERE (" + condition + ") AND l." + COL_LOG_DATE + " >= " + dateFilter;
+                "WHERE (" + condition + ") AND l." + COL_LOG_DATE + " >= " + dateFilter + " AND m." + COL_STATUS + " != 'Recently Deleted'";
         
         Cursor cursor = db.rawQuery(query, null);
         int total = 0;
@@ -310,7 +314,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "  WHEN " + COL_UNIT + " = 'Episodes' THEN " + COL_CURRENT_PROGRESS + " * 24 " +
                 "  WHEN (" + COL_MEDIA_TYPE + " = 'Movie' OR " + COL_MEDIA_TYPE + " = 'Series') AND " + COL_UNIT + " NOT IN ('Minutes', 'Episodes') THEN " + COL_CURRENT_PROGRESS + " * 120 " +
                 "  ELSE 0 END) " +
-                "FROM " + TABLE_MEDIA;
+                "FROM " + TABLE_MEDIA + " WHERE " + COL_STATUS + " != 'Recently Deleted'";
         
         Cursor cursor = db.rawQuery(query, null);
         int total = 0;
@@ -322,7 +326,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public int getTotalPagesRead() {
         SQLiteDatabase db = this.getReadableDatabase();
         // Explicitly only count Pages and Chapters, or Book/Manga types
-        Cursor cursor = db.rawQuery("SELECT SUM(" + COL_CURRENT_PROGRESS + ") FROM " + TABLE_MEDIA + " WHERE " + COL_UNIT + " IN ('Pages', 'Chapters')", null);
+        Cursor cursor = db.rawQuery("SELECT SUM(" + COL_CURRENT_PROGRESS + ") FROM " + TABLE_MEDIA + " WHERE " + COL_UNIT + " IN ('Pages', 'Chapters') AND " + COL_STATUS + " != 'Recently Deleted'", null);
         int total = 0;
         if (cursor.moveToFirst()) total = cursor.getInt(0);
         cursor.close();
@@ -331,7 +335,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     public int getTotalEpisodesWatched() {
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT SUM(" + COL_CURRENT_PROGRESS + ") FROM " + TABLE_MEDIA + " WHERE " + COL_UNIT + " = 'Episodes'", null);
+        Cursor cursor = db.rawQuery("SELECT SUM(" + COL_CURRENT_PROGRESS + ") FROM " + TABLE_MEDIA + " WHERE " + COL_UNIT + " = 'Episodes' AND " + COL_STATUS + " != 'Recently Deleted'", null);
         int total = 0;
         if (cursor.moveToFirst()) total = cursor.getInt(0);
         cursor.close();
@@ -349,7 +353,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     public float getAverageRating() {
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT AVG(" + COL_RATING + ") FROM " + TABLE_MEDIA + " WHERE " + COL_RATING + " > 0", null);
+        Cursor cursor = db.rawQuery("SELECT AVG(" + COL_RATING + ") FROM " + TABLE_MEDIA + " WHERE " + COL_RATING + " > 0 AND " + COL_STATUS + " != 'Recently Deleted'", null);
         float avg = 0f;
         if (cursor.moveToFirst()) avg = cursor.getFloat(0);
         cursor.close();
@@ -367,7 +371,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     public String getTopGenre() {
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT " + COL_GENRE + ", COUNT(*) as count FROM " + TABLE_MEDIA + " GROUP BY " + COL_GENRE + " ORDER BY count DESC LIMIT 1", null);
+        Cursor cursor = db.rawQuery("SELECT " + COL_GENRE + ", COUNT(*) as count FROM " + TABLE_MEDIA + " WHERE " + COL_STATUS + " != 'Recently Deleted' GROUP BY " + COL_GENRE + " ORDER BY count DESC LIMIT 1", null);
         String genre = "N/A";
         if (cursor.moveToFirst()) genre = cursor.getString(0);
         cursor.close();
@@ -376,7 +380,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     public int getTotalCountByType(String type) {
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + TABLE_MEDIA + " WHERE " + COL_MEDIA_TYPE + " = ?", new String[]{type});
+        Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + TABLE_MEDIA + " WHERE " + COL_MEDIA_TYPE + " = ? AND " + COL_STATUS + " != 'Recently Deleted'", new String[]{type});
         int count = 0;
         if (cursor.moveToFirst()) count = cursor.getInt(0);
         cursor.close();
@@ -460,8 +464,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         String query = "SELECT * FROM " + TABLE_MEDIA + " " +
                 "WHERE " + COL_STATUS + " IN ('Planning', 'Ongoing') " +
                 "ORDER BY CASE " + COL_STATUS + " " +
-                "WHEN 'Planning' THEN 0 " +
-                "WHEN 'Ongoing' THEN 1 ELSE 2 END, " +
+                "WHEN 'Ongoing' THEN 0 " +
+                "WHEN 'Planning' THEN 1 ELSE 2 END, " +
                 COL_LAST_UPDATED + " DESC LIMIT 1";
         return db.rawQuery(query, null);
     }
@@ -516,5 +520,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.execSQL("DELETE FROM " + TABLE_PROGRESS_LOG);
         db.execSQL("DELETE FROM " + TABLE_MEDIA);
         db.close();
+    }
+
+    private String getDateTime() {
+        SimpleDateFormat dateFormat = new SimpleDateFormat(
+                "yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+        Date date = new Date();
+        return dateFormat.format(date);
     }
 }

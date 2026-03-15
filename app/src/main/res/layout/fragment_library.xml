@@ -5,7 +5,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?android:attr/windowBackground">
+    android:background="@android:color/transparent">
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
@@ -28,16 +28,32 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
 
-            <TextView
-                android:id="@+id/title"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="Your Library"
-                style="@style/TextScreenTitle"
-                app:layout_constraintTop_toTopOf="@+id/app_logo"
+                android:layout_marginStart="@dimen/screen_section_spacing_small"
+                android:layout_marginTop="@dimen/screen_padding_vertical"
+                android:orientation="vertical"
                 app:layout_constraintBottom_toBottomOf="@+id/app_logo"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"/>
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/app_logo"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <TextView
+                    android:id="@+id/title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    style="@style/TextScreenTitle"
+                    android:text="Library"
+                    android:textSize="24sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    style="@style/TextBody"
+                    android:text="Your Library"
+                    android:textSize="14sp" />
+            </LinearLayout>
 
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/search_card"
@@ -48,7 +64,7 @@
                 android:background="@drawable/glow_glass_bg"
                 app:cardCornerRadius="27dp"
                 app:cardElevation="0dp"
-                app:cardBackgroundColor="?attr/colorCardBackground"
+                app:cardBackgroundColor="@android:color/transparent"
                 app:strokeWidth="1.5dp"
                 app:strokeColor="@color/glass_border"
                 app:layout_constraintTop_toBottomOf="@+id/app_logo"
@@ -168,6 +184,17 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Movies"
+                        app:chipBackgroundColor="@color/chip_unselected_bg"
+                        android:textColor="@color/chip_unselected_text"
+                        app:chipCornerRadius="20dp"
+                        app:chipStrokeWidth="0dp"/>
+                        
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chip_trash"
+                        style="@style/Widget.MaterialComponents.Chip.Choice"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Recently Deleted"
                         app:chipBackgroundColor="@color/chip_unselected_bg"
                         android:textColor="@color/chip_unselected_text"
                         app:chipCornerRadius="20dp"

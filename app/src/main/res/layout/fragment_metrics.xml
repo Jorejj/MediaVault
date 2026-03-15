@@ -7,7 +7,7 @@
     android:fillViewport="true"
     android:clipToPadding="false"
     android:scrollbarStyle="outsideOverlay"
-    android:background="?android:attr/windowBackground">
+    android:background="@android:color/transparent">
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -28,34 +28,36 @@
                 android:layout_width="@dimen/top_logo_size"
                 android:layout_height="@dimen/top_logo_size"
                 android:src="@drawable/ic_new_logo"
-                android:scaleType="fitCenter"
                 app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                tools:ignore="ContentDescription" />
-
-            <TextView
-                android:id="@+id/tv_metrics_title"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/mediavault"
-                style="@style/TextScreenTitle"
-                app:layout_constraintBottom_toTopOf="@id/tv_metrics_subtitle"
-                app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
 
-            <TextView
-                android:id="@+id/tv_metrics_subtitle"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="@string/your_stats"
-                style="@style/TextBody"
+                android:layout_marginStart="@dimen/screen_section_spacing_small"
+                android:orientation="vertical"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toBottomOf="@id/tv_metrics_title" />
+                app:layout_constraintStart_toEndOf="@id/img_logo"
+                app:layout_constraintTop_toTopOf="parent">
 
+                <TextView
+                    android:id="@+id/tv_metrics_title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    style="@style/TextScreenTitle"
+                    android:text="@string/mediavault"
+                    android:textSize="24sp" />
+
+                <TextView
+                    android:id="@+id/tv_metrics_subtitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    style="@style/TextBody"
+                    android:text="@string/your_stats"
+                    android:textSize="14sp" />
+            </LinearLayout>
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <!-- Overview Card -->
@@ -64,7 +66,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
             android:background="@drawable/glow_glass_bg"
-            app:cardBackgroundColor="?attr/colorCardBackground"
+            app:cardBackgroundColor="@android:color/transparent"
             app:cardCornerRadius="20dp"
             app:cardElevation="0dp"
             app:strokeColor="@color/glass_border"
@@ -190,7 +192,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
             android:background="@drawable/glow_glass_bg"
-            app:cardBackgroundColor="?attr/colorCardBackground"
+            app:cardBackgroundColor="@android:color/transparent"
             app:cardCornerRadius="20dp"
             app:cardElevation="0dp"
             app:strokeColor="@color/glass_border"
@@ -233,7 +235,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
             android:background="@drawable/glow_glass_bg"
-            app:cardBackgroundColor="?attr/colorCardBackground"
+            app:cardBackgroundColor="@android:color/transparent"
             app:cardCornerRadius="20dp"
             app:cardElevation="0dp"
             app:strokeColor="@color/glass_border"
@@ -305,7 +307,7 @@
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
             android:background="@drawable/glow_glass_bg"
-            app:cardBackgroundColor="?attr/colorCardBackground"
+            app:cardBackgroundColor="@android:color/transparent"
             app:cardCornerRadius="20dp"
             app:cardElevation="0dp"
             app:strokeColor="@color/glass_border"

@@ -32,6 +32,8 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
 import java.io.File;
 
+import com.example.mediavault.widget.ToastUtils;
+
 public class ShakeFragment extends Fragment {
 
     private SensorManager mSensorManager;
@@ -115,13 +117,13 @@ public class ShakeFragment extends Fragment {
 
             btnAgain.setOnClickListener(v -> {
                 dialog.dismiss();
-                Toast.makeText(getContext(), "Shake your phone again!", Toast.LENGTH_SHORT).show();
+                ToastUtils.showCustomToast(getContext(), "Shake your phone again!");
             });
 
             dialog.show();
             cursor.close();
         } else {
-            Toast.makeText(getContext(), "Add more items to 'Planning' to use this feature!", Toast.LENGTH_SHORT).show();
+            ToastUtils.showCustomToast(getContext(), "Add more items to 'Planning' to use this feature!");
             if (cursor != null) cursor.close();
         }
     }

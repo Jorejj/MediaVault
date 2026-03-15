@@ -21,6 +21,7 @@ import android.widget.RatingBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.mediavault.widget.ToastUtils;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -67,7 +68,7 @@ public class DescriptionActivity extends AppCompatActivity {
 
         mediaId = getIntent().getIntExtra(EXTRA_MEDIA_ID, -1);
         if (mediaId == -1) {
-            Toast.makeText(this, "Error: Media not found", Toast.LENGTH_SHORT).show();
+            ToastUtils.showCustomToast(this, "Error: Media not found");
             finish();
             return;
         }
@@ -291,12 +292,12 @@ public class DescriptionActivity extends AppCompatActivity {
                     }
                 }
             } else {
-                Toast.makeText(this, "Error: Media record not found", Toast.LENGTH_SHORT).show();
+                ToastUtils.showCustomToast(this, "Error: Media record not found");
                 finish();
             }
             cursor.close();
         } else {
-            Toast.makeText(this, "Error: Could not load media", Toast.LENGTH_SHORT).show();
+            ToastUtils.showCustomToast(this, "Error: Could not load media");
             finish();
         }
     }
@@ -307,7 +308,7 @@ public class DescriptionActivity extends AppCompatActivity {
                 .setMessage("Are you sure you want to delete this from your library?")
                 .setPositiveButton("Delete", (dialog, which) -> {
                     if (dbHelper.deleteMedia(mediaId)) {
-                        Toast.makeText(this, "Deleted successfully", Toast.LENGTH_SHORT).show();
+                        ToastUtils.showCustomToast(this, "Deleted successfully");
                         sendBroadcast(new Intent(ACTION_MEDIA_UPDATED));
                         finish();
                     }

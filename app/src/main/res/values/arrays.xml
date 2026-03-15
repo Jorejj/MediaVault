@@ -19,6 +19,7 @@
         <item>Ongoing</item>
         <item>Completed</item>
         <item>Dropped</item>
+        <item>Recently Deleted</item>
     </string-array>
     <string-array name="capacity_units">
         <item>Pages</item>

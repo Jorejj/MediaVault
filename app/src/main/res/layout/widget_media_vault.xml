@@ -61,7 +61,7 @@
             android:paddingHorizontal="10dp"
             android:paddingVertical="4dp"
             android:text="@string/widget_quick_plus"
-            android:textColor="@color/spotify_green"
+            android:textColor="@color/netflix_red"
             android:textSize="12sp"
             android:textStyle="bold" />
     </LinearLayout>

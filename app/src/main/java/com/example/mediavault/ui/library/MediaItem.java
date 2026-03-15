@@ -30,6 +30,7 @@ public class MediaItem {
     public String getType() { return type; }
     public String getGenre() { return genre; }
     public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
     public int getProgress() { return progress; }
     public int getCapacity() { return capacity; }
     public String getUnit() { return unit; }

@@ -5,7 +5,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?android:attr/windowBackground">
+    android:background="@android:color/transparent">
 
     <ImageView
         android:id="@+id/img_logo"
@@ -14,21 +14,35 @@
         android:layout_marginStart="@dimen/screen_padding_horizontal"
         android:layout_marginTop="@dimen/screen_padding_vertical"
         android:src="@drawable/ic_new_logo"
-        android:scaleType="fitCenter"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        tools:ignore="ContentDescription" />
+        app:layout_constraintTop_toTopOf="parent" />
 
-    <TextView
-        android:id="@+id/tv_screen_title"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="0dp"
         android:layout_height="wrap_content"
-        style="@style/TextScreenTitle"
-        android:text="Settings"
-        app:layout_constraintBottom_toBottomOf="@id/img_logo"
-        app:layout_constraintTop_toTopOf="@id/img_logo"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        android:layout_marginStart="@dimen/screen_section_spacing_small"
+        android:layout_marginTop="@dimen/screen_padding_vertical"
+        android:orientation="vertical"
+        app:layout_constraintBottom_toBottomOf="@+id/img_logo"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/img_logo"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            style="@style/TextScreenTitle"
+            android:text="MediaVault"
+            android:textSize="24sp" />
+
+        <TextView
+            android:id="@+id/tv_screen_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            style="@style/TextBody"
+            android:text="Settings"
+            android:textSize="14sp" />
+    </LinearLayout>
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"

@@ -58,4 +58,7 @@ dependencies {
     // QR generation/scanning (offline)
     implementation("com.journeyapps:zxing-android-embedded:4.3.0")
     implementation("com.google.zxing:core:3.5.3")
+
+    // BlurView
+    implementation("com.github.Dimezis:BlurView:version-1.6.6")
 }

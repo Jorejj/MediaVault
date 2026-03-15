@@ -1,7 +1,7 @@
 <resources>
     <style name="BlueButton" parent="Widget.MaterialComponents.Button">
         <item name="backgroundTint">@color/button_primary_tint</item>
-        <item name="rippleColor">@color/spotify_green</item>
+        <item name="rippleColor">@color/netflix_red_dark</item>
         <item name="cornerRadius">18dp</item>
         <item name="android:textColor">@color/white</item>
         <item name="iconTint">@color/white</item>
@@ -20,7 +20,7 @@
     <style name="TextScreenTitle">
         <item name="android:textSize">@dimen/screen_title_size</item>
         <item name="android:textStyle">normal</item>
-        <item name="android:textColor">@color/white</item>
+        <item name="android:textColor">?attr/colorTextPrimary</item>
         <item name="android:fontFamily">sans-serif-black</item>
         <item name="android:textAlignment">center</item>
     </style>
@@ -52,8 +52,7 @@
     </style>
 
     <style name="BottomNavText" parent="TextAppearance.MaterialComponents.Caption">
-        <item name="android:textSize">12sp</item>
-        <item name="android:textStyle">bold</item>
+        <item name="android:textSize">10sp</item>
         <item name="android:fontFamily">@font/sf_pro_medium</item>
     </style>
 

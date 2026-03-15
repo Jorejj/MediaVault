@@ -196,7 +196,7 @@
                 android:layout_height="wrap_content"
                 android:layout_margin="@dimen/screen_padding_horizontal"
                 android:background="@drawable/glass_card_bg"
-                app:cardBackgroundColor="?attr/colorCardBackground"
+                app:cardBackgroundColor="@android:color/transparent"
                 app:cardCornerRadius="22dp"
                 app:cardElevation="0dp"
                 app:strokeColor="@color/glass_border"

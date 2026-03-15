@@ -109,6 +109,8 @@ public class LibraryFragment extends Fragment {
                 currentCategory = "Series";
             } else if (checkedId == R.id.chip_movies) {
                 currentCategory = "Movie"; // Match DB type
+            } else if (checkedId == R.id.chip_trash) {
+                currentCategory = "Trash";
             } else {
                 currentCategory = "All";
             }
@@ -155,7 +157,12 @@ public class LibraryFragment extends Fragment {
         filteredItems.clear();
         for (MediaItem item : allMediaItems) {
             boolean matchesCategory;
-            if (currentCategory.equals("All")) {
+            if (currentCategory.equals("Trash")) {
+                matchesCategory = "Recently Deleted".equals(item.getStatus());
+            } else if ("Recently Deleted".equals(item.getStatus())) {
+                // If not in Trash category, never show deleted items
+                continue; 
+            } else if (currentCategory.equals("All")) {
                 matchesCategory = true;
             } else if (currentCategory.equals("Book")) {
                 // If "Books" chip is selected, maybe we want both Book and Manga

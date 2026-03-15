@@ -12,6 +12,7 @@ import android.widget.ImageView;
 import android.widget.RatingBar;
 import android.widget.Toast;
 
+import com.example.mediavault.widget.ToastUtils;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
@@ -22,6 +23,10 @@ import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.android.material.textfield.TextInputEditText;
 
+import android.net.Uri;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import com.google.android.material.textfield.TextInputLayout;
 import java.io.File;
 
 public class EditMediaActivity extends AppCompatActivity {
@@ -32,6 +37,7 @@ public class EditMediaActivity extends AppCompatActivity {
     private DatabaseHelper dbHelper;
 
     private TextInputEditText etTitle, etGenre, etReview, etImage, etJournal;
+    private TextInputLayout tilImage;
     private ImageView ivCover;
     private TextInputEditText etProgress, etTotal;
     private AutoCompleteTextView autoType, autoStatus, autoUnit, autoPriority;
@@ -41,6 +47,18 @@ public class EditMediaActivity extends AppCompatActivity {
     private MaterialButton btnSave;
     private CollapsingToolbarLayout collapsingToolbar;
 
+    private final ActivityResultLauncher<Intent> imagePickerLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    Uri selectedImage = result.getData().getData();
+                    if (selectedImage != null) {
+                        etImage.setText(selectedImage.toString());
+                    }
+                }
+            }
+    );
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -48,7 +66,7 @@ public class EditMediaActivity extends AppCompatActivity {
 
         mediaId = getIntent().getIntExtra(EXTRA_MEDIA_ID, -1);
         if (mediaId == -1) {
-            Toast.makeText(this, "Error: Media not found", Toast.LENGTH_SHORT).show();
+            ToastUtils.showCustomToast(this, "Error: Media not found");
             finish();
             return;
         }
@@ -75,6 +93,7 @@ public class EditMediaActivity extends AppCompatActivity {
         etReview = findViewById(R.id.et_edit_review);
         etJournal = findViewById(R.id.et_edit_journal);
         etImage = findViewById(R.id.et_edit_image);
+        tilImage = findViewById(R.id.til_edit_image);
         ivCover = findViewById(R.id.iv_edit_cover);
         etProgress = findViewById(R.id.et_edit_progress);
         etTotal = findViewById(R.id.et_edit_total);
@@ -86,6 +105,13 @@ public class EditMediaActivity extends AppCompatActivity {
         chipGroupMood = findViewById(R.id.chip_group_mood);
         switchFavorite = findViewById(R.id.switch_edit_favorite);
         btnSave = findViewById(R.id.btn_edit_save);
+
+        if (tilImage != null) {
+            tilImage.setEndIconOnClickListener(v -> {
+                Intent intent = new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                imagePickerLauncher.launch(intent);
+            });
+        }
 
         btnSave.setOnClickListener(v -> saveChanges());
 
@@ -213,7 +239,7 @@ public class EditMediaActivity extends AppCompatActivity {
         float rating = rbRating.getRating();
 
         if (TextUtils.isEmpty(title) || TextUtils.isEmpty(totalStr)) {
-            Toast.makeText(this, "Title and Total Capacity are required", Toast.LENGTH_SHORT).show();
+            ToastUtils.showCustomToast(this, "Title and Total Capacity are required");
             return;
         }
 
@@ -222,19 +248,19 @@ public class EditMediaActivity extends AppCompatActivity {
             int total = Integer.parseInt(totalStr);
 
             if (progress > total) {
-                Toast.makeText(this, "Progress cannot exceed Total Capacity", Toast.LENGTH_SHORT).show();
+                ToastUtils.showCustomToast(this, "Progress cannot exceed Total Capacity");
                 return;
             }
 
             if (dbHelper.updateMedia(mediaId, title, type, genre, status, progress, total, unit, newImage, rating, review, journal, mood, priority, isFavorite)) {
-                Toast.makeText(this, "Changes saved", Toast.LENGTH_SHORT).show();
+                ToastUtils.showCustomToast(this, "Changes saved");
                 sendBroadcast(new Intent(DescriptionActivity.ACTION_MEDIA_UPDATED));
                 finish();
             } else {
-                Toast.makeText(this, "Error: Could not save changes", Toast.LENGTH_SHORT).show();
+                ToastUtils.showCustomToast(this, "Error: Could not save changes");
             }
         } catch (NumberFormatException e) {
-            Toast.makeText(this, "Invalid progress or total value", Toast.LENGTH_SHORT).show();
+            ToastUtils.showCustomToast(this, "Invalid progress or total value");
         }
     }
 

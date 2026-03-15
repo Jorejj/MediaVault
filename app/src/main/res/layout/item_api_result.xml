@@ -6,9 +6,12 @@
     android:layout_height="wrap_content"
     android:layout_marginHorizontal="16dp"
     android:layout_marginVertical="8dp"
-    app:cardBackgroundColor="@color/bg_card"
-    app:cardCornerRadius="16dp"
-    app:cardElevation="2dp">
+    android:background="@drawable/glass_card_bg"
+    app:cardBackgroundColor="@android:color/transparent"
+    app:cardCornerRadius="22dp"
+    app:cardElevation="0dp"
+    app:strokeColor="@color/glass_border"
+    app:strokeWidth="1dp">
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
@@ -32,7 +35,7 @@
                 android:ellipsize="end"
                 android:fontFamily="@font/sf_pro_bold"
                 android:maxLines="2"
-                android:textColor="@color/text_primary"
+                android:textColor="?attr/colorTextPrimary"
                 android:textSize="16sp"
                 tools:text="Sample Media Title" />
 
@@ -42,7 +45,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="4dp"
                 android:fontFamily="@font/sf_pro_medium"
-                android:textColor="@color/grey_600"
+                android:textColor="?attr/colorTextSecondary"
                 android:textSize="14sp"
                 tools:text="Anime" />
 
@@ -52,7 +55,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:fontFamily="@font/sf_pro_regular"
-                android:textColor="@color/grey_600"
+                android:textColor="?attr/colorTextSecondary"
                 android:textSize="14sp"
                 tools:text="Action, Fantasy" />
 
@@ -62,7 +65,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:fontFamily="@font/sf_pro_medium"
-                android:textColor="@color/main_blue"
+                android:textColor="@color/netflix_red"
                 android:textSize="14sp"
                 tools:text="Author Name" />
 
@@ -73,7 +76,7 @@
             android:layout_width="60dp"
             android:layout_height="90dp"
             android:scaleType="centerCrop"
-            android:background="@color/grey_200"
+            android:background="?attr/colorCardBackground"
             app:shapeAppearanceOverlay="@style/ShapeAppearance.MediumComponent"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"

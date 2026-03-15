@@ -20,10 +20,18 @@ import com.google.android.material.card.MaterialCardView;
 import java.io.File;
 import java.util.List;
 
+import android.content.Context;
+import android.content.DialogInterface;
+import androidx.appcompat.widget.PopupMenu;
+import com.example.mediavault.DatabaseHelper;
+import com.example.mediavault.widget.ToastUtils;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+
 public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHolder> {
 
     private List<MediaItem> mediaItems;
     private OnItemClickListener listener;
+    private DatabaseHelper dbHelper;
 
     public interface OnItemClickListener {
         void onItemClick(MediaItem item);
@@ -46,6 +54,9 @@ public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHol
     @Override
     public MediaViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_media_card, parent, false);
+        if (dbHelper == null) {
+            dbHelper = new DatabaseHelper(parent.getContext());
+        }
         return new MediaViewHolder(view);
     }
 
@@ -85,25 +96,65 @@ public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHol
             holder.poster.setImageResource(R.color.grey_300);
         }
 
-        if (holder.typeIcon != null) {
-            int iconRes = R.drawable.ic_library;
-            String type = item.getType() != null ? item.getType() : "";
-            String typeLower = type == null ? "" : type.toLowerCase();
-            if (typeLower.contains("movie") || typeLower.contains("series")) {
-                iconRes = R.drawable.ic_new_logo;
-            } else if (typeLower.contains("book")) {
-                iconRes = R.drawable.ic_terms;
-            } else if (typeLower.contains("anime") || typeLower.contains("manga")) {
-                iconRes = R.drawable.ic_shake;
-            }
-            holder.typeIcon.setImageResource(iconRes);
-        }
-
         holder.itemView.setOnClickListener(v -> {
             Intent intent = new Intent(v.getContext(), DescriptionActivity.class);
             intent.putExtra(DescriptionActivity.EXTRA_MEDIA_ID, item.getId());
             v.getContext().startActivity(intent);
         });
+
+        if (holder.btnMoreOptions != null) {
+            holder.btnMoreOptions.setOnClickListener(v -> {
+                PopupMenu popup = new PopupMenu(v.getContext(), holder.btnMoreOptions);
+                
+                if ("Recently Deleted".equals(item.getStatus())) {
+                    popup.getMenu().add(0, 1, 0, "Recover to Planning");
+                    popup.getMenu().add(0, 2, 1, "Delete Permanently");
+                } else {
+                    popup.getMenu().add(0, 3, 0, "Delete");
+                }
+
+                popup.setOnMenuItemClickListener(menuItem -> {
+                    Context context = v.getContext();
+                    switch (menuItem.getItemId()) {
+                        case 1: // Recover
+                            dbHelper.updateProgress(item.getId(), item.getProgress(), "Planning", item.getRatingValue());
+                            ToastUtils.showCustomToast(context, "Recovered to Planning");
+                            item.setStatus("Planning");
+                            updateList(mediaItems); // Refresh list
+                            return true;
+                        case 2: // Permanently Delete
+                            new MaterialAlertDialogBuilder(context)
+                                .setTitle("Delete Permanently?")
+                                .setMessage("This action cannot be undone.")
+                                .setPositiveButton("Delete", (dialog, which) -> {
+                                    dbHelper.deleteMedia(item.getId());
+                                    mediaItems.remove(position);
+                                    notifyItemRemoved(position);
+                                    ToastUtils.showCustomToast(context, "Permanently deleted");
+                                })
+                                .setNegativeButton("Cancel", null)
+                                .show();
+                            return true;
+                        case 3: // Move to Trash
+                            new MaterialAlertDialogBuilder(context)
+                                .setTitle("Delete " + item.getTitle() + "?")
+                                .setMessage("It will be moved to Recently Deleted.")
+                                .setPositiveButton("Delete", (dialog, which) -> {
+                                    dbHelper.updateProgress(item.getId(), item.getProgress(), "Recently Deleted", item.getRatingValue());
+                                    mediaItems.remove(position);
+                                    notifyItemRemoved(position);
+                                    ToastUtils.showCustomToast(context, "Moved to Recently Deleted");
+                                })
+                                .setNegativeButton("Cancel", null)
+                                .show();
+                            return true;
+                        default:
+                            return false;
+                    }
+                });
+                popup.show();
+            });
+        }
     }
     @Override
     public int getItemCount() {
@@ -120,7 +171,7 @@ public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHol
         }
 
         if ("Completed".equalsIgnoreCase(item.getStatus())) {
-            accentColor = ContextCompat.getColor(holder.itemView.getContext(), R.color.spotify_green);
+            accentColor = ContextCompat.getColor(holder.itemView.getContext(), R.color.grey_600);
         }
 
         if (holder.card != null) {
@@ -137,10 +188,10 @@ public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHol
     static class MediaViewHolder extends RecyclerView.ViewHolder {
         MaterialCardView card;
         ImageView poster;
+        ImageView btnMoreOptions;
         TextView title;
         TextView subtitle;
         TextView rating;
-        ImageView typeIcon;
         ProgressBar progressBar;
         TextView progressText;
 
@@ -148,10 +199,10 @@ public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHol
             super(itemView);
             card = itemView.findViewById(R.id.card_media);
             poster = itemView.findViewById(R.id.media_poster);
+            btnMoreOptions = itemView.findViewById(R.id.btn_more_options);
             title = itemView.findViewById(R.id.media_title);
             subtitle = itemView.findViewById(R.id.media_subtitle);
             rating = itemView.findViewById(R.id.media_rating);
-            typeIcon = itemView.findViewById(R.id.media_icon_placeholder);
             progressBar = itemView.findViewById(R.id.media_progress);
             progressText = itemView.findViewById(R.id.media_progress_text);
         }

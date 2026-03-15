@@ -36,15 +36,23 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
 
+import android.graphics.drawable.Drawable;
+import com.bumptech.glide.load.DataSource;
+import com.bumptech.glide.load.engine.GlideException;
+import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.target.Target;
+import com.example.mediavault.widget.ToastUtils;
+
 public class HomeFragment extends Fragment {
 
     private TextView tvWatchTime, tvPagesRead, tvEpisodesWatched, tvOngoingItems, tvAvgRating;
     private TextView tvSpotlightLabel, tvSpotlightTitle, tvSpotlightStatus;
-    private ProgressBar progressSpotlight;
+    private ProgressBar progressSpotlight, pbSpotlightLoading;
     private TextView tvViewDetailedStats;
     private MaterialButton btnAnalyzeHabits;
     private DatabaseHelper dbHelper;
     private View spotlightCard;
+    private ImageView ivSpotlightBg;
     private View recentItem1, recentItem2, recentItem3, recentItem4;
 
     @Nullable
@@ -54,7 +62,7 @@ public class HomeFragment extends Fragment {
         
         dbHelper = new DatabaseHelper(requireContext());
         
-        // Initialize TextViews
+        // Initialize Views
         tvWatchTime = view.findViewById(R.id.tv_watch_time);
         tvPagesRead = view.findViewById(R.id.tv_pages_read);
         tvEpisodesWatched = view.findViewById(R.id.tv_episodes_watched);
@@ -64,7 +72,9 @@ public class HomeFragment extends Fragment {
         tvSpotlightTitle = view.findViewById(R.id.tv_spotlight_title);
         tvSpotlightStatus = view.findViewById(R.id.tv_spotlight_status);
         progressSpotlight = view.findViewById(R.id.progress_spotlight);
+        pbSpotlightLoading = view.findViewById(R.id.pb_spotlight_loading);
         spotlightCard = view.findViewById(R.id.card_spotlight);
+        ivSpotlightBg = view.findViewById(R.id.iv_spotlight_bg);
         tvViewDetailedStats = view.findViewById(R.id.tv_view_detailed_stats);
         btnAnalyzeHabits = view.findViewById(R.id.btn_analyze_habits);
 
@@ -247,12 +257,42 @@ public class HomeFragment extends Fragment {
                 int progress = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_CURRENT_PROGRESS));
                 int total = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_TOTAL_COUNT));
                 String unit = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_UNIT));
+                String imagePath = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_IMAGE_PATH));
 
                 tvSpotlightLabel.setText("Currently " + status);
                 tvSpotlightTitle.setText(title);
                 tvSpotlightStatus.setText(status + " • " + progress + "/" + total + " " + unit);
                 progressSpotlight.setMax(Math.max(total, 1));
                 progressSpotlight.setProgress(Math.min(progress, total));
+                
+                if (imagePath != null && !imagePath.isEmpty()) {
+                    if (pbSpotlightLoading != null) pbSpotlightLoading.setVisibility(View.VISIBLE);
+                    
+                    File file = new File(imagePath);
+                    Object loadSource = file.exists() ? file : imagePath;
+
+                    Glide.with(this)
+                            .load(loadSource)
+                            .centerCrop()
+                            .listener(new RequestListener<Drawable>() {
+                                @Override
+                                public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Drawable> target, boolean isFirstResource) {
+                                    if (pbSpotlightLoading != null) pbSpotlightLoading.setVisibility(View.GONE);
+                                    ivSpotlightBg.setImageResource(R.drawable.cinematic_bg);
+                                    return false;
+                                }
+
+                                @Override
+                                public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target, DataSource dataSource, boolean isFirstResource) {
+                                    if (pbSpotlightLoading != null) pbSpotlightLoading.setVisibility(View.GONE);
+                                    return false;
+                                }
+                            })
+                            .into(ivSpotlightBg);
+                } else {
+                    if (pbSpotlightLoading != null) pbSpotlightLoading.setVisibility(View.GONE);
+                    ivSpotlightBg.setImageResource(R.drawable.cinematic_bg);
+                }
 
                 spotlightCard.setOnClickListener(v -> {
                     Intent intent = new Intent(requireContext(), DescriptionActivity.class);
@@ -260,11 +300,13 @@ public class HomeFragment extends Fragment {
                     startActivity(intent);
                 });
             } else {
+                if (pbSpotlightLoading != null) pbSpotlightLoading.setVisibility(View.GONE);
                 tvSpotlightLabel.setText("Currently Watching / Reading");
                 tvSpotlightTitle.setText("Backlog Spotlight");
                 tvSpotlightStatus.setText("Plan something new");
                 progressSpotlight.setMax(100);
                 progressSpotlight.setProgress(0);
+                if (ivSpotlightBg != null) ivSpotlightBg.setImageResource(R.drawable.cinematic_bg);
                 spotlightCard.setOnClickListener(null);
             }
         } finally {

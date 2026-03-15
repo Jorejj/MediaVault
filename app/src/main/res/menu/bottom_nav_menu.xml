@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:id="@+id/nav_home" android:icon="@drawable/ic_home" android:title="Home"/>
-    <item android:id="@+id/nav_library" android:icon="@drawable/ic_library" android:title="Library"/>
-    <item android:id="@+id/nav_add_media"  android:title="Add Media"/>
-    <item android:id="@+id/nav_metrics" android:icon="@drawable/ic_chart" android:title="Stats"/>
-    <item android:id="@+id/nav_settings" android:icon="@drawable/ic_settings" android:title="Settings"/>
+    <item android:id="@+id/nav_home" android:icon="@drawable/nav_home" android:title="Home"/>
+    <item android:id="@+id/nav_library" android:icon="@drawable/nav_library" android:title="Library"/>
+    <item android:id="@+id/nav_add_media" android:title="Add Media" android:enabled="false"/>
+    <item android:id="@+id/nav_metrics" android:icon="@drawable/nav_stats" android:title="Stats"/>
+    <item android:id="@+id/nav_settings" android:icon="@drawable/nav_settings" android:title="Settings"/>
 </menu>

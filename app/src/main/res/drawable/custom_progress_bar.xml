@@ -10,8 +10,8 @@
             <shape>
                 <corners android:radius="8dp" />
                 <gradient
-                    android:startColor="@color/spotify_green"
-                    android:endColor="#6BFF9A"
+                    android:startColor="@color/netflix_red"
+                    android:endColor="@color/netflix_red_soft"
                     android:angle="0" />
             </shape>
         </clip>

@@ -10,6 +10,6 @@
         android:fillColor="@android:color/white"
         android:pathData="M7,7h2.2l2.8,4.4L14.8,7H17v10h-2v-6.5l-2.8,4.2h-0.4L9,10.5V17H7z" />
     <path
-        android:fillColor="#99FFFFFF"
+        android:fillColor="@color/netflix_red"
         android:pathData="M9.5,4.8h5v1.2h-5z" />
 </vector>

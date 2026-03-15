@@ -102,10 +102,10 @@ public class ShakeFragment extends Fragment {
                 if (file.exists()) {
                     Glide.with(this).load(file).centerCrop().into(ivImage);
                 } else {
-                    Glide.with(this).load(imagePath).placeholder(R.drawable.ic_new_logo).into(ivImage);
+                    Glide.with(this).load(imagePath).placeholder(R.drawable.mediavault_logo).into(ivImage);
                 }
             } else {
-                ivImage.setImageResource(R.drawable.ic_new_logo);
+                ivImage.setImageResource(R.drawable.mediavault_logo);
             }
 
             btnDetails.setOnClickListener(v -> {

@@ -11,7 +11,7 @@
         android:layout_width="280dp"
         android:layout_height="280dp"
         android:contentDescription="@string/qr_vault"
-        android:src="@drawable/ic_new_logo" />
+        android:src="@drawable/mediavault_logo" />
 
     <TextView
         android:layout_width="wrap_content"

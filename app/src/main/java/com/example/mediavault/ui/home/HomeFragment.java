@@ -157,10 +157,10 @@ public class HomeFragment extends Fragment {
                             if (file.exists()) {
                                 Glide.with(this).load(file).centerCrop().into(ivThumbnail);
                             } else {
-                                Glide.with(this).load(imagePath).placeholder(R.drawable.ic_new_logo).error(R.drawable.ic_new_logo).centerCrop().into(ivThumbnail);
+                                Glide.with(this).load(imagePath).placeholder(R.drawable.mediavault_logo).error(R.drawable.mediavault_logo).centerCrop().into(ivThumbnail);
                             }
                         } else {
-                            ivThumbnail.setImageResource(R.drawable.ic_new_logo);
+                            ivThumbnail.setImageResource(R.drawable.mediavault_logo);
                         }
                     }
 

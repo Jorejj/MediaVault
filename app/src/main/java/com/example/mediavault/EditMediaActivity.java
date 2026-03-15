@@ -165,7 +165,7 @@ public class EditMediaActivity extends AppCompatActivity {
 
     private void updateImageHeader(String path) {
         if (path == null || path.isEmpty()) {
-            ivCover.setImageResource(R.drawable.ic_new_logo);
+            ivCover.setImageResource(R.drawable.mediavault_logo);
             return;
         }
 
@@ -174,15 +174,15 @@ public class EditMediaActivity extends AppCompatActivity {
             Glide.with(this)
                     .load(file)
                     .centerCrop()
-                    .placeholder(R.drawable.ic_new_logo)
-                    .error(R.drawable.ic_new_logo)
+                    .placeholder(R.drawable.mediavault_logo)
+                    .error(R.drawable.mediavault_logo)
                     .into(ivCover);
         } else {
             Glide.with(this)
                     .load(path)
                     .centerCrop()
-                    .placeholder(R.drawable.ic_new_logo)
-                    .error(R.drawable.ic_new_logo)
+                    .placeholder(R.drawable.mediavault_logo)
+                    .error(R.drawable.mediavault_logo)
                     .into(ivCover);
         }
     }

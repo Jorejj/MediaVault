@@ -27,11 +27,11 @@
                 android:layout_marginBottom="24dp">
 
                 <ImageView
-                    android:id="@+id/app_logo"
+                    android:id="@+id/mediavault_logo"
                     android:layout_width="@dimen/top_logo_size"
                     android:layout_height="@dimen/top_logo_size"
                     android:scaleType="fitCenter"
-                    android:src="@drawable/ic_new_logo"
+                    android:src="@drawable/mediavault_logo"
                     android:contentDescription="@string/mediavault"
                     app:layout_constraintBottom_toBottomOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
@@ -43,10 +43,10 @@
                     android:layout_height="wrap_content"
                     style="@style/TextScreenTitle"
                     android:text="@string/new_media"
-                    app:layout_constraintBottom_toBottomOf="@+id/app_logo"
+                    app:layout_constraintBottom_toBottomOf="@+id/mediavault_logo"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="@+id/app_logo" />
+                    app:layout_constraintTop_toTopOf="@+id/mediavault_logo" />
             </androidx.constraintlayout.widget.ConstraintLayout>
 
             <com.google.android.material.button.MaterialButtonToggleGroup

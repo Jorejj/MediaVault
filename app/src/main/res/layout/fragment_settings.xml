@@ -13,7 +13,7 @@
         android:layout_height="@dimen/top_logo_size"
         android:layout_marginStart="@dimen/screen_padding_horizontal"
         android:layout_marginTop="@dimen/screen_padding_vertical"
-        android:src="@drawable/ic_new_logo"
+        android:src="@drawable/mediavault_logo"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 

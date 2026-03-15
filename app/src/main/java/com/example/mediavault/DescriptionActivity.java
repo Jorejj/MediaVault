@@ -285,10 +285,10 @@ public class DescriptionActivity extends AppCompatActivity {
                         if (file.exists()) {
                             Glide.with(this).load(file).centerCrop().into(ivCover);
                         } else {
-                            Glide.with(this).load(imagePath).placeholder(R.drawable.ic_new_logo).error(R.drawable.ic_new_logo).centerCrop().into(ivCover);
+                            Glide.with(this).load(imagePath).placeholder(R.drawable.mediavault_logo).error(R.drawable.mediavault_logo).centerCrop().into(ivCover);
                         }
                     } else {
-                        ivCover.setImageResource(R.drawable.ic_new_logo);
+                        ivCover.setImageResource(R.drawable.mediavault_logo);
                     }
                 }
             } else {

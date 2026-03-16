@@ -23,6 +23,7 @@ import android.widget.Toast;
 
 import com.example.mediavault.widget.ToastUtils;
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -35,6 +36,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class DescriptionActivity extends AppCompatActivity {
 
@@ -51,6 +53,7 @@ public class DescriptionActivity extends AppCompatActivity {
     private RatingBar rbRating;
     private CollapsingToolbarLayout collapsingToolbar;
     private RecyclerView rvReviews;
+    private boolean isUpdateReceiverRegistered = false;
 
     private final BroadcastReceiver updateReceiver = new BroadcastReceiver() {
         @Override
@@ -262,7 +265,7 @@ public class DescriptionActivity extends AppCompatActivity {
 
                 tvTitle.setText(mediaTitle);
                 collapsingToolbar.setTitle(mediaTitle);
-                tvType.setText(type.toUpperCase());
+                tvType.setText(type.toUpperCase(Locale.getDefault()));
                 tvGenre.setText(genre);
                 tvStatus.setText(status);
                 tvPriority.setText(priority);
@@ -309,7 +312,9 @@ public class DescriptionActivity extends AppCompatActivity {
                 .setPositiveButton("Delete", (dialog, which) -> {
                     if (dbHelper.deleteMedia(mediaId)) {
                         ToastUtils.showCustomToast(this, "Deleted successfully");
-                        sendBroadcast(new Intent(ACTION_MEDIA_UPDATED));
+                        Intent updateIntent = new Intent(ACTION_MEDIA_UPDATED);
+                        updateIntent.setPackage(getPackageName());
+                        sendBroadcast(updateIntent);
                         finish();
                     }
                 })
@@ -320,14 +325,21 @@ public class DescriptionActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        registerReceiver(updateReceiver, new IntentFilter(ACTION_MEDIA_UPDATED), Context.RECEIVER_NOT_EXPORTED);
+        if (!isUpdateReceiverRegistered) {
+            IntentFilter filter = new IntentFilter(ACTION_MEDIA_UPDATED);
+            ContextCompat.registerReceiver(this, updateReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED);
+            isUpdateReceiverRegistered = true;
+        }
         loadMediaData(); // Refresh in case it was edited
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        unregisterReceiver(updateReceiver);
+        if (isUpdateReceiverRegistered) {
+            unregisterReceiver(updateReceiver);
+            isUpdateReceiverRegistered = false;
+        }
     }
 
     @Override

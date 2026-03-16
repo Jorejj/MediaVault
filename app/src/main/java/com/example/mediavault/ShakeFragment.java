@@ -1,7 +1,9 @@
 package com.example.mediavault;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.drawable.Drawable;
@@ -19,12 +21,16 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.Spinner;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
@@ -37,6 +43,8 @@ import com.example.mediavault.ShakeDetector;
 import com.example.mediavault.widget.ToastUtils;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 import eightbitlab.com.blurview.BlurView;
 import eightbitlab.com.blurview.RenderScriptBlur;
@@ -51,7 +59,18 @@ public class ShakeFragment extends Fragment {
     private SharedPreferences sharedPreferences;
     private View pulseView;
     private ImageView ivIdle, ivShaking;
+    private Spinner spinnerShakeType, spinnerShakeGenre;
     private boolean isDialogShowing = false;
+    private boolean isUpdateReceiverRegistered = false;
+    private final BroadcastReceiver updateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (DescriptionActivity.ACTION_MEDIA_UPDATED.equals(intent.getAction())) {
+                setupFilterControls();
+                ToastUtils.showCustomToast(context, "Shake filters updated");
+            }
+        }
+    };
 
     @Nullable
     @Override
@@ -73,6 +92,9 @@ public class ShakeFragment extends Fragment {
         pulseView = view.findViewById(R.id.view_shake_pulse);
         ivIdle = view.findViewById(R.id.iv_shake_idle);
         ivShaking = view.findViewById(R.id.iv_shaking);
+        spinnerShakeType = view.findViewById(R.id.spinner_shake_type);
+        spinnerShakeGenre = view.findViewById(R.id.spinner_shake_genre);
+        setupFilterControls();
 
         // Ensure idle icon uses the 9-patch version
         if (ivIdle != null) {
@@ -105,7 +127,16 @@ public class ShakeFragment extends Fragment {
             pulseView.startAnimation(pulse);
         }
 
-        Cursor cursor = dbHelper.getRandomPlanningMediaWeighted();
+        String selectedType = resolveFilterValue(spinnerShakeType, "All Types");
+        String selectedGenre = resolveFilterValue(spinnerShakeGenre, "All Genres");
+        Cursor cursor = dbHelper.getRandomPlanningMediaWeighted(selectedType, selectedGenre);
+        if ((cursor == null || !cursor.moveToFirst()) && selectedGenre != null) {
+            if (cursor != null) {
+                cursor.close();
+            }
+            cursor = dbHelper.getRandomPlanningMediaWeighted(selectedType, null);
+            ToastUtils.showCustomToast(getContext(), "No planning titles for that genre. Using all genres.");
+        }
         if (cursor != null && cursor.moveToFirst()) {
             isDialogShowing = true;
             vibrate();
@@ -173,9 +204,50 @@ public class ShakeFragment extends Fragment {
             cursor.close();
         } else {
             revertIcons();
-            ToastUtils.showCustomToast(getContext(), "Add more items to 'Planning' to use this feature!");
+            ToastUtils.showCustomToast(getContext(), "No planning titles found for the selected filters.");
             if (cursor != null) cursor.close();
         }
+    }
+
+    private void setupFilterControls() {
+        List<String> typeOptions = new ArrayList<>();
+        typeOptions.add("All Types");
+        String[] mediaTypes = getResources().getStringArray(R.array.media_types);
+        for (String mediaType : mediaTypes) {
+            typeOptions.add(mediaType);
+        }
+        spinnerShakeType.setAdapter(new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_dropdown_item, typeOptions));
+        spinnerShakeType.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                refreshGenreOptionsForType();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                refreshGenreOptionsForType();
+            }
+        });
+        refreshGenreOptionsForType();
+    }
+
+    private void refreshGenreOptionsForType() {
+        String selectedType = resolveFilterValue(spinnerShakeType, "All Types");
+        List<String> genreOptions = new ArrayList<>();
+        genreOptions.add("All Genres");
+        genreOptions.addAll(dbHelper.getShakeGenresByType(selectedType));
+        spinnerShakeGenre.setAdapter(new ArrayAdapter<>(requireContext(), android.R.layout.simple_spinner_dropdown_item, genreOptions));
+    }
+
+    private String resolveFilterValue(Spinner spinner, String allLabel) {
+        if (spinner == null || spinner.getSelectedItem() == null) {
+            return null;
+        }
+        String value = spinner.getSelectedItem().toString().trim();
+        if (value.isEmpty() || value.equalsIgnoreCase(allLabel)) {
+            return null;
+        }
+        return value;
     }
 
     private void revertIcons() {
@@ -229,8 +301,15 @@ public class ShakeFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+        setupFilterControls();
         float sensitivity = sharedPreferences.getFloat("shake_sensitivity", 2.2f);
         mShakeDetector.setSensitivity(sensitivity);
+        Context context = getContext();
+        if (!isUpdateReceiverRegistered && context != null) {
+            IntentFilter filter = new IntentFilter(DescriptionActivity.ACTION_MEDIA_UPDATED);
+            ContextCompat.registerReceiver(context, updateReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED);
+            isUpdateReceiverRegistered = true;
+        }
         if (mAccelerometer != null) {
             mSensorManager.registerListener(mShakeDetector, mAccelerometer, SensorManager.SENSOR_DELAY_UI);
         }
@@ -240,6 +319,11 @@ public class ShakeFragment extends Fragment {
     public void onPause() {
         if (mShakeDetector != null) {
             mSensorManager.unregisterListener(mShakeDetector);
+        }
+        Context context = getContext();
+        if (isUpdateReceiverRegistered && context != null) {
+            context.unregisterReceiver(updateReceiver);
+            isUpdateReceiverRegistered = false;
         }
         super.onPause();
     }

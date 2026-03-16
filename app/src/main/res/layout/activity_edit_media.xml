@@ -395,17 +395,18 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:hint="Genres (comma separated)"
+                        android:hint="Genre"
                         app:boxCornerRadiusBottomEnd="12dp"
                         app:boxCornerRadiusBottomStart="12dp"
                         app:boxCornerRadiusTopEnd="12dp"
                         app:boxCornerRadiusTopStart="12dp">
 
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/et_edit_genre"
+                        <AutoCompleteTextView
+                            android:id="@+id/auto_edit_genre"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
-                            android:inputType="textCapWords" />
+                            android:inputType="textCapWords"
+                            tools:ignore="LabelFor" />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <com.google.android.material.textfield.TextInputLayout

@@ -15,10 +15,12 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.PopupMenu;
-import android.widget.Toast;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -26,13 +28,19 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.mediavault.DatabaseHelper;
 import com.example.mediavault.DescriptionActivity;
 import com.example.mediavault.R;
+import com.example.mediavault.widget.ToastUtils;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 
 public class LibraryFragment extends Fragment {
 
@@ -43,12 +51,15 @@ public class LibraryFragment extends Fragment {
     private RecyclerView recyclerView;
     private EditText searchBar;
     private ChipGroup chipGroup, chipGroupStatus;
+    private Chip chipCollectionAdd;
     private View emptyState;
-    private ImageButton btnFilter;
+    private ImageButton btnFilter, btnAddCollection;
     private String currentSearchQuery = "";
     private String currentCategory = "All";
-    private String currentStatusFilter = "All";
+    private String currentCollectionFilter = "All";
     private int currentSortId = R.id.sort_title_asc;
+    private boolean isReceiverRegistered = false;
+    private final Map<Integer, String> customCollectionByChipId = new HashMap<>();
 
     private final BroadcastReceiver updateReceiver = new BroadcastReceiver() {
         @Override
@@ -71,8 +82,10 @@ public class LibraryFragment extends Fragment {
         searchBar = view.findViewById(R.id.search_bar);
         chipGroup = view.findViewById(R.id.chip_group_filter);
         chipGroupStatus = view.findViewById(R.id.chip_group_status);
+        chipCollectionAdd = view.findViewById(R.id.chip_collection_add);
         emptyState = view.findViewById(R.id.empty_state_view);
         btnFilter = view.findViewById(R.id.btn_filter);
+        btnAddCollection = view.findViewById(R.id.btn_add_collection);
 
         allMediaItems = new ArrayList<>();
         filteredItems = new ArrayList<>();
@@ -80,6 +93,7 @@ public class LibraryFragment extends Fragment {
         recyclerView.setAdapter(adapter);
 
         setupListeners();
+        updateAddCollectionChipVisibility();
         refreshLibrary();
 
         return view;
@@ -92,7 +106,7 @@ public class LibraryFragment extends Fragment {
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                currentSearchQuery = s.toString().toLowerCase().trim();
+                currentSearchQuery = s.toString().toLowerCase(Locale.ROOT).trim();
                 applyFilters();
             }
 
@@ -122,16 +136,25 @@ public class LibraryFragment extends Fragment {
 
         if (chipGroupStatus != null) {
             chipGroupStatus.setOnCheckedChangeListener((group, checkedId) -> {
-                if (checkedId == R.id.chip_ongoing) {
-                    currentStatusFilter = "Ongoing";
-                } else if (checkedId == R.id.chip_completed) {
-                    currentStatusFilter = "Completed";
-                } else if (checkedId == R.id.chip_planning) {
-                    currentStatusFilter = "Planning";
-                } else if (checkedId == R.id.chip_dropped) {
-                    currentStatusFilter = "Dropped";
+                if (checkedId == R.id.chip_collection_add) {
+                    showAddCollectionDialog();
+                    chipGroupStatus.clearCheck();
+                    return;
+                }
+                if (checkedId == R.id.chip_collection_ongoing) {
+                    currentCollectionFilter = "Ongoing";
+                } else if (checkedId == R.id.chip_collection_completed) {
+                    currentCollectionFilter = "Completed";
+                } else if (checkedId == R.id.chip_collection_planning) {
+                    currentCollectionFilter = "Planning";
+                } else if (checkedId == R.id.chip_collection_dropped) {
+                    currentCollectionFilter = "Dropped";
+                } else if (checkedId == R.id.chip_collection_favorites) {
+                    currentCollectionFilter = "Favorites";
+                } else if (customCollectionByChipId.containsKey(checkedId)) {
+                    currentCollectionFilter = customCollectionByChipId.get(checkedId);
                 } else {
-                    currentStatusFilter = "All";
+                    currentCollectionFilter = "All";
                 }
                 updateStatusChipAppearance(group, checkedId);
                 applyFilters();
@@ -139,6 +162,12 @@ public class LibraryFragment extends Fragment {
         }
 
         btnFilter.setOnClickListener(this::showSortMenu);
+        if (btnAddCollection != null) {
+            btnAddCollection.setOnClickListener(v -> showAddCollectionDialog());
+        }
+        if (chipCollectionAdd != null) {
+            chipCollectionAdd.setOnClickListener(v -> showAddCollectionDialog());
+        }
     }
 
     private void updateChipAppearance(ChipGroup group, int checkedId) {
@@ -193,13 +222,12 @@ public class LibraryFragment extends Fragment {
         filteredItems.clear();
         for (MediaItem item : allMediaItems) {
             boolean matchesCategory;
-            boolean matchesStatus;
+            boolean matchesCollection;
 
             // Handle Category (Type) + Trash
             if (currentCategory.equals("Trash")) {
                 matchesCategory = "Recently Deleted".equals(item.getStatus());
-                // If Trash is selected, we ignore the Status chip group filter
-                matchesStatus = true; 
+                matchesCollection = true;
             } else {
                 // Not Trash selected
                 if ("Recently Deleted".equals(item.getStatus())) {
@@ -215,18 +243,26 @@ public class LibraryFragment extends Fragment {
                     matchesCategory = item.getType().equalsIgnoreCase(currentCategory);
                 }
 
-                // Handle Status filter
-                if (currentStatusFilter.equals("All")) {
-                    matchesStatus = true;
+                // Handle Collection filter (separate from status persistence).
+                if (currentCollectionFilter.equals("All")) {
+                    matchesCollection = true;
+                } else if (currentCollectionFilter.equals("Favorites")) {
+                    matchesCollection = item.isFavorite();
+                } else if ("Ongoing".equalsIgnoreCase(currentCollectionFilter)
+                        || "Completed".equalsIgnoreCase(currentCollectionFilter)
+                        || "Planning".equalsIgnoreCase(currentCollectionFilter)
+                        || "Dropped".equalsIgnoreCase(currentCollectionFilter)) {
+                    matchesCollection = item.getStatus().equalsIgnoreCase(currentCollectionFilter);
                 } else {
-                    matchesStatus = item.getStatus().equalsIgnoreCase(currentStatusFilter);
+                    String genre = item.getGenre() != null ? item.getGenre() : "";
+                    matchesCollection = genre.toLowerCase(Locale.ROOT).contains(currentCollectionFilter.toLowerCase(Locale.ROOT));
                 }
             }
 
-            boolean matchesSearch = item.getTitle().toLowerCase().contains(currentSearchQuery) ||
-                    (item.getGenre() != null && item.getGenre().toLowerCase().contains(currentSearchQuery));
+            boolean matchesSearch = item.getTitle().toLowerCase(Locale.ROOT).contains(currentSearchQuery) ||
+                    (item.getGenre() != null && item.getGenre().toLowerCase(Locale.ROOT).contains(currentSearchQuery));
 
-            if (matchesCategory && matchesStatus && matchesSearch) {
+            if (matchesCategory && matchesCollection && matchesSearch) {
                 filteredItems.add(item);
             }
         }
@@ -255,6 +291,112 @@ public class LibraryFragment extends Fragment {
         }
     }
 
+    private void showAddCollectionDialog() {
+        if (getContext() == null) {
+            return;
+        }
+        int horizontalPadding = (int) (24 * getResources().getDisplayMetrics().density);
+
+        LinearLayout dialogContainer = new LinearLayout(requireContext());
+        dialogContainer.setOrientation(LinearLayout.VERTICAL);
+        dialogContainer.setPadding(horizontalPadding, horizontalPadding / 2, horizontalPadding, horizontalPadding / 4);
+
+        TextView subtitle = new TextView(requireContext());
+        subtitle.setText("Create a genre collection chip for quick filtering.");
+        subtitle.setTextColor(ContextCompat.getColor(requireContext(), R.color.grey_300));
+        subtitle.setTextSize(14f);
+        LinearLayout.LayoutParams subtitleParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        );
+        subtitleParams.bottomMargin = (int) (12 * getResources().getDisplayMetrics().density);
+        subtitle.setLayoutParams(subtitleParams);
+        dialogContainer.addView(subtitle);
+
+        TextInputLayout inputLayout = new TextInputLayout(requireContext());
+        inputLayout.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+        ));
+        inputLayout.setHintEnabled(false);
+
+        TextInputEditText input = new TextInputEditText(requireContext());
+        input.setSingleLine(true);
+        input.setHint("Collection name");
+        inputLayout.addView(input);
+        dialogContainer.addView(inputLayout);
+
+        AlertDialog addCollectionDialog = new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Add Collection")
+                .setView(dialogContainer)
+                .setPositiveButton("Add", (d, which) -> {
+                    String collectionName = input.getText() != null ? input.getText().toString().trim() : "";
+                    if (collectionName.isEmpty()) {
+                        ToastUtils.showCustomToast(requireContext(), "Collection name is required");
+                        return;
+                    }
+                    addCustomCollectionChip(collectionName);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+
+        if (addCollectionDialog.getWindow() != null) {
+            int dialogWidth = (int) (getResources().getDisplayMetrics().widthPixels * 0.92f);
+            addCollectionDialog.getWindow().setLayout(dialogWidth, ViewGroup.LayoutParams.WRAP_CONTENT);
+        }
+    }
+
+    private void addCustomCollectionChip(@NonNull String collectionName) {
+        if (chipGroupStatus == null) {
+            return;
+        }
+        for (Map.Entry<Integer, String> entry : customCollectionByChipId.entrySet()) {
+            if (entry.getValue().equalsIgnoreCase(collectionName)) {
+                chipGroupStatus.check(entry.getKey());
+                ToastUtils.showCustomToast(requireContext(), "Collection already exists");
+                return;
+            }
+        }
+        Chip chip = new Chip(requireContext(), null, com.google.android.material.R.style.Widget_MaterialComponents_Chip_Choice);
+        int chipId = View.generateViewId();
+        chip.setId(chipId);
+        chip.setText(collectionName);
+        chip.setCheckable(true);
+        chip.setCloseIconVisible(false);
+        chip.setChipBackgroundColorResource(R.color.chip_unselected_bg);
+        chip.setTextColor(getResources().getColor(R.color.chip_unselected_text));
+        chip.setOnLongClickListener(v -> {
+            new MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("Delete Collection")
+                    .setMessage("Delete \"" + collectionName + "\" collection chip?")
+                    .setPositiveButton("Delete", (dialog, which) -> {
+                        chipGroupStatus.removeView(chip);
+                        customCollectionByChipId.remove(chipId);
+                        if (currentCollectionFilter.equalsIgnoreCase(collectionName)) {
+                            chipGroupStatus.check(R.id.chip_collection_all);
+                            currentCollectionFilter = "All";
+                            applyFilters();
+                        }
+                        updateAddCollectionChipVisibility();
+                    })
+                    .setNegativeButton("Cancel", null)
+                    .show();
+            return true;
+        });
+        customCollectionByChipId.put(chipId, collectionName);
+        chipGroupStatus.addView(chip);
+        chipGroupStatus.check(chipId);
+        updateAddCollectionChipVisibility();
+        ToastUtils.showCustomToast(requireContext(), "Collection added");
+    }
+
+    private void updateAddCollectionChipVisibility() {
+        if (chipCollectionAdd == null) {
+            return;
+        }
+        chipCollectionAdd.setVisibility(customCollectionByChipId.isEmpty() ? View.VISIBLE : View.GONE);
+    }
+
     private void refreshLibrary() {
         allMediaItems.clear();
         Cursor cursor = dbHelper.getAllMediaIncludingTrash();
@@ -270,6 +412,7 @@ public class LibraryFragment extends Fragment {
                 int unitIndex = cursor.getColumnIndex(DatabaseHelper.COL_UNIT);
                 int coverIndex = cursor.getColumnIndex(DatabaseHelper.COL_IMAGE_PATH);
                 int ratingIndex = cursor.getColumnIndex(DatabaseHelper.COL_RATING);
+                int favoriteIndex = cursor.getColumnIndex(DatabaseHelper.COL_IS_FAVORITE);
 
                 do {
                     int id = idIndex != -1 ? cursor.getInt(idIndex) : -1;
@@ -282,8 +425,9 @@ public class LibraryFragment extends Fragment {
                     String unit = unitIndex != -1 ? cursor.getString(unitIndex) : "";
                     String cover = coverIndex != -1 ? cursor.getString(coverIndex) : null;
                     float rating = ratingIndex != -1 ? cursor.getFloat(ratingIndex) : 0f;
+                    boolean isFavorite = favoriteIndex != -1 && cursor.getInt(favoriteIndex) == 1;
 
-                    allMediaItems.add(new MediaItem(id, title, type, genre, status, progress, capacity, unit, cover, rating));
+                    allMediaItems.add(new MediaItem(id, title, type, genre, status, progress, capacity, unit, cover, rating, isFavorite));
                 } while (cursor.moveToNext());
             }
             cursor.close();
@@ -294,13 +438,22 @@ public class LibraryFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
-        requireContext().registerReceiver(updateReceiver, new IntentFilter(DescriptionActivity.ACTION_MEDIA_UPDATED), Context.RECEIVER_NOT_EXPORTED);
+        Context context = getContext();
+        if (!isReceiverRegistered && context != null) {
+            IntentFilter filter = new IntentFilter(DescriptionActivity.ACTION_MEDIA_UPDATED);
+            ContextCompat.registerReceiver(context, updateReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED);
+            isReceiverRegistered = true;
+        }
         refreshLibrary();
     }
 
     @Override
     public void onPause() {
         super.onPause();
-        requireContext().unregisterReceiver(updateReceiver);
+        Context context = getContext();
+        if (isReceiverRegistered && context != null) {
+            context.unregisterReceiver(updateReceiver);
+            isReceiverRegistered = false;
+        }
     }
 }

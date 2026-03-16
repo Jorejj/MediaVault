@@ -7,6 +7,8 @@ import android.content.IntentFilter;
 import android.database.sqlite.SQLiteConstraintException;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.text.InputType;
 import android.text.TextUtils;
@@ -25,6 +27,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.example.mediavault.widget.ToastUtils;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -45,9 +49,12 @@ import com.example.mediavault.api.TvDetailResponse;
 import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.slider.Slider;
 import com.google.android.material.snackbar.Snackbar;
+import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -78,10 +85,12 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
     private Button btnApiSearchSubmit;
     
     // Manual Entry Components
-    private TextInputEditText etManualTitle, etManualGenre, etManualImage, etManualAuthor, etManualDescription;
+    private TextInputEditText etManualTitle, etManualImage, etManualAuthor, etManualDescription, etManualReview, etManualJournal;
     private EditText etManualProgress, etManualTotal;
-    private Spinner spinnerManualType, spinnerManualStatus, spinnerTotalUnit;
+    private Spinner spinnerManualType, spinnerManualStatus, spinnerTotalUnit, spinnerManualPriority, spinnerManualGenre;
     private RatingBar rbManualRating;
+    private ChipGroup chipGroupManualMood;
+    private SwitchMaterial switchManualFavorite;
     private Button btnManualDone;
     private LinearLayout layoutDurationSlider;
     private Slider sliderManualDuration;
@@ -89,10 +98,24 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
     private TextView tvLabelProgress;
     private TextView tvLabelTotal;
     private MaterialCardView cardManualEntry;
+    private TextInputLayout tilManualImage;
 
     private DatabaseHelper dbHelper;
     private NetworkReceiver networkReceiver;
     private Retrofit jikanRetrofit, googleBooksRetrofit, tmdbRetrofit;
+    private boolean isNetworkReceiverRegistered = false;
+
+    private final ActivityResultLauncher<Intent> imagePickerLauncher = registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    Uri selectedImage = result.getData().getData();
+                    if (selectedImage != null && etManualImage != null) {
+                        etManualImage.setText(selectedImage.toString());
+                    }
+                }
+            }
+    );
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -148,8 +171,13 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         etManualProgress = findViewById(R.id.et_manual_progress);
         etManualTotal = findViewById(R.id.et_manual_total);
         spinnerTotalUnit = findViewById(R.id.spinner_total_unit);
-        etManualGenre = findViewById(R.id.et_manual_genre);
+        spinnerManualGenre = findViewById(R.id.spinner_manual_genre);
         rbManualRating = findViewById(R.id.rb_manual_rating);
+        etManualReview = findViewById(R.id.et_manual_review);
+        etManualJournal = findViewById(R.id.et_manual_journal);
+        chipGroupManualMood = findViewById(R.id.chip_group_manual_mood);
+        spinnerManualPriority = findViewById(R.id.spinner_manual_priority);
+        switchManualFavorite = findViewById(R.id.switch_manual_favorite);
         etManualImage = findViewById(R.id.et_manual_image);
         etManualAuthor = findViewById(R.id.et_manual_author);
         etManualDescription = findViewById(R.id.et_manual_description);
@@ -160,6 +188,14 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         tvLabelProgress = findViewById(R.id.label_progress);
         tvLabelTotal = findViewById(R.id.label_total);
         cardManualEntry = findViewById(R.id.card_manual_entry);
+        tilManualImage = findViewById(R.id.til_manual_image);
+
+        if (tilManualImage != null) {
+            tilManualImage.setEndIconOnClickListener(v -> {
+                Intent intent = new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                imagePickerLauncher.launch(intent);
+            });
+        }
     }
 
     private void setupToggle() {
@@ -526,14 +562,19 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         spinnerTotalUnit.setEnabled(result.getUnit() == null || result.getUnit().isEmpty() || result.getUnit().equals("Unknown"));
 
         etManualImage.setText(result.getImageUrl());
-
-        // Hide image path input when populating from API
-        if (etManualImage.getParent().getParent() instanceof View) {
-            ((View) etManualImage.getParent().getParent()).setVisibility(View.GONE);
+        if (tilManualImage != null) {
+            tilManualImage.setVisibility(View.VISIBLE);
         }
 
         etManualDescription.setText(result.getDescription());
-        etManualGenre.setText(result.getGenre());
+        updateGenreSpinner();
+        String selectedGenre = result.getGenre();
+        if (!TextUtils.isEmpty(selectedGenre)) {
+            String primaryGenre = selectedGenre.contains(",")
+                    ? selectedGenre.split(",")[0].trim()
+                    : selectedGenre.trim();
+            setSpinnerToValue(spinnerManualGenre, primaryGenre);
+        }
         etManualAuthor.setText(result.getAuthor());
         toggleGroup.check(R.id.btn_mode_manual);
 
@@ -555,11 +596,13 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 updateManualCapacityUI();
+                updateGenreSpinner();
             }
 
             @Override
             public void onNothingSelected(AdapterView<?> parent) {
                 updateManualCapacityUI();
+                updateGenreSpinner();
             }
         });
 
@@ -571,6 +614,20 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
 
         updateManualCapacityUI();
         btnManualDone.setOnClickListener(v -> saveToDatabase());
+    }
+
+    private void updateGenreSpinner() {
+        String mediaType = spinnerManualType.getSelectedItem() != null ? spinnerManualType.getSelectedItem().toString() : "Book";
+        List<String> genres = GenreManager.getGenreListForMediaType(mediaType);
+        
+        // Create adapter for genre spinner
+        android.widget.ArrayAdapter<String> genreAdapter = new android.widget.ArrayAdapter<>(
+                this,
+                android.R.layout.simple_spinner_item,
+                genres
+        );
+        genreAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerManualGenre.setAdapter(genreAdapter);
     }
 
     private void updateManualCapacityUI() {
@@ -636,13 +693,20 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         String title = Objects.requireNonNull(etManualTitle.getText()).toString().trim();
         String type = spinnerManualType.getSelectedItem().toString();
         String status = spinnerManualStatus.getSelectedItem().toString();
-        String genre = Objects.requireNonNull(etManualGenre.getText()).toString().trim();
+        String genre = spinnerManualGenre.getSelectedItem() != null ? spinnerManualGenre.getSelectedItem().toString() : "";
         String creator = Objects.requireNonNull(etManualAuthor.getText()).toString().trim();
         String progressStr = etManualProgress.getText().toString().trim();
         String capacityStr = etManualTotal.getText().toString().trim();
         String unit = spinnerTotalUnit.getSelectedItem().toString();
         String imageUrl = Objects.requireNonNull(etManualImage.getText()).toString().trim();
         String description = Objects.requireNonNull(etManualDescription.getText()).toString().trim();
+        String review = Objects.requireNonNull(etManualReview.getText()).toString().trim();
+        String journal = Objects.requireNonNull(etManualJournal.getText()).toString().trim();
+        String mood = getSelectedManualMood();
+        String priority = spinnerManualPriority.getSelectedItem() != null
+                ? spinnerManualPriority.getSelectedItem().toString()
+                : "Medium";
+        boolean isFavorite = switchManualFavorite.isChecked();
         float rating = rbManualRating.getRating();
 
         if (TextUtils.isEmpty(title) || TextUtils.isEmpty(capacityStr)) {
@@ -678,6 +742,11 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         final int finalProgress = progress;
         final String finalStatus = status;
         final float finalRating = rating;
+        final String finalReview = review;
+        final String finalJournal = journal;
+        final String finalMood = mood;
+        final String finalPriority = priority;
+        final boolean finalIsFavorite = isFavorite;
 
         new Thread(() -> {
             String finalImageUrl = ImageUtils.downloadAndSaveImage(AddMediaActivity.this, imageUrl);
@@ -687,6 +756,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                     
                     if (result != -1) {
                         dbHelper.updateProgress((int) result, finalProgress, finalStatus, finalRating);
+                        dbHelper.updateMediaMetadata((int) result, finalReview, finalJournal, finalMood, finalPriority, finalIsFavorite);
                         
                         Snackbar snackbar = Snackbar.make(coordinatorLayout, "Successfully added to MediaVault!", Snackbar.LENGTH_SHORT);
                         snackbar.getView().setBackgroundColor(ContextCompat.getColor(AddMediaActivity.this, android.R.color.holo_green_dark));
@@ -721,16 +791,37 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                 .show();
     }
 
+    private String getSelectedManualMood() {
+        int checkedId = chipGroupManualMood.getCheckedChipId();
+        if (checkedId == R.id.chip_manual_mood_excited) return "Excited";
+        if (checkedId == R.id.chip_manual_mood_happy) return "Happy";
+        if (checkedId == R.id.chip_manual_mood_neutral) return "Neutral";
+        if (checkedId == R.id.chip_manual_mood_sad) return "Sad";
+        if (checkedId == R.id.chip_manual_mood_mindblown) return "Mind-blown";
+        return "";
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
-        registerReceiver(networkReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
+       if (!isNetworkReceiverRegistered) {
+            IntentFilter filter = new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION);
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                registerReceiver(networkReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+            } else {
+                registerReceiver(networkReceiver, filter);
+            }
+            isNetworkReceiverRegistered = true;
+        }
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        unregisterReceiver(networkReceiver);
+        if (isNetworkReceiverRegistered) {
+            unregisterReceiver(networkReceiver);
+            isNetworkReceiverRegistered = false;
+        }
     }
 
     private class NetworkReceiver extends BroadcastReceiver {

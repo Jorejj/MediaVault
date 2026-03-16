@@ -13,20 +13,20 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingHorizontal="@dimen/screen_padding_horizontal"
-        android:paddingTop="@dimen/screen_padding_vertical"
-        android:paddingBottom="@dimen/screen_bottom_spacing"
+        android:paddingHorizontal="16dp"
+        android:paddingTop="16dp"
+        android:paddingBottom="80dp"
         android:clipToPadding="false">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/screen_section_spacing">
+            android:layout_marginBottom="24dp">
 
             <ImageView
                 android:id="@+id/img_logo"
-                android:layout_width="@dimen/top_logo_size"
-                android:layout_height="@dimen/top_logo_size"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
                 android:src="@drawable/mediavault_logo"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
@@ -35,7 +35,7 @@
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/screen_section_spacing_small"
+                android:layout_marginStart="12dp"
                 android:orientation="vertical"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -46,16 +46,17 @@
                     android:id="@+id/tv_metrics_title"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    style="@style/TextScreenTitle"
-                    android:text="@string/Stats"
+                    android:text="Stats"
+                    android:textColor="?attr/colorTextPrimary"
+                    android:textStyle="bold"
                     android:textSize="24sp" />
 
                 <TextView
                     android:id="@+id/tv_metrics_subtitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    style="@style/TextBody"
-                    android:text="@string/your_stats"
+                    android:text="Your vault activity"
+                    android:textColor="?attr/colorTextSecondary"
                     android:textSize="14sp" />
             </LinearLayout>
         </androidx.constraintlayout.widget.ConstraintLayout>
@@ -64,37 +65,46 @@
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:background="@drawable/glow_glass_bg"
-            app:cardBackgroundColor="@android:color/transparent"
+            android:layout_marginBottom="20dp"
+            android:translationZ="4dp"
+            app:cardBackgroundColor="@color/bg_card"
             app:cardCornerRadius="20dp"
-            app:cardElevation="0dp"
+            app:cardElevation="12dp"
             app:strokeColor="@color/glass_border"
-            app:strokeWidth="1.5dp">
+            app:strokeWidth="1.5dp"
+            android:outlineAmbientShadowColor="@color/vault_red_primary"
+            android:outlineSpotShadowColor="@color/vault_red_dark">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:gravity="center_horizontal"
+                android:padding="12dp">
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    android:text="@string/overview"
-                    style="@style/TextCaption" />
+                    android:layout_marginBottom="10dp"
+                    android:text="OVERVIEW"
+                    android:textColor="?attr/colorTextSecondary"
+                    android:textSize="12sp"
+                    android:letterSpacing="0.1"
+                    android:textStyle="bold" />
 
                 <GridLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:columnCount="2"
+                    android:alignmentMode="alignMargins"
+                    android:layout_gravity="center_horizontal"
                     android:useDefaultMargins="true">
 
                     <LinearLayout
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_columnWeight="1"
+                        android:gravity="center_horizontal"
                         android:orientation="vertical">
 
                         <TextView
@@ -103,14 +113,14 @@
                             android:layout_height="wrap_content"
                             android:text="0"
                             android:textColor="?attr/colorTextPrimary"
-                            android:textSize="24sp"
+                            android:textSize="20sp"
                             android:textStyle="bold" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginBottom="16dp"
-                            android:text="@string/completed_books"
+                            android:text="Books"
                             android:textColor="?attr/colorTextSecondary" />
                     </LinearLayout>
 
@@ -118,6 +128,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_columnWeight="1"
+                        android:gravity="center_horizontal"
                         android:orientation="vertical">
 
                         <TextView
@@ -126,14 +137,14 @@
                             android:layout_height="wrap_content"
                             android:text="0"
                             android:textColor="?attr/colorTextPrimary"
-                            android:textSize="24sp"
+                            android:textSize="20sp"
                             android:textStyle="bold" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:layout_marginBottom="16dp"
-                            android:text="@string/completed_movies"
+                            android:text="Movies"
                             android:textColor="?attr/colorTextSecondary" />
                     </LinearLayout>
 
@@ -141,6 +152,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_columnWeight="1"
+                        android:gravity="center_horizontal"
                         android:orientation="vertical">
 
                         <TextView
@@ -149,13 +161,13 @@
                             android:layout_height="wrap_content"
                             android:text="0"
                             android:textColor="?attr/colorTextPrimary"
-                            android:textSize="24sp"
+                            android:textSize="20sp"
                             android:textStyle="bold" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/completed_anime"
+                            android:text="Anime"
                             android:textColor="?attr/colorTextSecondary" />
                     </LinearLayout>
 
@@ -163,6 +175,7 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_columnWeight="1"
+                        android:gravity="center_horizontal"
                         android:orientation="vertical">
 
                         <TextView
@@ -171,13 +184,13 @@
                             android:layout_height="wrap_content"
                             android:text="0"
                             android:textColor="?attr/colorTextPrimary"
-                            android:textSize="24sp"
+                            android:textSize="20sp"
                             android:textStyle="bold" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/completed_series"
+                            android:text="Series"
                             android:textColor="?attr/colorTextSecondary" />
                     </LinearLayout>
 
@@ -190,13 +203,15 @@
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:background="@drawable/glow_glass_bg"
-            app:cardBackgroundColor="@android:color/transparent"
+            android:layout_marginBottom="20dp"
+            android:translationZ="4dp"
+            app:cardBackgroundColor="@color/bg_card"
             app:cardCornerRadius="20dp"
-            app:cardElevation="0dp"
+            app:cardElevation="12dp"
             app:strokeColor="@color/glass_border"
-            app:strokeWidth="1.5dp">
+            app:strokeWidth="1.5dp"
+            android:outlineAmbientShadowColor="@color/vault_red_primary"
+            android:outlineSpotShadowColor="@color/vault_red_dark">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -207,8 +222,8 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:text="@string/vault_composition"
+                    android:layout_marginBottom="4dp"
+                    android:text="Vault Composition"
                     android:textColor="?attr/colorTextPrimary"
                     android:textSize="18sp"
                     android:textStyle="bold" />
@@ -221,10 +236,15 @@
                     android:textColor="?attr/colorTextSecondary"
                     android:textSize="14sp" />
 
-                <com.github.mikephil.charting.charts.PieChart
-                    android:id="@+id/chart_vault_composition"
+                <FrameLayout
                     android:layout_width="match_parent"
-                    android:layout_height="280dp" />
+                    android:layout_height="350dp">
+
+                    <WebView
+                        android:id="@+id/webview_vault_composition"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent" />
+                </FrameLayout>
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
@@ -233,13 +253,15 @@
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:background="@drawable/glow_glass_bg"
-            app:cardBackgroundColor="@android:color/transparent"
+            android:layout_marginBottom="20dp"
+            android:translationZ="4dp"
+            app:cardBackgroundColor="@color/bg_card"
             app:cardCornerRadius="20dp"
-            app:cardElevation="0dp"
+            app:cardElevation="12dp"
             app:strokeColor="@color/glass_border"
-            app:strokeWidth="1.5dp">
+            app:strokeWidth="1.5dp"
+            android:outlineAmbientShadowColor="@color/vault_red_primary"
+            android:outlineSpotShadowColor="@color/vault_red_dark">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -250,8 +272,8 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="8dp"
-                    android:text="@string/backlog_health"
+                    android:layout_marginBottom="4dp"
+                    android:text="Library Health"
                     android:textColor="?attr/colorTextPrimary"
                     android:textSize="18sp"
                     android:textStyle="bold" />
@@ -260,7 +282,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
-                    android:text="@string/completed_vs_backlog"
+                    android:text="Completed vs. Backlog"
                     android:textColor="?attr/colorTextSecondary"
                     android:textSize="14sp" />
 
@@ -274,7 +296,7 @@
                         android:id="@+id/txt_backlog_status"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/backlog_status_healthy"
+                        android:text="Healthy"
                         android:textColor="@color/accent_green"
                         android:textSize="24sp"
                         android:textStyle="bold" />
@@ -305,13 +327,15 @@
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="16dp"
-            android:background="@drawable/glow_glass_bg"
-            app:cardBackgroundColor="@android:color/transparent"
+            android:layout_marginBottom="20dp"
+            android:translationZ="4dp"
+            app:cardBackgroundColor="@color/bg_card"
             app:cardCornerRadius="20dp"
-            app:cardElevation="0dp"
+            app:cardElevation="12dp"
             app:strokeColor="@color/glass_border"
-            app:strokeWidth="1.5dp">
+            app:strokeWidth="1.5dp"
+            android:outlineAmbientShadowColor="@color/vault_red_primary"
+            android:outlineSpotShadowColor="@color/vault_red_dark">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -323,7 +347,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="8dp"
-                    android:text="@string/reading_and_watching_habits"
+                    android:text="Consumption Habits"
                     android:textColor="?attr/colorTextPrimary"
                     android:textSize="18sp"
                     android:textStyle="bold" />
@@ -333,10 +357,12 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
-                    app:tabMode="fixed"
-                    app:tabGravity="fill"
-                    app:tabSelectedTextColor="@color/accent_blue"
-                    app:tabIndicatorColor="@color/accent_blue">
+                    app:tabMode="scrollable"
+                    app:tabGravity="start"
+                    app:tabInlineLabel="true"
+                    app:tabSelectedTextColor="@color/vault_red_primary"
+                    app:tabIndicatorColor="@color/vault_red_primary"
+                    android:background="@android:color/transparent">
                     <com.google.android.material.tabs.TabItem
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -352,14 +378,19 @@
                     <com.google.android.material.tabs.TabItem
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Yearly" />
+                        android:text="All-Time" />
                 </com.google.android.material.tabs.TabLayout>
 
-                <com.github.mikephil.charting.charts.BarChart
-                    android:id="@+id/chart_monthly_activity"
+                <FrameLayout
                     android:layout_width="match_parent"
-                    android:layout_height="250dp"
-                    android:layout_marginBottom="16dp" />
+                    android:layout_height="330dp"
+                    android:layout_marginBottom="16dp">
+
+                    <WebView
+                        android:id="@+id/webview_monthly_activity"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent" />
+                </FrameLayout>
 
                 <GridLayout
                     android:layout_width="match_parent"
@@ -371,16 +402,17 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_columnWeight="1"
-                        app:cardBackgroundColor="@color/accent_blue"
+                        app:cardBackgroundColor="@color/vault_red_primary"
                         app:cardCornerRadius="8dp"
-                        app:cardElevation="0dp">
+                        app:cardElevation="4dp">
 
                         <TextView
                             android:id="@+id/txt_top_genre"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:padding="8dp"
+                            android:padding="12dp"
                             android:text="Top Genre: -"
+                            android:textStyle="bold"
                             android:textColor="@color/white" />
                     </com.google.android.material.card.MaterialCardView>
 
@@ -388,16 +420,17 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_columnWeight="1"
-                        app:cardBackgroundColor="@color/accent_blue"
+                        app:cardBackgroundColor="@color/vault_red_dark"
                         app:cardCornerRadius="8dp"
-                        app:cardElevation="0dp">
+                        app:cardElevation="4dp">
 
                         <TextView
                             android:id="@+id/txt_avg_rating"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:padding="8dp"
-                            android:text="Avg Rating: 0.0"
+                            android:padding="12dp"
+                            android:text="Avg Rating: 0"
+                            android:textStyle="bold"
                             android:textColor="@color/white" />
                     </com.google.android.material.card.MaterialCardView>
 

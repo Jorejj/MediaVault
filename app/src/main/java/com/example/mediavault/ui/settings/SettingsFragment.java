@@ -572,6 +572,11 @@ public class SettingsFragment extends Fragment {
     }
 
     private void saveCsvToDownloadsApi29(String fileName) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
+            saveCsvToDownloadsLegacy(fileName);
+            return;
+        }
+
         ContentValues values = new ContentValues();
         values.put(MediaStore.Downloads.DISPLAY_NAME, fileName);
         values.put(MediaStore.Downloads.MIME_TYPE, "text/csv");

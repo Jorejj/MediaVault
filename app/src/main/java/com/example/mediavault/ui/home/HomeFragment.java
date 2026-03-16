@@ -1,7 +1,9 @@
 package com.example.mediavault.ui.home;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.hardware.Sensor;
@@ -17,6 +19,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
 
@@ -47,7 +50,7 @@ import com.example.mediavault.api.MediaSearchManager;
 public class HomeFragment extends Fragment {
 
     private TextView tvWatchTime, tvPagesRead, tvEpisodesWatched, tvBooksCompleted, tvOngoingItems, tvAvgRating;
-    private TextView tvSpotlightLabel, tvSpotlightTitle, tvSpotlightStatus;
+    private TextView tvSpotlightLabel, tvSpotlightTitle, tvSpotlightStatus, tvProgressAlert;
     private ProgressBar progressSpotlight, pbSpotlightLoading;
     private TextView tvViewDetailedStats;
     private MaterialButton btnAnalyzeHabits;
@@ -56,6 +59,18 @@ public class HomeFragment extends Fragment {
     private ImageView ivSpotlightBg;
     private View recentItem1, recentItem2, recentItem3, recentItem4;
     private MediaSearchManager searchManager;
+    private boolean isUpdateReceiverRegistered = false;
+    private final BroadcastReceiver updateReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (DescriptionActivity.ACTION_MEDIA_UPDATED.equals(intent.getAction())) {
+                updateOverviewStats();
+                setupRecentActivities();
+                updateBacklogSpotlight();
+                ToastUtils.showCustomToast(context, "Home data refreshed");
+            }
+        }
+    };
 
     @Nullable
     @Override
@@ -75,6 +90,7 @@ public class HomeFragment extends Fragment {
         tvSpotlightLabel = view.findViewById(R.id.tv_spotlight_label);
         tvSpotlightTitle = view.findViewById(R.id.tv_spotlight_title);
         tvSpotlightStatus = view.findViewById(R.id.tv_spotlight_status);
+        tvProgressAlert = view.findViewById(R.id.tv_progress_alert);
         progressSpotlight = view.findViewById(R.id.progress_spotlight);
         pbSpotlightLoading = view.findViewById(R.id.pb_spotlight_loading);
         spotlightCard = view.findViewById(R.id.card_spotlight);
@@ -98,9 +114,25 @@ public class HomeFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+        Context context = getContext();
+        if (!isUpdateReceiverRegistered && context != null) {
+            IntentFilter filter = new IntentFilter(DescriptionActivity.ACTION_MEDIA_UPDATED);
+            ContextCompat.registerReceiver(context, updateReceiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED);
+            isUpdateReceiverRegistered = true;
+        }
         updateOverviewStats();
         setupRecentActivities();
         updateBacklogSpotlight();
+    }
+
+    @Override
+    public void onPause() {
+        Context context = getContext();
+        if (isUpdateReceiverRegistered && context != null) {
+            context.unregisterReceiver(updateReceiver);
+            isUpdateReceiverRegistered = false;
+        }
+        super.onPause();
     }
 
     private void setupRecentActivities() {
@@ -282,6 +314,9 @@ public class HomeFragment extends Fragment {
                 int total = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_TOTAL_COUNT));
                 String unit = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_UNIT));
                 String imagePath = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_IMAGE_PATH));
+                String lastUpdated = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_LAST_UPDATED));
+                int safeTotal = Math.max(total, 1);
+                int safeProgress = Math.max(0, Math.min(progress, safeTotal));
 
                 // Auto-fetch if missing
                 if (imagePath == null || imagePath.isEmpty()) {
@@ -304,9 +339,12 @@ public class HomeFragment extends Fragment {
 
                 tvSpotlightLabel.setText("Currently " + status);
                 tvSpotlightTitle.setText(title);
-                tvSpotlightStatus.setText(status + " • " + progress + "/" + total + " " + unit);
-                progressSpotlight.setMax(Math.max(total, 1));
-                progressSpotlight.setProgress(Math.min(progress, total));
+                tvSpotlightStatus.setText(status + " • " + safeProgress + "/" + total + " " + unit);
+                progressSpotlight.setMax(safeTotal);
+                progressSpotlight.setProgress(safeProgress);
+                if (tvProgressAlert != null) {
+                    tvProgressAlert.setText(buildProgressAlert(title, type, status, safeProgress, total, unit, lastUpdated));
+                }
                 
                 if (imagePath != null && !imagePath.isEmpty()) {
                     if (pbSpotlightLoading != null) pbSpotlightLoading.setVisibility(View.VISIBLE);
@@ -346,11 +384,63 @@ public class HomeFragment extends Fragment {
                 tvSpotlightStatus.setText("Plan something new");
                 progressSpotlight.setMax(100);
                 progressSpotlight.setProgress(0);
+                if (tvProgressAlert != null) {
+                    tvProgressAlert.setText("Alert received: Add something to Planning or Ongoing to start progress tracking.");
+                }
                 if (ivSpotlightBg != null) ivSpotlightBg.setImageResource(R.drawable.cinematic_bg);
                 spotlightCard.setOnClickListener(null);
             }
         } finally {
             cursor.close();
+        }
+    }
+
+    private String buildProgressAlert(String title, String type, String status, int progress, int total, String unit, String lastUpdated) {
+        if (total <= 0) {
+            return "Alert received: \"" + title + "\" has no total target yet. Edit it to enable accurate tracking.";
+        }
+
+        int percent = (int) ((progress / (float) total) * 100f);
+        long daysSinceUpdate = getDaysSince(lastUpdated);
+
+        if ("Completed".equalsIgnoreCase(status) || progress >= total) {
+            return "Alert received: Completed! \"" + title + "\" hit 100%. Nice finish.";
+        }
+
+        if (progress == 0 && "Planning".equalsIgnoreCase(status)) {
+            return "Alert received: \"" + title + "\" is queued in Planning. Start when you're ready.";
+        }
+
+        if (daysSinceUpdate >= 7 && "Ongoing".equalsIgnoreCase(status)) {
+            return "Alert received: No updates for " + daysSinceUpdate + " days. Continue \"" + title + "\" to keep momentum.";
+        }
+
+        if (percent >= 90) {
+            return "Alert received: Final stretch! \"" + title + "\" is at " + percent + "% (" + progress + "/" + total + " " + unit + ").";
+        }
+
+        if ("Book".equalsIgnoreCase(type) || "Manga".equalsIgnoreCase(type)) {
+            return "Alert received: Reading progress is " + percent + "%. Keep building your reading streak.";
+        }
+
+        return "Alert received: Progress is " + percent + "% on \"" + title + "\".";
+    }
+
+    private long getDaysSince(String dateString) {
+        if (dateString == null || dateString.isEmpty()) {
+            return 0L;
+        }
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+        try {
+            Date parsed = sdf.parse(dateString);
+            if (parsed == null) {
+                return 0L;
+            }
+            long diff = System.currentTimeMillis() - parsed.getTime();
+            return Math.max(0L, diff / 86400000L);
+        } catch (ParseException e) {
+            return 0L;
         }
     }
 

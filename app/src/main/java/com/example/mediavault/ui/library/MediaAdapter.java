@@ -24,14 +24,19 @@ import com.example.mediavault.R;
 import com.google.android.material.card.MaterialCardView;
 
 import java.io.File;
+import java.util.Locale;
 import java.util.List;
 
 import android.content.Context;
 import android.content.DialogInterface;
+import android.text.TextUtils;
+import android.widget.LinearLayout;
 import androidx.appcompat.widget.PopupMenu;
 import com.example.mediavault.DatabaseHelper;
 import com.example.mediavault.widget.ToastUtils;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.textfield.TextInputEditText;
+import com.google.android.material.textfield.TextInputLayout;
 import com.example.mediavault.api.MediaSearchManager;
 
 public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHolder> {
@@ -76,7 +81,7 @@ public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHol
         MediaItem item = mediaItems.get(position);
         if (holder.title != null) holder.title.setText(item.getTitle() != null ? item.getTitle() : "Unknown");
         if (holder.subtitle != null) holder.subtitle.setText(item.getSubtitle() != null ? item.getSubtitle() : "");
-        if (holder.rating != null) holder.rating.setText("★ " + item.getRatingValue());
+        if (holder.rating != null) holder.rating.setText(String.format(Locale.getDefault(), "★ %.1f", item.getRatingValue()));
         if (holder.progressBar != null) {
             int capacity = Math.max(item.getCapacity(), 0);
             int progress = Math.min(Math.max(item.getProgress(), 0), capacity > 0 ? capacity : 0);
@@ -151,6 +156,9 @@ public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHol
                     popup.getMenu().add(0, 1, 0, "Recover to Planning");
                     popup.getMenu().add(0, 2, 1, "Delete Permanently");
                 } else {
+                    if ("Book".equalsIgnoreCase(item.getType()) || "Manga".equalsIgnoreCase(item.getType())) {
+                        popup.getMenu().add(0, 4, 0, "Add to Collection");
+                    }
                     popup.getMenu().add(0, 3, 0, "Delete");
                 }
 
@@ -169,8 +177,19 @@ public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHol
                                 .setMessage("This action cannot be undone.")
                                 .setPositiveButton("Delete", (dialog, which) -> {
                                     dbHelper.deleteMedia(item.getId());
-                                    mediaItems.remove(position);
-                                    notifyItemRemoved(position);
+                                    int adapterPosition = holder.getBindingAdapterPosition();
+                                    if (adapterPosition != RecyclerView.NO_POSITION) {
+                                        mediaItems.remove(adapterPosition);
+                                        notifyItemRemoved(adapterPosition);
+                                    } else {
+                                        int fallbackIndex = mediaItems.indexOf(item);
+                                        if (fallbackIndex >= 0) {
+                                            mediaItems.remove(fallbackIndex);
+                                            notifyItemRemoved(fallbackIndex);
+                                        } else {
+                                            notifyDataSetChanged();
+                                        }
+                                    }
                                     ToastUtils.showCustomToast(context, "Permanently deleted");
                                 })
                                 .setNegativeButton("Cancel", null)
@@ -182,12 +201,26 @@ public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHol
                                 .setMessage("It will be moved to Recently Deleted.")
                                 .setPositiveButton("Delete", (dialog, which) -> {
                                     dbHelper.updateProgress(item.getId(), item.getProgress(), "Recently Deleted", item.getRatingValue());
-                                    mediaItems.remove(position);
-                                    notifyItemRemoved(position);
+                                    int adapterPosition = holder.getBindingAdapterPosition();
+                                    if (adapterPosition != RecyclerView.NO_POSITION) {
+                                        mediaItems.remove(adapterPosition);
+                                        notifyItemRemoved(adapterPosition);
+                                    } else {
+                                        int fallbackIndex = mediaItems.indexOf(item);
+                                        if (fallbackIndex >= 0) {
+                                            mediaItems.remove(fallbackIndex);
+                                            notifyItemRemoved(fallbackIndex);
+                                        } else {
+                                            notifyDataSetChanged();
+                                        }
+                                    }
                                     ToastUtils.showCustomToast(context, "Moved to Recently Deleted");
                                 })
                                 .setNegativeButton("Cancel", null)
                                 .show();
+                            return true;
+                        case 4: // Add to Collection
+                            showAddToCollectionDialog(context, item, holder);
                             return true;
                         default:
                             return false;
@@ -224,6 +257,48 @@ public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHol
         if (holder.rating != null) {
             holder.rating.setTextColor(Color.WHITE);
         }
+    }
+
+    private void showAddToCollectionDialog(@NonNull Context context, @NonNull MediaItem item, @NonNull MediaViewHolder holder) {
+        int padding = (int) (20 * context.getResources().getDisplayMetrics().density);
+        LinearLayout dialogContainer = new LinearLayout(context);
+        dialogContainer.setOrientation(LinearLayout.VERTICAL);
+        dialogContainer.setPadding(padding, padding / 2, padding, padding / 4);
+
+        TextInputLayout inputLayout = new TextInputLayout(context);
+        TextInputEditText input = new TextInputEditText(context);
+        input.setSingleLine(true);
+        input.setHint("Collection name");
+        inputLayout.addView(input);
+        dialogContainer.addView(inputLayout);
+
+        new MaterialAlertDialogBuilder(context)
+                .setTitle("Add to Collection")
+                .setView(dialogContainer)
+                .setPositiveButton("Add", (dialog, which) -> {
+                    String collectionName = input.getText() != null ? input.getText().toString().trim() : "";
+                    if (TextUtils.isEmpty(collectionName)) {
+                        ToastUtils.showCustomToast(context, "Collection name is required");
+                        return;
+                    }
+                    boolean updated = dbHelper.addCollectionTag(item.getId(), collectionName);
+                    if (!updated) {
+                        ToastUtils.showCustomToast(context, "Could not update collection");
+                        return;
+                    }
+                    String currentGenre = item.getGenre() == null ? "" : item.getGenre();
+                    if (!currentGenre.toLowerCase(Locale.ROOT).contains(collectionName.toLowerCase(Locale.ROOT))) {
+                        String newGenre = currentGenre.isEmpty() ? collectionName : currentGenre + ", " + collectionName;
+                        item.setGenre(newGenre);
+                    }
+                    int adapterPosition = holder.getBindingAdapterPosition();
+                    if (adapterPosition != RecyclerView.NO_POSITION) {
+                        notifyItemChanged(adapterPosition);
+                    }
+                    ToastUtils.showCustomToast(context, "Added to " + collectionName);
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     static class MediaViewHolder extends RecyclerView.ViewHolder {

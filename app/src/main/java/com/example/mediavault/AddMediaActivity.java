@@ -8,19 +8,23 @@ import android.database.sqlite.SQLiteConstraintException;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Bundle;
+import android.text.InputType;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
+import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.RatingBar;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.example.mediavault.widget.ToastUtils;
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -40,6 +44,8 @@ import com.example.mediavault.api.TmdbResponse;
 import com.example.mediavault.api.TvDetailResponse;
 import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.card.MaterialCardView;
+import com.google.android.material.slider.Slider;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.textfield.TextInputEditText;
 
@@ -77,6 +83,12 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
     private Spinner spinnerManualType, spinnerManualStatus, spinnerTotalUnit;
     private RatingBar rbManualRating;
     private Button btnManualDone;
+    private LinearLayout layoutDurationSlider;
+    private Slider sliderManualDuration;
+    private TextView tvDurationValue;
+    private TextView tvLabelProgress;
+    private TextView tvLabelTotal;
+    private MaterialCardView cardManualEntry;
 
     private DatabaseHelper dbHelper;
     private NetworkReceiver networkReceiver;
@@ -142,6 +154,12 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         etManualAuthor = findViewById(R.id.et_manual_author);
         etManualDescription = findViewById(R.id.et_manual_description);
         btnManualDone = findViewById(R.id.btn_manual_done);
+        layoutDurationSlider = findViewById(R.id.layout_duration_slider);
+        sliderManualDuration = findViewById(R.id.slider_manual_duration);
+        tvDurationValue = findViewById(R.id.tv_duration_value);
+        tvLabelProgress = findViewById(R.id.label_progress);
+        tvLabelTotal = findViewById(R.id.label_total);
+        cardManualEntry = findViewById(R.id.card_manual_entry);
     }
 
     private void setupToggle() {
@@ -205,7 +223,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
 
     private void performApiSearch() {
         if (!isNetworkAvailable()) {
-            Toast.makeText(this, "No internet connection. Please use Manual Entry.", Toast.LENGTH_SHORT).show();
+            ToastUtils.showCustomToast(this, "No internet connection. Please use Manual Entry.");
             return;
         }
 
@@ -499,23 +517,29 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         etManualTitle.setText(result.getTitle());
         setSpinnerToValue(spinnerManualType, result.getType());
         spinnerManualType.setEnabled(result.getType() == null || result.getType().isEmpty());
-        
+        updateManualCapacityUI();
+
         etManualTotal.setText(result.getCapacity() != null ? String.valueOf(result.getCapacity()) : "");
         etManualTotal.setEnabled(result.getCapacity() == null);
-        
+
         setSpinnerToValue(spinnerTotalUnit, result.getUnit());
         spinnerTotalUnit.setEnabled(result.getUnit() == null || result.getUnit().isEmpty() || result.getUnit().equals("Unknown"));
 
         etManualImage.setText(result.getImageUrl());
+
+        // Hide image path input when populating from API
+        if (etManualImage.getParent().getParent() instanceof View) {
+            ((View) etManualImage.getParent().getParent()).setVisibility(View.GONE);
+        }
+
         etManualDescription.setText(result.getDescription());
         etManualGenre.setText(result.getGenre());
         etManualAuthor.setText(result.getAuthor());
         toggleGroup.check(R.id.btn_mode_manual);
 
         String apiName = spinnerApiTarget.getSelectedItem().toString();
-        Toast.makeText(this, "Auto-filled data from " + apiName + ". Please review.", Toast.LENGTH_SHORT).show();
+        ToastUtils.showCustomToast(this, "Auto-filled data from " + apiName + ". Please review.");
     }
-
     private void setSpinnerToValue(Spinner spinner, String value) {
         if (value == null) return;
         for (int i = 0; i < spinner.getCount(); i++) {
@@ -527,7 +551,85 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
     }
 
     private void setupManualEntry() {
+        spinnerManualType.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                updateManualCapacityUI();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                updateManualCapacityUI();
+            }
+        });
+
+        sliderManualDuration.addOnChangeListener((slider, value, fromUser) -> {
+            int minutes = (int) value;
+            tvDurationValue.setText(minutes + " min");
+            etManualTotal.setText(String.valueOf(minutes));
+        });
+
+        updateManualCapacityUI();
         btnManualDone.setOnClickListener(v -> saveToDatabase());
+    }
+
+    private void updateManualCapacityUI() {
+        String type = spinnerManualType.getSelectedItem() != null ? spinnerManualType.getSelectedItem().toString() : "";
+        if ("Book".equalsIgnoreCase(type)) {
+            layoutDurationSlider.setVisibility(View.GONE);
+            setSpinnerToValue(spinnerTotalUnit, "Pages");
+            tvLabelProgress.setText("Pages Read");
+            tvLabelTotal.setText("Total Pages");
+            if (cardManualEntry != null) {
+                cardManualEntry.setStrokeColor(ContextCompat.getColor(this, R.color.bookly_blue));
+            }
+            etManualTotal.setHint("Total Pages");
+            etManualTotal.setInputType(InputType.TYPE_CLASS_NUMBER);
+        } else if ("Movie".equalsIgnoreCase(type)) {
+            layoutDurationSlider.setVisibility(View.VISIBLE);
+            setSpinnerToValue(spinnerTotalUnit, "Minutes");
+            tvLabelProgress.setText("Watched");
+            tvLabelTotal.setText("Duration");
+            if (cardManualEntry != null) {
+                cardManualEntry.setStrokeColor(ContextCompat.getColor(this, R.color.netflix_red));
+            }
+            int minutes = (int) sliderManualDuration.getValue();
+            tvDurationValue.setText(minutes + " min");
+            etManualTotal.setText(String.valueOf(minutes));
+            etManualTotal.setHint("Duration (minutes)");
+            etManualTotal.setInputType(InputType.TYPE_CLASS_NUMBER);
+        } else if ("Anime".equalsIgnoreCase(type) || "Series".equalsIgnoreCase(type)) {
+            layoutDurationSlider.setVisibility(View.GONE);
+            setSpinnerToValue(spinnerTotalUnit, "Episodes");
+            tvLabelProgress.setText("Progress");
+            tvLabelTotal.setText("Episodes");
+            if (cardManualEntry != null) {
+                int accent = "Series".equalsIgnoreCase(type)
+                        ? ContextCompat.getColor(this, R.color.netflix_red)
+                        : ContextCompat.getColor(this, R.color.crunchy_orange);
+                cardManualEntry.setStrokeColor(accent);
+            }
+            etManualTotal.setHint("Total Episodes");
+            etManualTotal.setInputType(InputType.TYPE_CLASS_NUMBER);
+        } else if ("Manga".equalsIgnoreCase(type)) {
+            layoutDurationSlider.setVisibility(View.GONE);
+            setSpinnerToValue(spinnerTotalUnit, "Chapters");
+            tvLabelProgress.setText("Progress");
+            tvLabelTotal.setText("Chapters");
+            if (cardManualEntry != null) {
+                cardManualEntry.setStrokeColor(ContextCompat.getColor(this, R.color.crunchy_orange));
+            }
+            etManualTotal.setHint("Total Chapters");
+            etManualTotal.setInputType(InputType.TYPE_CLASS_NUMBER);
+        } else {
+            layoutDurationSlider.setVisibility(View.GONE);
+            tvLabelProgress.setText("Progress");
+            tvLabelTotal.setText("Total");
+            if (cardManualEntry != null) {
+                cardManualEntry.setStrokeColor(ContextCompat.getColor(this, R.color.glass_border));
+            }
+            etManualTotal.setHint("Total");
+        }
     }
 
     private void saveToDatabase() {
@@ -556,7 +658,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
             }
             total = Integer.parseInt(capacityStr);
         } catch (NumberFormatException e) {
-            Toast.makeText(this, "Invalid numeric input", Toast.LENGTH_SHORT).show();
+            ToastUtils.showCustomToast(this, "Invalid numeric input");
             return;
         }
 
@@ -573,33 +675,42 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
             status = "Completed";
         }
 
-        try {
-            long result = dbHelper.addMedia(title, type, genre, creator, total, unit, null, imageUrl, description);
-            
-            if (result != -1) {
-                dbHelper.updateProgress((int) result, progress, status, rating);
-                
-                Snackbar snackbar = Snackbar.make(coordinatorLayout, "Successfully added to MediaVault!", Snackbar.LENGTH_SHORT);
-                snackbar.getView().setBackgroundColor(ContextCompat.getColor(this, android.R.color.holo_green_dark));
-                snackbar.addCallback(new Snackbar.Callback() {
-                    @Override
-                    public void onDismissed(Snackbar transientBottomBar, int event) {
-                        finish();
+        final int finalProgress = progress;
+        final String finalStatus = status;
+        final float finalRating = rating;
+
+        new Thread(() -> {
+            String finalImageUrl = ImageUtils.downloadAndSaveImage(AddMediaActivity.this, imageUrl);
+            runOnUiThread(() -> {
+                try {
+                    long result = dbHelper.addMedia(title, type, genre, creator, total, unit, null, finalImageUrl, description);
+                    
+                    if (result != -1) {
+                        dbHelper.updateProgress((int) result, finalProgress, finalStatus, finalRating);
+                        
+                        Snackbar snackbar = Snackbar.make(coordinatorLayout, "Successfully added to MediaVault!", Snackbar.LENGTH_SHORT);
+                        snackbar.getView().setBackgroundColor(ContextCompat.getColor(AddMediaActivity.this, android.R.color.holo_green_dark));
+                        snackbar.addCallback(new Snackbar.Callback() {
+                            @Override
+                            public void onDismissed(Snackbar transientBottomBar, int event) {
+                                finish();
+                            }
+                        });
+                        snackbar.show();
+                        
+                    } else {
+                        Log.e(TAG, "Insertion failed for title: " + title);
+                        ToastUtils.showCustomToast(AddMediaActivity.this, "Error: Could not save to database.");
                     }
-                });
-                snackbar.show();
-                
-            } else {
-                Log.e(TAG, "Insertion failed for title: " + title);
-                Toast.makeText(this, "Error: Could not save to database.", Toast.LENGTH_SHORT).show();
-            }
-        } catch (SQLiteConstraintException e) {
-            Log.e(TAG, "Constraint violation: " + e.getMessage());
-            showDuplicateEntryDialog();
-        } catch (Exception e) {
-            Log.e(TAG, "Unexpected DB error: " + e.getMessage());
-            Toast.makeText(this, "A database error occurred.", Toast.LENGTH_SHORT).show();
-        }
+                } catch (SQLiteConstraintException e) {
+                    Log.e(TAG, "Constraint violation: " + e.getMessage());
+                    showDuplicateEntryDialog();
+                } catch (Exception e) {
+                    Log.e(TAG, "Unexpected DB error: " + e.getMessage());
+                    ToastUtils.showCustomToast(AddMediaActivity.this, "A database error occurred.");
+                }
+            });
+        }).start();
     }
 
     private void showDuplicateEntryDialog() {

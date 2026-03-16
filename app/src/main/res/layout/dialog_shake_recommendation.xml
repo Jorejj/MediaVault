@@ -3,86 +3,93 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    app:cardCornerRadius="24dp"
-    app:cardElevation="8dp"
-    app:strokeWidth="1dp"
-    app:strokeColor="@color/grey_200"
-    app:cardBackgroundColor="?attr/colorCardBackground">
+    app:cardCornerRadius="28dp"
+    app:cardBackgroundColor="@android:color/transparent"
+    app:cardElevation="0dp"
+    app:strokeWidth="1.5dp"
+    app:strokeColor="@color/glass_border">
 
-    <LinearLayout
+    <eightbitlab.com.blurview.BlurView
+        android:id="@+id/dialog_blur_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="24dp"
-        android:gravity="center_horizontal">
+        app:blurOverlayColor="#BF000000">
 
-        <TextView
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="MediaVault Pick!"
-            android:fontFamily="@font/sf_pro_heavy"
-            android:textSize="14sp"
-            android:textColor="@color/accent_blue"
-            android:textAllCaps="true"
-            android:letterSpacing="0.1"
-            android:layout_marginBottom="16dp" />
+            android:orientation="vertical"
+            android:padding="24dp"
+            android:gravity="center_horizontal">
 
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="140dp"
-            android:layout_height="200dp"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="4dp"
-            app:strokeWidth="0dp"
-            android:layout_marginBottom="20dp">
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="MediaVault Pick!"
+                android:fontFamily="@font/sf_pro_heavy"
+                android:textSize="14sp"
+                android:textColor="@color/netflix_red"
+                android:textAllCaps="true"
+                android:letterSpacing="0.1"
+                android:layout_marginBottom="16dp" />
 
-            <ImageView
-                android:id="@+id/iv_recom_image"
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="140dp"
+                android:layout_height="200dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="4dp"
+                app:strokeWidth="0dp"
+                android:layout_marginBottom="20dp">
+
+                <ImageView
+                    android:id="@+id/iv_recom_image"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:scaleType="centerCrop"
+                    android:src="@drawable/mediavault_logo" />
+            </com.google.android.material.card.MaterialCardView>
+
+            <TextView
+                android:id="@+id/tv_recom_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Title of Media"
+                android:fontFamily="@font/sf_pro_bold"
+                android:textSize="22sp"
+                android:textColor="@color/white"
+                android:gravity="center"
+                android:layout_marginBottom="4dp" />
+
+            <TextView
+                android:id="@+id/tv_recom_type"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Movie • Sci-Fi"
+                android:fontFamily="@font/sf_pro_medium"
+                android:textSize="14sp"
+                android:textColor="#CCCCCC"
+                android:layout_marginBottom="24dp" />
+
+            <Button
+                android:id="@+id/btn_recom_details"
+                style="@style/BlueButton"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:scaleType="centerCrop"
-                android:src="@drawable/app_logo" />
-        </com.google.android.material.card.MaterialCardView>
+                android:layout_height="56dp"
+                android:text="View Details"
+                android:textAllCaps="false"
+                android:fontFamily="@font/sf_pro_bold"
+                android:layout_marginBottom="12dp" />
 
-        <TextView
-            android:id="@+id/tv_recom_title"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Title of Media"
-            android:fontFamily="@font/sf_pro_bold"
-            android:textSize="22sp"
-            android:textColor="?attr/colorTextPrimary"
-            android:gravity="center"
-            android:layout_marginBottom="4dp" />
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_recom_again"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:text="Shake Again"
+                android:textColor="#99FFFFFF"
+                android:textAllCaps="false"
+                android:fontFamily="@font/sf_pro_medium" />
 
-        <TextView
-            android:id="@+id/tv_recom_type"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Movie • Sci-Fi"
-            android:fontFamily="@font/sf_pro_medium"
-            android:textSize="14sp"
-            android:textColor="@color/grey_600"
-            android:layout_marginBottom="24dp" />
-
-        <Button
-            android:id="@+id/btn_recom_details"
-            style="@style/BlueButton"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:text="View Details"
-            android:textAllCaps="false"
-            android:fontFamily="@font/sf_pro_bold"
-            android:layout_marginBottom="12dp" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_recom_again"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
-            android:layout_width="match_parent"
-            android:layout_height="56dp"
-            android:text="Shake Again"
-            android:textColor="@color/grey_600"
-            android:textAllCaps="false"
-            android:fontFamily="@font/sf_pro_medium" />
-
-    </LinearLayout>
+        </LinearLayout>
+    </eightbitlab.com.blurview.BlurView>
 </com.google.android.material.card.MaterialCardView>

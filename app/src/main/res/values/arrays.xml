@@ -19,11 +19,17 @@
         <item>Ongoing</item>
         <item>Completed</item>
         <item>Dropped</item>
+        <item>Recently Deleted</item>
     </string-array>
     <string-array name="capacity_units">
         <item>Pages</item>
         <item>Episodes</item>
         <item>Minutes</item>
         <item>Chapters</item>
+    </string-array>
+    <string-array name="priority_levels">
+        <item>High</item>
+        <item>Medium</item>
+        <item>Low</item>
     </string-array>
 </resources>

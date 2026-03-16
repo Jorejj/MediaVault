@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="bg_main">#050505</color>
+    <color name="bg_card">#26FFFFFF</color>
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#CCFFFFFF</color>
+    <color name="nav_bg">#E60F0F0F</color>
+    <color name="soft_grey_bg">#050505</color>
+    <color name="light_mode_bg">#050505</color>
+    <color name="glass_border">#99FFFFFF</color>
+    <color name="glass_border_light">#80FFFFFF</color>
+    <color name="chip_unselected_bg">#262626</color>
+    <color name="chip_unselected_text">#CCFFFFFF</color>
+    <color name="slate_grey_muted">#64748B</color>
+</resources>

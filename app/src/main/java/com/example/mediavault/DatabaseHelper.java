@@ -5,14 +5,17 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashSet;
+import java.util.Locale;
 import java.util.Set;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     // Database Information
     private static final String DATABASE_NAME = "MediaVault.db";
-    private static final int DATABASE_VERSION = 8;
+    private static final int DATABASE_VERSION = 9;
     public static final String TABLE_MEDIA = "media_library";
     public static final String TABLE_PROGRESS_LOG = "progress_log";
 
@@ -32,6 +35,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public static final String COL_STATUS = "status";
     public static final String COL_RATING = "user_rating";
     public static final String COL_REVIEW = "personal_review";
+    public static final String COL_JOURNAL = "memory_journal";
+    public static final String COL_MOOD = "finish_mood";
+    public static final String COL_PRIORITY = "priority_level";
     public static final String COL_DATE_ADDED = "date_added";
     public static final String COL_LAST_UPDATED = "last_updated";
     public static final String COL_IS_FAVORITE = "is_favorite";
@@ -71,13 +77,17 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 COL_STATUS + " TEXT DEFAULT 'Planning', " +
                 COL_RATING + " REAL DEFAULT 0.0, " +
                 COL_REVIEW + " TEXT, " +
+                COL_JOURNAL + " TEXT, " +
+                COL_MOOD + " TEXT, " +
+                COL_PRIORITY + " TEXT DEFAULT 'Medium', " +
                 COL_DATE_ADDED + " DATETIME DEFAULT CURRENT_TIMESTAMP, " +
                 COL_LAST_UPDATED + " DATETIME DEFAULT CURRENT_TIMESTAMP, " +
                 COL_IS_FAVORITE + " INTEGER DEFAULT 0, " +
                 "CONSTRAINT unique_title UNIQUE (" + COL_TITLE + "), " +
-                "CONSTRAINT check_status CHECK (" + COL_STATUS + " IN ('Ongoing', 'Completed', 'Planning', 'Dropped')), " +
+                "CONSTRAINT check_status CHECK (" + COL_STATUS + " IN ('Ongoing', 'Completed', 'Planning', 'Dropped', 'Recently Deleted')), " +
                 "CONSTRAINT check_capacity_unit CHECK (" + COL_UNIT + " IN ('Pages', 'Episodes', 'Minutes', 'Chapters')), " +
                 "CONSTRAINT check_user_rating CHECK (" + COL_RATING + " >= 0.0 AND " + COL_RATING + " <= 5.0), " +
+                "CONSTRAINT check_priority_level CHECK (" + COL_PRIORITY + " IN ('High', 'Medium', 'Low')), " +
                 "CONSTRAINT check_total_capacity CHECK (" + COL_TOTAL_COUNT + " > 0), " +
                 "CONSTRAINT check_current_progress CHECK (" + COL_CURRENT_PROGRESS + " >= 0 AND " + COL_CURRENT_PROGRESS + " <= " + COL_TOTAL_COUNT + "), " +
                 "CONSTRAINT check_image_path CHECK (" + COL_IMAGE_PATH + " IS NULL OR " + COL_IMAGE_PATH + " != ''))";
@@ -128,6 +138,19 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             
             createTrigger(db);
         }
+        if (oldVersion < 9) {
+            Set<String> columns = getTableColumns(db, TABLE_MEDIA);
+            if (!columns.contains(COL_JOURNAL)) {
+                db.execSQL("ALTER TABLE " + TABLE_MEDIA + " ADD COLUMN " + COL_JOURNAL + " TEXT");
+            }
+            if (!columns.contains(COL_MOOD)) {
+                db.execSQL("ALTER TABLE " + TABLE_MEDIA + " ADD COLUMN " + COL_MOOD + " TEXT");
+            }
+            if (!columns.contains(COL_PRIORITY)) {
+                db.execSQL("ALTER TABLE " + TABLE_MEDIA + " ADD COLUMN " + COL_PRIORITY + " TEXT DEFAULT 'Medium'");
+                db.execSQL("UPDATE " + TABLE_MEDIA + " SET " + COL_PRIORITY + " = 'Medium' WHERE " + COL_PRIORITY + " IS NULL OR " + COL_PRIORITY + " = ''");
+            }
+        }
     }
 
     private Set<String> getTableColumns(SQLiteDatabase db, String tableName) {
@@ -162,6 +185,11 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     public Cursor getAllMedia() {
         SQLiteDatabase db = this.getReadableDatabase();
+        return db.rawQuery("SELECT * FROM " + TABLE_MEDIA + " WHERE " + COL_STATUS + " != 'Recently Deleted' ORDER BY " + COL_LAST_UPDATED + " DESC", null);
+    }
+
+    public Cursor getAllMediaIncludingTrash() {
+        SQLiteDatabase db = this.getReadableDatabase();
         return db.rawQuery("SELECT * FROM " + TABLE_MEDIA + " ORDER BY " + COL_LAST_UPDATED + " DESC", null);
     }
 
@@ -183,6 +211,28 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COL_IMAGE_PATH, imagePath);
         values.put(COL_RATING, rating);
         values.put(COL_REVIEW, review);
+        int result = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(id)});
+        db.close();
+        return result > 0;
+    }
+
+    public boolean updateMedia(int id, String title, String type, String genre, String status, int progress, int total, String unit, String imagePath, float rating, String review, String journal, String mood, String priority, boolean isFavorite) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COL_TITLE, title);
+        values.put(COL_MEDIA_TYPE, type);
+        values.put(COL_GENRE, genre);
+        values.put(COL_STATUS, status);
+        values.put(COL_CURRENT_PROGRESS, progress);
+        values.put(COL_TOTAL_COUNT, total);
+        values.put(COL_UNIT, unit);
+        values.put(COL_IMAGE_PATH, imagePath);
+        values.put(COL_RATING, rating);
+        values.put(COL_REVIEW, review);
+        values.put(COL_JOURNAL, journal);
+        values.put(COL_MOOD, mood);
+        values.put(COL_PRIORITY, priority == null || priority.isEmpty() ? "Medium" : priority);
+        values.put(COL_IS_FAVORITE, isFavorite ? 1 : 0);
         int result = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(id)});
         db.close();
         return result > 0;
@@ -214,6 +264,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COL_CURRENT_PROGRESS, newProgress);
         values.put(COL_STATUS, newStatus);
         values.put(COL_RATING, newRating);
+        values.put(COL_LAST_UPDATED, getDateTime());
         int result = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(id)});
         
         db.close();
@@ -223,6 +274,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public boolean deleteMedia(int id) {
         SQLiteDatabase db = this.getWritableDatabase();
         int result = db.delete(TABLE_MEDIA, COL_ID + "=?", new String[]{String.valueOf(id)});
+        db.close();
+        return result > 0;
+    }
+
+    public boolean updateImagePath(int id, String newPath) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COL_IMAGE_PATH, newPath);
+        int result = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(id)});
         db.close();
         return result > 0;
     }
@@ -249,7 +309,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         SQLiteDatabase db = this.getReadableDatabase();
         String query = "SELECT SUM(l." + COL_PROGRESS_ADDED + ") FROM " + TABLE_PROGRESS_LOG + " l " +
                 "JOIN " + TABLE_MEDIA + " m ON l." + COL_LOG_MEDIA_ID + " = m." + COL_ID + " " +
-                "WHERE (" + condition + ") AND l." + COL_LOG_DATE + " >= " + dateFilter;
+                "WHERE (" + condition + ") AND l." + COL_LOG_DATE + " >= " + dateFilter + " AND m." + COL_STATUS + " != 'Recently Deleted'";
         
         Cursor cursor = db.rawQuery(query, null);
         int total = 0;
@@ -268,7 +328,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "  WHEN " + COL_UNIT + " = 'Episodes' THEN " + COL_CURRENT_PROGRESS + " * 24 " +
                 "  WHEN (" + COL_MEDIA_TYPE + " = 'Movie' OR " + COL_MEDIA_TYPE + " = 'Series') AND " + COL_UNIT + " NOT IN ('Minutes', 'Episodes') THEN " + COL_CURRENT_PROGRESS + " * 120 " +
                 "  ELSE 0 END) " +
-                "FROM " + TABLE_MEDIA;
+                "FROM " + TABLE_MEDIA + " WHERE " + COL_STATUS + " != 'Recently Deleted'";
         
         Cursor cursor = db.rawQuery(query, null);
         int total = 0;
@@ -280,7 +340,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public int getTotalPagesRead() {
         SQLiteDatabase db = this.getReadableDatabase();
         // Explicitly only count Pages and Chapters, or Book/Manga types
-        Cursor cursor = db.rawQuery("SELECT SUM(" + COL_CURRENT_PROGRESS + ") FROM " + TABLE_MEDIA + " WHERE " + COL_UNIT + " IN ('Pages', 'Chapters')", null);
+        Cursor cursor = db.rawQuery("SELECT SUM(" + COL_CURRENT_PROGRESS + ") FROM " + TABLE_MEDIA + " WHERE " + COL_UNIT + " IN ('Pages', 'Chapters') AND " + COL_STATUS + " != 'Recently Deleted'", null);
         int total = 0;
         if (cursor.moveToFirst()) total = cursor.getInt(0);
         cursor.close();
@@ -289,7 +349,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     public int getTotalEpisodesWatched() {
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT SUM(" + COL_CURRENT_PROGRESS + ") FROM " + TABLE_MEDIA + " WHERE " + COL_UNIT + " = 'Episodes'", null);
+        Cursor cursor = db.rawQuery("SELECT SUM(" + COL_CURRENT_PROGRESS + ") FROM " + TABLE_MEDIA + " WHERE " + COL_UNIT + " = 'Episodes' AND " + COL_STATUS + " != 'Recently Deleted'", null);
         int total = 0;
         if (cursor.moveToFirst()) total = cursor.getInt(0);
         cursor.close();
@@ -307,7 +367,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     public float getAverageRating() {
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT AVG(" + COL_RATING + ") FROM " + TABLE_MEDIA + " WHERE " + COL_RATING + " > 0", null);
+        Cursor cursor = db.rawQuery("SELECT AVG(" + COL_RATING + ") FROM " + TABLE_MEDIA + " WHERE " + COL_RATING + " > 0 AND " + COL_STATUS + " != 'Recently Deleted'", null);
         float avg = 0f;
         if (cursor.moveToFirst()) avg = cursor.getFloat(0);
         cursor.close();
@@ -325,16 +385,32 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     public String getTopGenre() {
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT " + COL_GENRE + ", COUNT(*) as count FROM " + TABLE_MEDIA + " GROUP BY " + COL_GENRE + " ORDER BY count DESC LIMIT 1", null);
+        Cursor cursor = db.rawQuery("SELECT " + COL_GENRE + ", COUNT(*) as count FROM " + TABLE_MEDIA + " WHERE " + COL_STATUS + " != 'Recently Deleted' GROUP BY " + COL_GENRE + " ORDER BY count DESC LIMIT 1", null);
         String genre = "N/A";
         if (cursor.moveToFirst()) genre = cursor.getString(0);
         cursor.close();
         return genre;
     }
 
+    public java.util.Map<String, Integer> getGenreCounts() {
+        java.util.Map<String, Integer> counts = new java.util.HashMap<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT " + COL_GENRE + ", COUNT(*) FROM " + TABLE_MEDIA + " WHERE " + COL_STATUS + " != 'Recently Deleted' GROUP BY " + COL_GENRE, null);
+        if (cursor.moveToFirst()) {
+            do {
+                String genre = cursor.getString(0);
+                if (genre == null || genre.isEmpty()) genre = "Uncategorized";
+                int count = cursor.getInt(1);
+                counts.put(genre, count);
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
+        return counts;
+    }
+
     public int getTotalCountByType(String type) {
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + TABLE_MEDIA + " WHERE " + COL_MEDIA_TYPE + " = ?", new String[]{type});
+        Cursor cursor = db.rawQuery("SELECT COUNT(*) FROM " + TABLE_MEDIA + " WHERE " + COL_MEDIA_TYPE + " = ? AND " + COL_STATUS + " != 'Recently Deleted'", new String[]{type});
         int count = 0;
         if (cursor.moveToFirst()) count = cursor.getInt(0);
         cursor.close();
@@ -346,45 +422,154 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return db.rawQuery("SELECT * FROM " + TABLE_MEDIA + " WHERE " + COL_STATUS + " = 'Planning' ORDER BY RANDOM() LIMIT 1", null);
     }
 
+    public Cursor getRandomPlanningMediaWeighted() {
+        SQLiteDatabase db = this.getReadableDatabase();
+        String query = "SELECT * FROM " + TABLE_MEDIA + " WHERE " + COL_STATUS + " = 'Planning' " +
+                "ORDER BY (ABS(RANDOM()) / 2147483647.0) / " +
+                "CASE " + COL_PRIORITY + " WHEN 'High' THEN 3.0 WHEN 'Medium' THEN 1.7 ELSE 1.0 END LIMIT 1";
+        return db.rawQuery(query, null);
+    }
+
+    public Cursor getHighestProgressOngoing() {
+        SQLiteDatabase db = this.getReadableDatabase();
+        String query = "SELECT * FROM " + TABLE_MEDIA + " WHERE " + COL_STATUS + " = 'Ongoing' AND " + COL_TOTAL_COUNT + " > 0 " +
+                "ORDER BY (1.0 * " + COL_CURRENT_PROGRESS + " / " + COL_TOTAL_COUNT + ") DESC, " + COL_LAST_UPDATED + " DESC LIMIT 1";
+        return db.rawQuery(query, null);
+    }
+
+    public boolean incrementProgressByOne(int mediaId) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        Cursor cursor = db.rawQuery("SELECT " + COL_CURRENT_PROGRESS + ", " + COL_TOTAL_COUNT + ", " + COL_STATUS + ", " + COL_RATING +
+                " FROM " + TABLE_MEDIA + " WHERE " + COL_ID + "=?", new String[]{String.valueOf(mediaId)});
+        if (cursor == null || !cursor.moveToFirst()) {
+            if (cursor != null) {
+                cursor.close();
+            }
+            db.close();
+            return false;
+        }
+
+        int current = cursor.getInt(0);
+        int total = cursor.getInt(1);
+        String status = cursor.getString(2);
+        float rating = cursor.getFloat(3);
+        cursor.close();
+
+        int newProgress = Math.min(current + 1, total);
+        String newStatus = newProgress >= total ? "Completed" : status;
+        ContentValues values = new ContentValues();
+        values.put(COL_CURRENT_PROGRESS, newProgress);
+        values.put(COL_STATUS, newStatus);
+        values.put(COL_RATING, rating);
+        int updatedRows = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(mediaId)});
+        db.close();
+        return updatedRows > 0;
+    }
+
+    public Cursor getTopFavoritesForQr(int limit) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        return db.rawQuery("SELECT " + COL_TITLE + ", " + COL_MEDIA_TYPE + ", " + COL_GENRE + ", " + COL_TOTAL_COUNT + ", " + COL_UNIT + ", " +
+                        COL_CURRENT_PROGRESS + ", " + COL_STATUS + ", " + COL_PRIORITY + ", " + COL_RATING +
+                        " FROM " + TABLE_MEDIA + " WHERE " + COL_IS_FAVORITE + " = 1 ORDER BY " + COL_RATING + " DESC, " + COL_LAST_UPDATED + " DESC LIMIT ?",
+                new String[]{String.valueOf(limit)});
+    }
+
+    public long addImportedBacklogItem(String title, String mediaType, String genre, int totalCount, String unit, String priority) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COL_TITLE, title);
+        values.put(COL_MEDIA_TYPE, mediaType);
+        values.put(COL_GENRE, genre);
+        values.put(COL_TOTAL_COUNT, Math.max(totalCount, 1));
+        values.put(COL_UNIT, (unit == null || unit.isEmpty()) ? "Episodes" : unit);
+        values.put(COL_STATUS, "Planning");
+        values.put(COL_PRIORITY, (priority == null || priority.isEmpty()) ? "Medium" : priority);
+        long result = db.insertWithOnConflict(TABLE_MEDIA, null, values, SQLiteDatabase.CONFLICT_IGNORE);
+        db.close();
+        return result;
+    }
+
+    public Cursor getBacklogSpotlightMedia() {
+        SQLiteDatabase db = this.getReadableDatabase();
+        String query = "SELECT * FROM " + TABLE_MEDIA + " " +
+                "WHERE " + COL_STATUS + " IN ('Planning', 'Ongoing') " +
+                "ORDER BY CASE " + COL_STATUS + " " +
+                "WHEN 'Ongoing' THEN 0 " +
+                "WHEN 'Planning' THEN 1 ELSE 2 END, " +
+                COL_LAST_UPDATED + " DESC LIMIT 1";
+        return db.rawQuery(query, null);
+    }
+
     public void seedDatabase() {
         SQLiteDatabase db = this.getWritableDatabase();
-        String[] titles = {
-            "Inception", "The Matrix", "Interstellar", "One Piece", "Naruto", 
-            "Breaking Bad", "Stranger Things", "1984", "The Hobbit", "Dracula",
-            "Joker", "Avatar", "Titanic", "Bleach", "Death Note", 
-            "Sherlock Holmes", "The Witcher", "Mandalorian", "Attack on Titan", "Demon Slayer",
-            "Pulp Fiction", "Gladiator", "The Office", "Friends", "Harry Potter",
-            "Dune", "Spider-Man", "Batman", "Soul", "Your Name"
-        };
-        String[] types = {"Movie", "Series", "Book", "Manga"};
-        String[] genres = {"Action", "Sci-Fi", "Drama", "Fantasy", "Comedy", "Horror"};
-        String[] statuses = {"Ongoing", "Completed", "Planning", "Dropped"};
-        String[] creators = {"Christopher Nolan", "Eiichiro Oda", "George Orwell", "Hajime Isayama", "J.K. Rowling"};
-
-        for (String title : titles) {
-            ContentValues v = new ContentValues();
-            String type = types[(int) (Math.random() * types.length)];
-            String status = statuses[(int) (Math.random() * statuses.length)];
-            int total = 0;
-            String unit = "";
+        
+        Object[][] mediaData = {
+            // Movies
+            {"Inception", "Movie", "Sci-Fi", "Christopher Nolan", 148, "Minutes", "Dream within a dream heist."},
+            {"The Matrix", "Movie", "Sci-Fi", "The Wachowskis", 136, "Minutes", "Reality is a simulation."},
+            {"Interstellar", "Movie", "Sci-Fi", "Christopher Nolan", 169, "Minutes", "Space travel to save humanity."},
+            {"Joker", "Movie", "Drama", "Todd Phillips", 122, "Minutes", "Origin story of the iconic villain."},
+            {"Pulp Fiction", "Movie", "Crime", "Quentin Tarantino", 154, "Minutes", "Intertwining criminal lives."},
+            {"Gladiator", "Movie", "Action", "Ridley Scott", 155, "Minutes", "A betrayed general seeks revenge."},
+            {"Avatar", "Movie", "Sci-Fi", "James Cameron", 162, "Minutes", "Human on an alien planet."},
             
-            if (type.equals("Movie")) { total = 90 + (int)(Math.random()*90); unit = "Minutes"; }
-            else if (type.equals("Series")) { total = 10 + (int)(Math.random()*50); unit = "Episodes"; }
-            else if (type.equals("Book")) { total = 200 + (int)(Math.random()*300); unit = "Pages"; }
-            else { total = 50 + (int)(Math.random()*150); unit = "Chapters"; }
+            // Series
+            {"Breaking Bad", "Series", "Drama", "Vince Gilligan", 62, "Episodes", "Chemistry teacher turns to crime."},
+            {"Stranger Things", "Series", "Sci-Fi", "The Duffer Brothers", 42, "Episodes", "Supernatural mysteries in a small town."},
+            {"The Office", "Series", "Comedy", "Greg Daniels", 201, "Episodes", "Daily lives of office employees."},
+            {"Friends", "Series", "Comedy", "David Crane", 236, "Episodes", "Six friends living in Manhattan."},
+            {"The Witcher", "Series", "Fantasy", "Lauren Schmidt Hissrich", 24, "Episodes", "Monster hunter Geralt of Rivia."},
+            {"Mandalorian", "Series", "Sci-Fi", "Jon Favreau", 24, "Episodes", "Bounty hunter in the Star Wars universe."},
+            
+            // Anime
+            {"One Piece", "Anime", "Adventure", "Eiichiro Oda", 1100, "Episodes", "Monkey D. Luffy seeks the pirate treasure."},
+            {"Naruto", "Anime", "Action", "Masashi Kishimoto", 720, "Episodes", "Ninja seeking recognition and leadership."},
+            {"Attack on Titan", "Anime", "Fantasy", "Hajime Isayama", 89, "Episodes", "Humanity fights giant titans."},
+            {"Demon Slayer", "Anime", "Action", "Koyoharu Gotouge", 55, "Episodes", "Boy fights demons to save his sister."},
+            {"Death Note", "Anime", "Thriller", "Tsugumi Ohba", 37, "Episodes", "Student finds a notebook that kills."},
+            {"Bleach", "Anime", "Action", "Tite Kubo", 366, "Episodes", "Soul Reaper protecting humans from spirits."},
+            {"Your Name", "Anime", "Romance", "Makoto Shinkai", 1, "Episodes", "Two teens swap bodies mysteriously."},
+            
+            // Manga
+            {"Berserk", "Manga", "Dark Fantasy", "Kentaro Miura", 373, "Chapters", "The journey of Guts, a lone mercenary."},
+            {"Solo Leveling", "Manga", "Action", "Chugong", 179, "Chapters", "Weak hunter becomes the strongest."},
+            {"Dragon Ball", "Manga", "Action", "Akira Toriyama", 519, "Chapters", "Goku's quest for the Dragon Balls."},
+            
+            // Books
+            {"1984", "Book", "Dystopian", "George Orwell", 328, "Pages", "Totalitarianism and government surveillance."},
+            {"The Hobbit", "Book", "Fantasy", "J.R.R. Tolkien", 310, "Pages", "Bilbo Baggins' unexpected adventure."},
+            {"Harry Potter", "Book", "Fantasy", "J.K. Rowling", 309, "Pages", "Young wizard's journey at Hogwarts."},
+            {"Dune", "Book", "Sci-Fi", "Frank Herbert", 412, "Pages", "Political struggle on a desert planet."},
+            {"The Great Gatsby", "Book", "Classic", "F. Scott Fitzgerald", 180, "Pages", "Wealth, love, and the American dream."},
+            {"Sherlock Holmes", "Book", "Mystery", "Arthur Conan Doyle", 350, "Pages", "Famous detective solving crimes."},
+            {"Dracula", "Book", "Horror", "Bram Stoker", 418, "Pages", "The original vampire count."}
+        };
 
+        String[] statuses = {"Ongoing", "Completed", "Planning", "Dropped"};
+
+        for (Object[] row : mediaData) {
+            ContentValues v = new ContentValues();
+            String title = (String) row[0];
+            String type = (String) row[1];
+            String genre = (String) row[2];
+            String creator = (String) row[3];
+            int total = (int) row[4];
+            String unit = (String) row[5];
+            String desc = (String) row[6];
+            
+            String status = statuses[(int) (Math.random() * statuses.length)];
             int progress = status.equals("Completed") ? total : (status.equals("Planning") ? 0 : (int)(Math.random() * total));
 
             v.put(COL_TITLE, title + " (Demo)");
             v.put(COL_MEDIA_TYPE, type);
-            v.put(COL_GENRE, genres[(int)(Math.random()*genres.length)]);
-            v.put(COL_CREATOR, creators[(int)(Math.random()*creators.length)]);
+            v.put(COL_GENRE, genre);
+            v.put(COL_CREATOR, creator);
             v.put(COL_TOTAL_COUNT, total);
             v.put(COL_UNIT, unit);
             v.put(COL_STATUS, status);
             v.put(COL_CURRENT_PROGRESS, progress);
             v.put(COL_RATING, 3.0f + (float)(Math.random() * 2.0f));
-            v.put(COL_DESCRIPTION, "This is a seeded demo entry for " + title);
+            v.put(COL_DESCRIPTION, desc);
             
             db.insertWithOnConflict(TABLE_MEDIA, null, v, SQLiteDatabase.CONFLICT_IGNORE);
         }
@@ -396,5 +581,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.execSQL("DELETE FROM " + TABLE_PROGRESS_LOG);
         db.execSQL("DELETE FROM " + TABLE_MEDIA);
         db.close();
+    }
+
+    private String getDateTime() {
+        SimpleDateFormat dateFormat = new SimpleDateFormat(
+                "yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+        Date date = new Date();
+        return dateFormat.format(date);
     }
 }

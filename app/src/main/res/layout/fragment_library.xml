@@ -5,7 +5,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?android:attr/windowBackground">
+    android:background="@android:color/transparent">
 
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
@@ -19,40 +19,55 @@
             android:paddingBottom="8dp">
 
             <ImageView
-                android:id="@+id/app_logo"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
-                android:layout_marginStart="20dp"
-                android:layout_marginTop="16dp"
-                android:src="@drawable/app_logo"
+                android:id="@+id/mediavault_logo"
+                android:layout_width="@dimen/top_logo_size"
+                android:layout_height="@dimen/top_logo_size"
+                android:layout_marginStart="@dimen/screen_padding_horizontal"
+                android:layout_marginTop="@dimen/screen_padding_vertical"
+                android:src="@drawable/mediavault_logo"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent" />
 
-            <TextView
-                android:id="@+id/title"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="Your Library"
-                android:textSize="24sp"
-                android:fontFamily="sans-serif-black"
-                android:textColor="?attr/colorTextPrimary"
-                app:layout_constraintTop_toTopOf="@+id/app_logo"
-                app:layout_constraintBottom_toBottomOf="@+id/app_logo"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"/>
+                android:layout_marginStart="@dimen/screen_section_spacing_small"
+                android:layout_marginTop="@dimen/screen_padding_vertical"
+                android:orientation="vertical"
+                app:layout_constraintBottom_toBottomOf="@+id/mediavault_logo"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/mediavault_logo"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <TextView
+                    android:id="@+id/title"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    style="@style/TextScreenTitle"
+                    android:text="Library"
+                    android:textSize="24sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    style="@style/TextBody"
+                    android:text="Your Library"
+                    android:textSize="14sp" />
+            </LinearLayout>
 
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/search_card"
                 android:layout_width="0dp"
                 android:layout_height="54dp"
-                android:layout_marginHorizontal="20dp"
-                android:layout_marginTop="20dp"
+                android:layout_marginHorizontal="@dimen/screen_padding_horizontal"
+                android:layout_marginTop="@dimen/screen_section_spacing"
+                android:background="@drawable/glow_glass_bg"
                 app:cardCornerRadius="27dp"
-                app:cardElevation="2dp"
-                app:cardBackgroundColor="?attr/colorCardBackground"
-                app:strokeWidth="1dp"
-                app:strokeColor="@color/grey_200"
-                app:layout_constraintTop_toBottomOf="@+id/app_logo"
+                app:cardElevation="0dp"
+                app:cardBackgroundColor="@android:color/transparent"
+                app:strokeWidth="1.5dp"
+                app:strokeColor="@color/glass_border"
+                app:layout_constraintTop_toBottomOf="@+id/mediavault_logo"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent">
 
@@ -67,7 +82,7 @@
                         android:layout_width="22dp"
                         android:layout_height="22dp"
                         android:src="@drawable/ic_search"
-                        app:tint="@color/grey_600" />
+                        app:tint="?attr/colorIconTint" />
 
                     <EditText
                         android:id="@+id/search_bar"
@@ -79,15 +94,15 @@
                         android:hint="Search library..."
                         android:inputType="text"
                         android:maxLines="1"
-                        android:textSize="15sp"
+                        android:textSize="14sp"
                         android:textColor="?attr/colorTextPrimary"
-                        android:textColorHint="@color/grey_600" />
+                        android:textColorHint="?attr/colorTextSecondary" />
 
                     <View
                         android:layout_width="1dp"
                         android:layout_height="24dp"
                         android:layout_marginHorizontal="8dp"
-                        android:background="@color/grey_200" />
+                        android:background="#40FFFFFF" />
 
                     <ImageButton
                         android:id="@+id/btn_filter"
@@ -107,7 +122,7 @@
                 android:scrollbars="none"
                 android:layout_marginTop="16dp"
                 android:clipToPadding="false"
-                android:paddingHorizontal="20dp"
+                android:paddingHorizontal="@dimen/screen_padding_horizontal"
                 app:layout_constraintTop_toBottomOf="@+id/search_card">
 
                 <com.google.android.material.chip.ChipGroup
@@ -125,7 +140,7 @@
                         android:layout_height="wrap_content"
                         android:text="All"
                         android:checked="true"
-                        app:chipBackgroundColor="@color/accent_blue"
+                        app:chipBackgroundColor="@color/netflix_red"
                         android:textColor="@color/white"
                         app:chipCornerRadius="20dp"
                         app:chipStrokeWidth="0dp"/>
@@ -173,6 +188,81 @@
                         android:textColor="@color/chip_unselected_text"
                         app:chipCornerRadius="20dp"
                         app:chipStrokeWidth="0dp"/>
+                        
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chip_trash"
+                        style="@style/Widget.MaterialComponents.Chip.Choice"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Recently Deleted"
+                        app:chipBackgroundColor="@color/chip_unselected_bg"
+                        android:textColor="@color/chip_unselected_text"
+                        app:chipCornerRadius="20dp"
+                        app:chipStrokeWidth="0dp"/>
+                </com.google.android.material.chip.ChipGroup>
+            </HorizontalScrollView>
+
+            <HorizontalScrollView
+                android:id="@+id/status_chip_scroll"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:scrollbars="none"
+                android:layout_marginTop="12dp"
+                android:clipToPadding="false"
+                android:paddingHorizontal="@dimen/screen_padding_horizontal"
+                app:layout_constraintTop_toBottomOf="@+id/chip_scroll">
+
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/chip_group_status"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:singleSelection="true"
+                    app:selectionRequired="false"
+                    app:chipSpacingHorizontal="8dp">
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chip_ongoing"
+                        style="@style/Widget.MaterialComponents.Chip.Choice"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Ongoing"
+                        app:chipBackgroundColor="@color/chip_unselected_bg"
+                        android:textColor="@color/chip_unselected_text"
+                        app:chipCornerRadius="20dp"
+                        app:chipStrokeWidth="0dp"/>
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chip_completed"
+                        style="@style/Widget.MaterialComponents.Chip.Choice"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Completed"
+                        app:chipBackgroundColor="@color/chip_unselected_bg"
+                        android:textColor="@color/chip_unselected_text"
+                        app:chipCornerRadius="20dp"
+                        app:chipStrokeWidth="0dp"/>
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chip_planning"
+                        style="@style/Widget.MaterialComponents.Chip.Choice"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Planning"
+                        app:chipBackgroundColor="@color/chip_unselected_bg"
+                        android:textColor="@color/chip_unselected_text"
+                        app:chipCornerRadius="20dp"
+                        app:chipStrokeWidth="0dp"/>
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chip_dropped"
+                        style="@style/Widget.MaterialComponents.Chip.Choice"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Dropped"
+                        app:chipBackgroundColor="@color/chip_unselected_bg"
+                        android:textColor="@color/chip_unselected_text"
+                        app:chipCornerRadius="20dp"
+                        app:chipStrokeWidth="0dp"/>
                 </com.google.android.material.chip.ChipGroup>
             </HorizontalScrollView>
         </androidx.constraintlayout.widget.ConstraintLayout>
@@ -182,9 +272,9 @@
         android:id="@+id/library_recycler_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:paddingHorizontal="12dp"
+        android:paddingHorizontal="@dimen/screen_padding_horizontal"
         android:paddingTop="8dp"
-        android:paddingBottom="180dp"
+        android:paddingBottom="@dimen/screen_bottom_spacing"
         android:clipToPadding="false"
         app:layout_behavior="@string/appbar_scrolling_view_behavior"
         tools:listitem="@layout/item_media_card"
@@ -213,17 +303,14 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
             android:text="No media found"
-            android:textColor="@color/grey_600"
-            android:textSize="18sp"
-            android:fontFamily="sans-serif-medium" />
+            style="@style/TextSectionTitle" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
             android:text="Try adjusting your search or filters"
-            android:textColor="@color/grey_600"
-            android:textSize="14sp" />
+            style="@style/TextBody" />
     </LinearLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

@@ -8,15 +8,15 @@
 
     <ImageView
         android:id="@+id/logo"
-        android:layout_width="250dp"
-        android:layout_height="250dp"
-        android:src="@drawable/app_logo" />
+        android:layout_width="150dp"
+        android:layout_height="150dp"
+        android:src="@drawable/mediavault_logo" />
 
     <TextView
         android:id="@+id/title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="-20dp"
+        android:layout_marginTop="15dp"
         android:text="MediaVault"
         android:textSize="30sp"
         android:fontFamily="@font/sf_pro_heavy"

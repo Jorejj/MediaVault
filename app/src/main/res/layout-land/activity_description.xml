@@ -24,7 +24,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:scaleType="centerCrop"
-                android:src="@drawable/app_logo"
+                android:src="@drawable/mediavault_logo"
                 android:contentDescription="@string/image_url_path" />
 
             <androidx.appcompat.widget.Toolbar

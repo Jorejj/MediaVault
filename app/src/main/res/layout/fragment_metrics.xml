@@ -7,37 +7,35 @@
     android:fillViewport="true"
     android:clipToPadding="false"
     android:scrollbarStyle="outsideOverlay"
-    android:background="?android:attr/windowBackground">
+    android:background="@android:color/transparent">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingHorizontal="20dp"
-        android:paddingTop="16dp"
-        android:paddingBottom="120dp"
+        android:paddingHorizontal="@dimen/screen_padding_horizontal"
+        android:paddingTop="@dimen/screen_padding_vertical"
+        android:paddingBottom="@dimen/screen_bottom_spacing"
         android:clipToPadding="false">
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="24dp">
+            android:layout_marginBottom="@dimen/screen_section_spacing">
 
             <ImageView
                 android:id="@+id/img_logo"
-                android:layout_width="60dp"
-                android:layout_height="60dp"
-                android:src="@drawable/app_logo"
-                android:scaleType="fitCenter"
+                android:layout_width="@dimen/top_logo_size"
+                android:layout_height="@dimen/top_logo_size"
+                android:src="@drawable/mediavault_logo"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent"
-                tools:ignore="ContentDescription" />
+                app:layout_constraintTop_toTopOf="parent" />
 
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:gravity="center"
+                android:layout_marginStart="@dimen/screen_section_spacing_small"
                 android:orientation="vertical"
                 app:layout_constraintBottom_toBottomOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
@@ -45,21 +43,21 @@
                 app:layout_constraintTop_toTopOf="parent">
 
                 <TextView
+                    android:id="@+id/tv_metrics_title"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/mediavault"
-                    android:textColor="?attr/colorTextPrimary"
-                    android:textSize="24sp"
-                    android:textStyle="bold" />
+                    style="@style/TextScreenTitle"
+                    android:text="@string/Stats"
+                    android:textSize="24sp" />
 
                 <TextView
+                    android:id="@+id/tv_metrics_subtitle"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    style="@style/TextBody"
                     android:text="@string/your_stats"
-                    android:textColor="?attr/colorTextSecondary"
-                    android:textSize="16sp" />
+                    android:textSize="14sp" />
             </LinearLayout>
-
         </androidx.constraintlayout.widget.ConstraintLayout>
 
         <!-- Overview Card -->
@@ -67,9 +65,12 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            app:cardBackgroundColor="?attr/colorCardBackground"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="4dp">
+            android:background="@drawable/glow_glass_bg"
+            app:cardBackgroundColor="@android:color/transparent"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="0dp"
+            app:strokeColor="@color/glass_border"
+            app:strokeWidth="1.5dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -82,9 +83,7 @@
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
                     android:text="@string/overview"
-                    android:textColor="?attr/colorTextSecondary"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
+                    style="@style/TextCaption" />
 
                 <GridLayout
                     android:layout_width="match_parent"
@@ -192,9 +191,12 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            app:cardBackgroundColor="?attr/colorCardBackground"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="4dp">
+            android:background="@drawable/glow_glass_bg"
+            app:cardBackgroundColor="@android:color/transparent"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="0dp"
+            app:strokeColor="@color/glass_border"
+            app:strokeWidth="1.5dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -215,7 +217,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="16dp"
-                    android:text="@string/media_ratio"
+                    android:text="Genre Distribution"
                     android:textColor="?attr/colorTextSecondary"
                     android:textSize="14sp" />
 
@@ -232,9 +234,12 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            app:cardBackgroundColor="?attr/colorCardBackground"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="4dp">
+            android:background="@drawable/glow_glass_bg"
+            app:cardBackgroundColor="@android:color/transparent"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="0dp"
+            app:strokeColor="@color/glass_border"
+            app:strokeWidth="1.5dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -301,9 +306,12 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            app:cardBackgroundColor="?attr/colorCardBackground"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="4dp">
+            android:background="@drawable/glow_glass_bg"
+            app:cardBackgroundColor="@android:color/transparent"
+            app:cardCornerRadius="20dp"
+            app:cardElevation="0dp"
+            app:strokeColor="@color/glass_border"
+            app:strokeWidth="1.5dp">
 
             <LinearLayout
                 android:layout_width="match_parent"

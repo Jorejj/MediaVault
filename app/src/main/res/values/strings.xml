@@ -3,6 +3,7 @@
     <string name="app_name">MediaVault</string>
     <string name="mediavault">MediaVault</string>
     <string name="your_stats">Your Stats</string>
+    <string name="Stats">Stats</string>
     <string name="overview">OVERVIEW</string>
     <string name="completed_books_value">850</string>
     <string name="completed_movies_value">3,450</string>
@@ -62,7 +63,7 @@
 
     <!-- Add Media Strings -->
     <string name="new_media">New Media</string>
-    <string name="search_api">Search API</string>
+    <string name="search_api">Search Online</string>
     <string name="manual_entry">Manual Entry</string>
     <string name="search">Search</string>
     <string name="no_results_found">No results found</string>
@@ -77,4 +78,11 @@
     <string name="author">Author</string>
     <string name="done">Done</string>
     <string name="go_back">Go Back</string>
+    <string name="qr_vault">QR Vault</string>
+    <string name="export_vault_json">Export Vault JSON</string>
+    <string name="import_vault_json">Import Vault JSON</string>
+    <string name="share_top10_qr">Share Top 10 QR</string>
+    <string name="scan_qr_import">Scan QR to Import</string>
+    <string name="widget_quick_plus">Quick +1</string>
+    <string name="widget_no_ongoing">No ongoing title</string>
 </resources>

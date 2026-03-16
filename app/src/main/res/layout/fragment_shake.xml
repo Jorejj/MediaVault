@@ -3,54 +3,89 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/bg_main"
-    android:padding="24dp">
+    android:background="@android:color/transparent"
+    android:padding="@dimen/screen_padding_horizontal">
 
-    <TextView
-        android:id="@+id/tv_shake_title"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
-        android:text="Shake to Decide!"
-        android:fontFamily="@font/sf_pro_bold"
-        android:textSize="28sp"
-        android:textColor="@color/text_primary"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <TextView
-        android:id="@+id/tv_shake_instructions"
+    <com.google.android.material.card.MaterialCardView
         android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="16dp"
-        android:text="Shake your phone to get a random recommendation from your library."
-        android:fontFamily="@font/sf_pro_regular"
-        android:textSize="18sp"
-        android:textColor="@color/text_secondary"
-        android:gravity="center"
-        app:layout_constraintTop_toBottomOf="@id/tv_shake_title"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
-
-    <ImageView
-        android:id="@+id/iv_shake_icon"
-        android:layout_width="150dp"
-        android:layout_height="150dp"
-        android:src="@drawable/ic_shake"
-        app:tint="@color/accent_blue"
-        app:layout_constraintTop_toBottomOf="@id/tv_shake_instructions"
+        android:layout_height="0dp"
+        android:background="@drawable/glass_card_bg"
+        app:cardBackgroundColor="@android:color/transparent"
+        app:cardCornerRadius="24dp"
+        app:cardElevation="0dp"
+        app:strokeColor="@color/glass_border"
+        app:strokeWidth="1dp"
         app:layout_constraintBottom_toTopOf="@id/btn_shake_back"
+        app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintEnd_toEndOf="parent" />
+        app:layout_constraintTop_toTopOf="parent">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:padding="22dp">
+
+            <TextView
+                android:id="@+id/tv_shake_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/TextScreenTitle"
+                android:text="Shake to Decide"
+                android:textSize="24sp" />
+
+            <TextView
+                android:id="@+id/tv_shake_instructions"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                style="@style/TextBody"
+                android:gravity="center"
+                android:text="Shake your phone to trigger a random pick from your Plan to Watch list."
+                android:textSize="14sp" />
+
+            <FrameLayout
+                android:layout_width="190dp"
+                android:layout_height="190dp"
+                android:layout_marginTop="20dp">
+
+                <View
+                    android:id="@+id/view_shake_pulse"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/glow_glass_bg"
+                    android:alpha="0"
+                    android:clickable="false"
+                    android:focusable="false" />
+
+                <ImageView
+                    android:id="@+id/iv_shake_idle"
+                    android:layout_width="150dp"
+                    android:layout_height="150dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/mediavault_logo" />
+
+                <ImageView
+                    android:id="@+id/iv_shaking"
+                    android:layout_width="180dp"
+                    android:layout_height="180dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_shake"
+                    android:visibility="gone" />
+            </FrameLayout>
+        </LinearLayout>
+    </com.google.android.material.card.MaterialCardView>
 
     <Button
         android:id="@+id/btn_shake_back"
         style="@style/BlueButton"
-        android:layout_width="match_parent"
+        android:layout_width="0dp"
         android:layout_height="56dp"
-        android:layout_marginBottom="120dp"
+        android:layout_marginTop="16dp"
         android:text="Back to Home"
-        app:layout_constraintBottom_toBottomOf="parent" />
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

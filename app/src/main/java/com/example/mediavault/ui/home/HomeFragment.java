@@ -36,13 +36,26 @@ import java.util.Date;
 import java.util.Locale;
 import java.util.TimeZone;
 
+import android.graphics.drawable.Drawable;
+import com.bumptech.glide.load.DataSource;
+import com.bumptech.glide.load.engine.GlideException;
+import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.request.target.Target;
+import com.example.mediavault.widget.ToastUtils;
+import com.example.mediavault.api.MediaSearchManager;
+
 public class HomeFragment extends Fragment {
 
-    private TextView tvWatchTime, tvPagesRead, tvEpisodesWatched, tvOngoingItems, tvAvgRating;
+    private TextView tvWatchTime, tvPagesRead, tvEpisodesWatched, tvBooksCompleted, tvOngoingItems, tvAvgRating;
+    private TextView tvSpotlightLabel, tvSpotlightTitle, tvSpotlightStatus;
+    private ProgressBar progressSpotlight, pbSpotlightLoading;
     private TextView tvViewDetailedStats;
     private MaterialButton btnAnalyzeHabits;
     private DatabaseHelper dbHelper;
+    private View spotlightCard;
+    private ImageView ivSpotlightBg;
     private View recentItem1, recentItem2, recentItem3, recentItem4;
+    private MediaSearchManager searchManager;
 
     @Nullable
     @Override
@@ -50,13 +63,22 @@ public class HomeFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_home, container, false);
         
         dbHelper = new DatabaseHelper(requireContext());
+        searchManager = new MediaSearchManager();
         
-        // Initialize TextViews
+        // Initialize Views
         tvWatchTime = view.findViewById(R.id.tv_watch_time);
         tvPagesRead = view.findViewById(R.id.tv_pages_read);
         tvEpisodesWatched = view.findViewById(R.id.tv_episodes_watched);
+        tvBooksCompleted = view.findViewById(R.id.tv_books_completed);
         tvOngoingItems = view.findViewById(R.id.tv_ongoing_items);
         tvAvgRating = view.findViewById(R.id.tv_avg_rating);
+        tvSpotlightLabel = view.findViewById(R.id.tv_spotlight_label);
+        tvSpotlightTitle = view.findViewById(R.id.tv_spotlight_title);
+        tvSpotlightStatus = view.findViewById(R.id.tv_spotlight_status);
+        progressSpotlight = view.findViewById(R.id.progress_spotlight);
+        pbSpotlightLoading = view.findViewById(R.id.pb_spotlight_loading);
+        spotlightCard = view.findViewById(R.id.card_spotlight);
+        ivSpotlightBg = view.findViewById(R.id.iv_spotlight_bg);
         tvViewDetailedStats = view.findViewById(R.id.tv_view_detailed_stats);
         btnAnalyzeHabits = view.findViewById(R.id.btn_analyze_habits);
 
@@ -68,6 +90,7 @@ public class HomeFragment extends Fragment {
         
         updateOverviewStats();
         setupNavigation(view);
+        updateBacklogSpotlight();
         
         return view;
     }
@@ -77,6 +100,7 @@ public class HomeFragment extends Fragment {
         super.onResume();
         updateOverviewStats();
         setupRecentActivities();
+        updateBacklogSpotlight();
     }
 
     private void setupRecentActivities() {
@@ -133,14 +157,30 @@ public class HomeFragment extends Fragment {
 
                     if (ivThumbnail != null) {
                         if (imagePath != null && !imagePath.isEmpty()) {
+                            // Download image if it's a URL
+                            if (imagePath.startsWith("http")) {
+                                final String currentImagePath = imagePath;
+                                final int currentId = id;
+                                new Thread(() -> {
+                                    String localPath = com.example.mediavault.ImageUtils.downloadAndSaveImage(requireContext(), currentImagePath);
+                                    if (localPath != null && !localPath.equals(currentImagePath)) {
+                                        dbHelper.updateImagePath(currentId, localPath);
+                                    }
+                                }).start();
+                            }
+
                             File file = new File(imagePath);
                             if (file.exists()) {
                                 Glide.with(this).load(file).centerCrop().into(ivThumbnail);
                             } else {
-                                Glide.with(this).load(imagePath).placeholder(R.drawable.app_logo).error(R.drawable.app_logo).centerCrop().into(ivThumbnail);
+                                Glide.with(this).load(imagePath).placeholder(R.drawable.mediavault_logo).error(R.drawable.mediavault_logo).centerCrop().into(ivThumbnail);
                             }
                         } else {
-                            ivThumbnail.setImageResource(R.drawable.app_logo);
+                            ivThumbnail.setImageResource(R.drawable.mediavault_logo);
+                            // Auto-fetch missing cover art
+                            if (searchManager != null) {
+                                searchManager.searchAndDownloadImage(requireContext(), id, title, type);
+                            }
                         }
                     }
 
@@ -185,10 +225,8 @@ public class HomeFragment extends Fragment {
     }
 
     private void updateOverviewStats() {
-        // Watch Time (Minutes to Hours)
         int totalMinutes = dbHelper.getTotalMinutesWatched();
-        double hours = totalMinutes / 60.0;
-        tvWatchTime.setText(String.format(Locale.getDefault(), "%.1f", hours));
+        tvWatchTime.setText(formatDuration(totalMinutes));
         
         // Pages Read
         int totalPages = dbHelper.getTotalPagesRead();
@@ -197,6 +235,10 @@ public class HomeFragment extends Fragment {
         // Episodes Watched
         int totalEpisodes = dbHelper.getTotalEpisodesWatched();
         tvEpisodesWatched.setText(String.valueOf(totalEpisodes));
+
+        // Books Completed
+        int totalBooks = dbHelper.getCompletedCountByType("Book");
+        if (tvBooksCompleted != null) tvBooksCompleted.setText(String.valueOf(totalBooks));
         
         // Ongoing Items
         int ongoingCount = dbHelper.getStatusCount("Ongoing");
@@ -205,6 +247,111 @@ public class HomeFragment extends Fragment {
         // Average Rating
         float avgRating = dbHelper.getAverageRating();
         tvAvgRating.setText(String.format(Locale.getDefault(), "%.1f", avgRating));
+    }
+
+    private String formatDuration(int totalMinutes) {
+        if (totalMinutes <= 0) {
+            return "0 mins";
+        }
+
+        int hours = totalMinutes / 60;
+        int mins = totalMinutes % 60;
+
+        if (hours == 0) {
+            return mins + " mins";
+        }
+        if (mins == 0) {
+            return hours == 1 ? "1 hour" : hours + " hours";
+        }
+        return (hours == 1 ? "1 hour " : hours + " hours ") + mins + " mins";
+    }
+
+    private void updateBacklogSpotlight() {
+        Cursor cursor = dbHelper.getBacklogSpotlightMedia();
+        if (cursor == null) {
+            return;
+        }
+
+        try {
+            if (cursor.moveToFirst()) {
+                int id = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_ID));
+                String title = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_TITLE));
+                String type = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_MEDIA_TYPE));
+                String status = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_STATUS));
+                int progress = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_CURRENT_PROGRESS));
+                int total = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_TOTAL_COUNT));
+                String unit = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_UNIT));
+                String imagePath = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_IMAGE_PATH));
+
+                // Auto-fetch if missing
+                if (imagePath == null || imagePath.isEmpty()) {
+                    if (searchManager != null) {
+                        searchManager.searchAndDownloadImage(requireContext(), id, title, type);
+                    }
+                }
+
+                // Download image if it's a URL
+                if (imagePath != null && imagePath.startsWith("http")) {
+                    final String currentImagePath = imagePath;
+                    final int currentId = id;
+                    new Thread(() -> {
+                        String localPath = com.example.mediavault.ImageUtils.downloadAndSaveImage(requireContext(), currentImagePath);
+                        if (localPath != null && !localPath.equals(currentImagePath)) {
+                            dbHelper.updateImagePath(currentId, localPath);
+                        }
+                    }).start();
+                }
+
+                tvSpotlightLabel.setText("Currently " + status);
+                tvSpotlightTitle.setText(title);
+                tvSpotlightStatus.setText(status + " • " + progress + "/" + total + " " + unit);
+                progressSpotlight.setMax(Math.max(total, 1));
+                progressSpotlight.setProgress(Math.min(progress, total));
+                
+                if (imagePath != null && !imagePath.isEmpty()) {
+                    if (pbSpotlightLoading != null) pbSpotlightLoading.setVisibility(View.VISIBLE);
+                    File file = new File(imagePath);
+                    Object loadSource = file.exists() ? file : imagePath;
+
+                    Glide.with(this)
+                            .load(loadSource)
+                            .centerCrop()
+                            .listener(new RequestListener<Drawable>() {
+                                @Override
+                                public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Drawable> target, boolean isFirstResource) {
+                                    if (pbSpotlightLoading != null) pbSpotlightLoading.setVisibility(View.GONE);
+                                    return false;
+                                }
+
+                                @Override
+                                public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target, DataSource dataSource, boolean isFirstResource) {
+                                    if (pbSpotlightLoading != null) pbSpotlightLoading.setVisibility(View.GONE);
+                                    return false;
+                                }
+                            })
+                            .into(ivSpotlightBg);
+                } else {
+                    if (pbSpotlightLoading != null) pbSpotlightLoading.setVisibility(View.GONE);
+                    ivSpotlightBg.setImageResource(R.drawable.cinematic_bg);
+                }
+
+                spotlightCard.setOnClickListener(v -> {
+                    Intent intent = new Intent(requireContext(), DescriptionActivity.class);
+                    intent.putExtra(DescriptionActivity.EXTRA_MEDIA_ID, id);
+                    startActivity(intent);
+                });
+            } else {
+                tvSpotlightLabel.setText("Currently Watching / Reading");
+                tvSpotlightTitle.setText("Backlog Spotlight");
+                tvSpotlightStatus.setText("Plan something new");
+                progressSpotlight.setMax(100);
+                progressSpotlight.setProgress(0);
+                if (ivSpotlightBg != null) ivSpotlightBg.setImageResource(R.drawable.cinematic_bg);
+                spotlightCard.setOnClickListener(null);
+            }
+        } finally {
+            cursor.close();
+        }
     }
 
     private void setupNavigation(View view) {

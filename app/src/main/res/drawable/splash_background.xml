@@ -5,5 +5,5 @@
     <item>
         <bitmap
             android:gravity="center"
-            android:src="@drawable/app_logo" /> </item>
+            android:src="@drawable/mediavault_logo" /> </item>
 </layer-list>

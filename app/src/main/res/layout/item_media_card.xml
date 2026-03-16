@@ -1,58 +1,125 @@
 <com.google.android.material.card.MaterialCardView 
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/card_media"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_margin="8dp"
-    app:cardCornerRadius="16dp"
-    app:cardElevation="4dp"
-    app:cardBackgroundColor="?attr/colorCardBackground">
+    android:background="@drawable/glow_glass_bg"
+    app:cardCornerRadius="20dp"
+    app:cardElevation="0dp"
+    app:strokeWidth="1.5dp"
+    app:strokeColor="@color/glass_border"
+    app:cardBackgroundColor="@android:color/transparent">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <ImageView
-            android:id="@+id/media_poster"
+        <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
-            android:layout_height="180dp"
-            android:scaleType="centerCrop"
-            android:src="@color/grey_300" />
+            android:layout_height="180dp">
+            
+            <ImageView
+                android:id="@+id/media_poster"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
+                android:src="@color/grey_300" />
+
+            <ProgressBar
+                android:id="@+id/pb_poster_loading"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:visibility="gone"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+                
+            <ImageView
+                android:id="@+id/btn_more_options"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_margin="8dp"
+                android:padding="6dp"
+                android:src="@drawable/ic_more_vert"
+                android:background="@drawable/rating_pill_bg"
+                android:elevation="4dp"
+                app:tint="@android:color/white"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
+        </androidx.constraintlayout.widget.ConstraintLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="130dp"
             android:orientation="vertical"
             android:padding="12dp">
 
             <TextView
                 android:id="@+id/media_title"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                style="@style/TextMediaCardTitle"
+                android:gravity="start"
                 android:text="Title"
-                android:textStyle="bold"
-                android:textColor="?attr/colorTextPrimary"
+                android:maxLines="2"
+                android:ellipsize="end"
                 android:textSize="16sp" />
 
             <TextView
                 android:id="@+id/media_subtitle"
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:gravity="start"
                 android:text="Anime • 24 episodes"
-                android:textColor="@color/accent_blue"
-                android:textSize="12sp" />
+                android:textColor="@color/crunchy_orange"
+                android:textSize="11sp" />
 
             <TextView
                 android:id="@+id/media_rating"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_gravity="start"
                 android:layout_marginTop="4dp"
                 android:background="@drawable/rating_pill_bg"
-                android:padding="4dp"
+                android:paddingHorizontal="6dp"
+                android:paddingVertical="2dp"
                 android:text="★ 4.6"
                 android:textColor="@android:color/white"
                 android:textSize="10sp" />
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:orientation="vertical">
+
+                <ProgressBar
+                    android:id="@+id/media_progress"
+                    style="@android:style/Widget.ProgressBar.Horizontal"
+                    android:layout_width="match_parent"
+                    android:layout_height="6dp"
+                    android:progress="0"
+                    android:progressDrawable="@drawable/custom_progress_bar" />
+
+                <TextView
+                    android:id="@+id/media_progress_text"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="4dp"
+                    android:gravity="start"
+                    android:text="0/0"
+                    android:textColor="?attr/colorTextSecondary"
+                    android:textSize="10sp" />
+            </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

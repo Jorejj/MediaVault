@@ -31,7 +31,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:scaleType="centerCrop"
-                android:src="@drawable/app_logo"
+                android:src="@drawable/mediavault_logo"
                 app:layout_collapseMode="parallax"
                 android:contentDescription="@string/image_url_path" />
 
@@ -63,7 +63,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="24dp">
+            android:padding="@dimen/screen_padding_large">
 
             <TextView
                 android:id="@+id/tv_description_title"
@@ -160,6 +160,42 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Priority"
+                android:textColor="?attr/colorTextPrimary"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_description_priority"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textColor="?attr/colorTextSecondary"
+                android:textSize="16sp"
+                tools:text="High" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:text="Finish Mood"
+                android:textColor="?attr/colorTextPrimary"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_description_mood"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textColor="?attr/colorTextSecondary"
+                android:textSize="16sp"
+                tools:text="😊 Happy" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:layout_marginTop="24dp"
                 android:text="@string/progress"
                 android:textColor="?attr/colorTextPrimary"
@@ -215,6 +251,25 @@
                 android:textSize="14sp"
                 android:lineSpacingExtra="4dp"
                 tools:text="Your personal thoughts will appear here..." />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="20dp"
+                android:text="Memory Journal"
+                android:textColor="?attr/colorTextPrimary"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_description_journal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textColor="?attr/colorTextSecondary"
+                android:textSize="14sp"
+                android:lineSpacingExtra="4dp"
+                tools:text="I watched this with friends and loved the ending." />
 
             <androidx.recyclerview.widget.RecyclerView
                 android:id="@+id/rv_description_reviews"

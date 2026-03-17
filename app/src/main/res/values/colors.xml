@@ -3,11 +3,16 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 
-    <color name="logo_text">#E50914</color>
-    <color name="main_blue">#E50914</color>
-    <color name="netflix_red">#E50914</color>
-    <color name="netflix_red_dark">#B20710</color>
-    <color name="netflix_red_soft">#FF4D57</color>
+    <!-- New Vault Crimson Palette -->
+    <color name="vault_red_primary">#D32F2F</color>
+    <color name="vault_red_dark">#9A0007</color>
+    <color name="vault_red_soft">#EF5350</color>
+
+    <color name="logo_text">@color/vault_red_primary</color>
+    <color name="main_blue">@color/vault_red_primary</color>
+    <color name="netflix_red">@color/vault_red_primary</color>
+    <color name="netflix_red_dark">@color/vault_red_dark</color>
+    <color name="netflix_red_soft">@color/vault_red_soft</color>
     <color name="crunchy_orange">#F47521</color>
     <color name="bookly_blue">#3B82F6</color>
     <color name="spotify_green">#1DB954</color>
@@ -22,9 +27,9 @@
     <color name="grey_200">#EEEEEE</color>
     <color name="grey_100">#F5F5F5</color>
 
-    <color name="accent_blue">#E50914</color>
-    <color name="vault_accent_blue">#B20710</color>
-    <color name="accent_blue_variant">#FF4D57</color>
+    <color name="accent_blue">@color/vault_red_primary</color>
+    <color name="vault_accent_blue">@color/vault_red_dark</color>
+    <color name="accent_blue_variant">@color/vault_red_soft</color>
 
     <color name="cyber_bg_dark">#121212</color>
     <color name="cyber_surface">#1F1F1F</color>
@@ -34,10 +39,10 @@
     <color name="text_tertiary_dark">#99FFFFFF</color>
     <color name="vault_background_dark">#121212</color>
     <color name="vault_surface_dark">#232323</color>
-    <color name="vault_accent_blue_dim">#70E50914</color>
+    <color name="vault_accent_blue_dim">#70D32F2F</color>
 
-    <color name="accent_cyan">#FF6A6A</color>
-    <color name="accent_purple">#A21C25</color>
+    <color name="accent_cyan">@color/vault_red_soft</color>
+    <color name="accent_purple">@color/vault_red_dark</color>
     <color name="accent_green">#1DB954</color>
 
     <color name="bg_main">#F4F6FB</color>
@@ -58,7 +63,7 @@
     <color name="glass_border">#6655697F</color>
     <color name="glass_border_light">#80FFFFFF</color>
     <color name="cinematic_black">#050505</color>
-    <color name="ongoing_red">#E50914</color>
+    <color name="ongoing_red">@color/vault_red_primary</color>
 
     <color name="chip_unselected_bg">#E2E8F0</color>
     <color name="chip_unselected_text">#334155</color>

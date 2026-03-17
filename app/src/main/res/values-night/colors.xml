@@ -12,4 +12,9 @@
     <color name="chip_unselected_bg">#262626</color>
     <color name="chip_unselected_text">#CCFFFFFF</color>
     <color name="slate_grey_muted">#64748B</color>
+
+    <!-- New Vault Crimson Palette for Night Mode -->
+    <color name="vault_red_primary">#D32F2F</color>
+    <color name="vault_red_dark">#9A0007</color>
+    <color name="vault_red_soft">#EF5350</color>
 </resources>

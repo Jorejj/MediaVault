@@ -102,12 +102,23 @@
                         android:layout_width="1dp"
                         android:layout_height="24dp"
                         android:layout_marginHorizontal="8dp"
-                        android:background="#40FFFFFF" />
+                        android:background="@color/glass_border" />
+
+                    <ImageButton
+                        android:id="@+id/btn_add_collection"
+                        android:layout_width="36dp"
+                        android:layout_height="36dp"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:src="@drawable/ic_add"
+                        android:scaleType="centerInside"
+                        android:contentDescription="Add collection"
+                        app:tint="?attr/colorIconTint" />
 
                     <ImageButton
                         android:id="@+id/btn_filter"
                         android:layout_width="36dp"
                         android:layout_height="36dp"
+                        android:layout_marginStart="4dp"
                         android:background="?attr/selectableItemBackgroundBorderless"
                         android:src="@drawable/filter"
                         android:scaleType="centerInside"
@@ -221,7 +232,19 @@
                     app:chipSpacingHorizontal="8dp">
 
                     <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_ongoing"
+                        android:id="@+id/chip_collection_all"
+                        style="@style/Widget.MaterialComponents.Chip.Choice"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checked="true"
+                        android:text="All Collections"
+                        app:chipBackgroundColor="@color/chip_unselected_bg"
+                        android:textColor="@color/chip_unselected_text"
+                        app:chipCornerRadius="20dp"
+                        app:chipStrokeWidth="0dp"/>
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chip_collection_ongoing"
                         style="@style/Widget.MaterialComponents.Chip.Choice"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -232,18 +255,7 @@
                         app:chipStrokeWidth="0dp"/>
 
                     <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_completed"
-                        style="@style/Widget.MaterialComponents.Chip.Choice"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="Completed"
-                        app:chipBackgroundColor="@color/chip_unselected_bg"
-                        android:textColor="@color/chip_unselected_text"
-                        app:chipCornerRadius="20dp"
-                        app:chipStrokeWidth="0dp"/>
-
-                    <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_planning"
+                        android:id="@+id/chip_collection_planning"
                         style="@style/Widget.MaterialComponents.Chip.Choice"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
@@ -254,11 +266,46 @@
                         app:chipStrokeWidth="0dp"/>
 
                     <com.google.android.material.chip.Chip
-                        android:id="@+id/chip_dropped"
+                        android:id="@+id/chip_collection_completed"
+                        style="@style/Widget.MaterialComponents.Chip.Choice"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Completed"
+                        app:chipBackgroundColor="@color/chip_unselected_bg"
+                        android:textColor="@color/chip_unselected_text"
+                        app:chipCornerRadius="20dp"
+                        app:chipStrokeWidth="0dp"/>
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chip_collection_dropped"
                         style="@style/Widget.MaterialComponents.Chip.Choice"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Dropped"
+                        app:chipBackgroundColor="@color/chip_unselected_bg"
+                        android:textColor="@color/chip_unselected_text"
+                        app:chipCornerRadius="20dp"
+                        app:chipStrokeWidth="0dp"/>
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chip_collection_favorites"
+                        style="@style/Widget.MaterialComponents.Chip.Choice"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Favorites"
+                        app:chipBackgroundColor="@color/chip_unselected_bg"
+                        android:textColor="@color/chip_unselected_text"
+                        app:chipCornerRadius="20dp"
+                        app:chipStrokeWidth="0dp"/>
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chip_collection_add"
+                        style="@style/Widget.MaterialComponents.Chip.Choice"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="+ Collection"
+                        android:checkable="false"
+                        android:visibility="gone"
                         app:chipBackgroundColor="@color/chip_unselected_bg"
                         android:textColor="@color/chip_unselected_text"
                         app:chipCornerRadius="20dp"

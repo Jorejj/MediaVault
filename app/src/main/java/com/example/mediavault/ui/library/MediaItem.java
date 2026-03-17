@@ -11,8 +11,13 @@ public class MediaItem {
     private String unit;
     private String coverPath;
     private float rating;
+    private boolean favorite;
 
     public MediaItem(int id, String title, String type, String genre, String status, int progress, int capacity, String unit, String coverPath, float rating) {
+        this(id, title, type, genre, status, progress, capacity, unit, coverPath, rating, false);
+    }
+
+    public MediaItem(int id, String title, String type, String genre, String status, int progress, int capacity, String unit, String coverPath, float rating, boolean favorite) {
         this.id = id;
         this.title = title;
         this.type = type;
@@ -23,6 +28,7 @@ public class MediaItem {
         this.unit = unit;
         this.coverPath = coverPath;
         this.rating = rating;
+        this.favorite = favorite;
     }
 
     public int getId() { return id; }
@@ -45,6 +51,8 @@ public class MediaItem {
     public void setCoverPath(String coverPath) { this.coverPath = coverPath; }
     public float getRating() { return rating; }
     public void setRating(float rating) { this.rating = rating; }
+    public boolean isFavorite() { return favorite; }
+    public void setFavorite(boolean favorite) { this.favorite = favorite; }
     
     public String getSubtitle() {
         return type + " • " + status;

@@ -357,21 +357,12 @@
                         </LinearLayout>
                     </LinearLayout>
 
-                    <com.google.android.material.textfield.TextInputLayout
-                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                    <Spinner
+                        android:id="@+id/spinner_manual_genre"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp">
-
-                        <com.google.android.material.textfield.TextInputEditText
-                            android:id="@+id/et_manual_genre"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:fontFamily="@font/sf_pro_regular"
-                            android:hint="@string/genre_s"
-                            android:autofillHints="none"
-                            android:inputType="textCapWords" />
-                    </com.google.android.material.textfield.TextInputLayout>
+                        android:layout_height="48dp"
+                        android:layout_marginBottom="12dp"
+                        android:contentDescription="@string/genre_s" />
 
                     <TextView
                         android:layout_width="wrap_content"
@@ -412,11 +403,118 @@
                             android:gravity="top" />
                     </com.google.android.material.textfield.TextInputLayout>
 
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_manual_review"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/sf_pro_regular"
+                            android:hint="Personal Review"
+                            android:autofillHints="none"
+                            android:inputType="textMultiLine"
+                            android:minLines="2"
+                            android:gravity="top" />
+
                     <com.google.android.material.textfield.TextInputLayout
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="12dp">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_manual_journal"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/sf_pro_regular"
+                            android:hint="Memory Journal"
+                            android:autofillHints="none"
+                            android:inputType="textMultiLine"
+                            android:minLines="2"
+                            android:gravity="top" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Finish Mood"
+                        android:textStyle="bold"
+                        android:textColor="?attr/colorTextPrimary"
+                        android:layout_marginBottom="8dp" />
+
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/chip_group_manual_mood"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        app:singleSelection="true"
+                        app:chipSpacingHorizontal="8dp"
+                        app:chipSpacingVertical="8dp">
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_manual_mood_excited"
+                            style="@style/Widget.MaterialComponents.Chip.Choice"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Excited" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_manual_mood_happy"
+                            style="@style/Widget.MaterialComponents.Chip.Choice"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Happy" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_manual_mood_neutral"
+                            style="@style/Widget.MaterialComponents.Chip.Choice"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Neutral" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_manual_mood_sad"
+                            style="@style/Widget.MaterialComponents.Chip.Choice"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Sad" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chip_manual_mood_mindblown"
+                            style="@style/Widget.MaterialComponents.Chip.Choice"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="Mind-blown" />
+                    </com.google.android.material.chip.ChipGroup>
+
+                    <Spinner
+                        android:id="@+id/spinner_manual_priority"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:layout_marginBottom="12dp"
+                        android:entries="@array/priority_levels"
+                        android:contentDescription="Priority level" />
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switch_manual_favorite"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:text="Mark as Favorite"
+                        android:textColor="?attr/colorTextPrimary" />
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp">
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:id="@+id/til_manual_image"
+                            style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginBottom="12dp"
+                            app:endIconMode="custom"
+                            app:endIconDrawable="@drawable/ic_file">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/et_manual_image"
@@ -426,7 +524,9 @@
                             android:hint="@string/image_url_path"
                             android:autofillHints="none"
                             android:inputType="textUri" />
+                        </com.google.android.material.textfield.TextInputLayout>
                     </com.google.android.material.textfield.TextInputLayout>
+
 
                     <com.google.android.material.textfield.TextInputLayout
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"

@@ -103,7 +103,7 @@
                     android:layout_height="wrap_content"
                     android:fontFamily="@font/sf_pro_medium"
                     android:text="Currently Watching / Reading"
-                    android:textColor="#E0E0E0"
+                    android:textColor="@color/white"
                     android:textSize="12sp" />
 
                 <TextView
@@ -135,6 +135,17 @@
                     android:text="Ongoing"
                     android:textColor="@color/ongoing_red"
                     android:textSize="11sp" />
+
+                    <TextView
+                        android:id="@+id/tv_progress_alert"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:maxLines="2"
+                        android:ellipsize="end"
+                        android:text="Alert received: Progress tracking is active."
+                        android:textColor="#D7E3FC"
+                        android:textSize="11sp" />
                 </LinearLayout>
                 </RelativeLayout>
                 </com.google.android.material.card.MaterialCardView>

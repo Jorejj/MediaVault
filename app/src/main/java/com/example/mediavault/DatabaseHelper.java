@@ -5,9 +5,13 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import java.util.Calendar;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
@@ -15,7 +19,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     // Database Information
     private static final String DATABASE_NAME = "MediaVault.db";
-    private static final int DATABASE_VERSION = 9;
+    private static final int DATABASE_VERSION = 11;
     public static final String TABLE_MEDIA = "media_library";
     public static final String TABLE_PROGRESS_LOG = "progress_log";
 
@@ -151,6 +155,21 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 db.execSQL("UPDATE " + TABLE_MEDIA + " SET " + COL_PRIORITY + " = 'Medium' WHERE " + COL_PRIORITY + " IS NULL OR " + COL_PRIORITY + " = ''");
             }
         }
+        if (oldVersion < 10) {
+            // Fix the progress_log table schema - the DEFAULT date function had incorrect syntax
+            // Recreate the table with the corrected DEFAULT clause
+            db.execSQL("DROP TABLE IF EXISTS " + TABLE_PROGRESS_LOG);
+            String createLogTable = "CREATE TABLE " + TABLE_PROGRESS_LOG + " (" +
+                    COL_LOG_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    COL_LOG_MEDIA_ID + " INTEGER NOT NULL, " +
+                    COL_PROGRESS_ADDED + " INTEGER NOT NULL, " +
+                    COL_LOG_DATE + " DATE DEFAULT (date('now', 'localtime')), " +
+                    "FOREIGN KEY (" + COL_LOG_MEDIA_ID + ") REFERENCES " + TABLE_MEDIA + "(" + COL_ID + ") ON DELETE CASCADE)";
+            db.execSQL(createLogTable);
+        }
+        if (oldVersion < 11) {
+            backfillProgressLogsFromCurrentProgress(db);
+        }
     }
 
     private Set<String> getTableColumns(SQLiteDatabase db, String tableName) {
@@ -200,6 +219,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     public boolean updateMedia(int id, String title, String type, String genre, String status, int progress, int total, String unit, String imagePath, float rating, String review) {
         SQLiteDatabase db = this.getWritableDatabase();
+        int oldProgress = getCurrentProgress(db, id);
         ContentValues values = new ContentValues();
         values.put(COL_TITLE, title);
         values.put(COL_MEDIA_TYPE, type);
@@ -211,6 +231,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COL_IMAGE_PATH, imagePath);
         values.put(COL_RATING, rating);
         values.put(COL_REVIEW, review);
+        if (progress > oldProgress) {
+            logProgressDelta(db, id, progress - oldProgress);
+        }
         int result = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(id)});
         db.close();
         return result > 0;
@@ -218,6 +241,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     public boolean updateMedia(int id, String title, String type, String genre, String status, int progress, int total, String unit, String imagePath, float rating, String review, String journal, String mood, String priority, boolean isFavorite) {
         SQLiteDatabase db = this.getWritableDatabase();
+        int oldProgress = getCurrentProgress(db, id);
         ContentValues values = new ContentValues();
         values.put(COL_TITLE, title);
         values.put(COL_MEDIA_TYPE, type);
@@ -233,6 +257,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COL_MOOD, mood);
         values.put(COL_PRIORITY, priority == null || priority.isEmpty() ? "Medium" : priority);
         values.put(COL_IS_FAVORITE, isFavorite ? 1 : 0);
+        if (progress > oldProgress) {
+            logProgressDelta(db, id, progress - oldProgress);
+        }
         int result = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(id)});
         db.close();
         return result > 0;
@@ -254,10 +281,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         int progressAdded = newProgress - oldProgress;
 
         if (progressAdded > 0) {
-            ContentValues logValues = new ContentValues();
-            logValues.put(COL_LOG_MEDIA_ID, id);
-            logValues.put(COL_PROGRESS_ADDED, progressAdded);
-            db.insert(TABLE_PROGRESS_LOG, null, logValues);
+            logProgressDelta(db, id, progressAdded);
         }
 
         ContentValues values = new ContentValues();
@@ -290,34 +314,71 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     // --- DASHBOARD METRICS QUERIES ---
 
     public int getDailyPages() {
-        return getProgressSum("m." + COL_UNIT + " = 'Pages' OR m." + COL_UNIT + " = 'Chapters'", "date('now', 'localtime')");
+        return getProgressSumWithFallback(new String[]{"Pages", "Chapters"}, "date('now', 'localtime')");
     }
 
     public int getWeeklyPages() {
-        return getProgressSum("m." + COL_UNIT + " = 'Pages' OR m." + COL_UNIT + " = 'Chapters'", "date('now', 'localtime', '-7 days')");
+        return getProgressSumWithFallback(new String[]{"Pages", "Chapters"}, "date('now', 'localtime', '-7 days')");
+    }
+
+    public int getMonthlyPages() {
+        return getProgressSumWithFallback(new String[]{"Pages", "Chapters"}, "date('now', 'localtime', '-30 days')");
     }
 
     public int getDailyMinutes() {
-        return getProgressSum("m." + COL_UNIT + " = 'Minutes' OR m." + COL_UNIT + " = 'Episodes'", "date('now', 'localtime')");
+        return getProgressSumWithFallback(new String[]{"Minutes"}, "date('now', 'localtime')");
     }
 
     public int getWeeklyMinutes() {
-        return getProgressSum("m." + COL_UNIT + " = 'Minutes' OR m." + COL_UNIT + " = 'Episodes'", "date('now', 'localtime', '-7 days')");
+        return getProgressSumWithFallback(new String[]{"Minutes"}, "date('now', 'localtime', '-7 days')");
     }
 
-    private int getProgressSum(String condition, String dateFilter) {
+    public int getDailyEpisodes() {
+        return getProgressSumWithFallback(new String[]{"Episodes"}, "date('now', 'localtime')");
+    }
+
+    public int getWeeklyEpisodes() {
+        return getProgressSumWithFallback(new String[]{"Episodes"}, "date('now', 'localtime', '-7 days')");
+    }
+
+    public int getMonthlyMinutes() {
+        return getProgressSumWithFallback(new String[]{"Minutes"}, "date('now', 'localtime', '-30 days')");
+    }
+
+    public int getMonthlyEpisodes() {
+        return getProgressSumWithFallback(new String[]{"Episodes"}, "date('now', 'localtime', '-30 days')");
+    }
+
+    private int getProgressSumWithFallback(String[] units, String dateFilter) {
         SQLiteDatabase db = this.getReadableDatabase();
-        String query = "SELECT SUM(l." + COL_PROGRESS_ADDED + ") FROM " + TABLE_PROGRESS_LOG + " l " +
+        String inClause = buildInClause(units.length);
+        String logQuery = "SELECT COALESCE(SUM(l." + COL_PROGRESS_ADDED + "), 0) FROM " + TABLE_PROGRESS_LOG + " l " +
                 "JOIN " + TABLE_MEDIA + " m ON l." + COL_LOG_MEDIA_ID + " = m." + COL_ID + " " +
-                "WHERE (" + condition + ") AND l." + COL_LOG_DATE + " >= " + dateFilter + " AND m." + COL_STATUS + " != 'Recently Deleted'";
-        
-        Cursor cursor = db.rawQuery(query, null);
-        int total = 0;
-        if (cursor.moveToFirst()) {
-            total = cursor.getInt(0);
+                "WHERE m." + COL_UNIT + " IN (" + inClause + ") " +
+                "AND l." + COL_LOG_DATE + " >= " + dateFilter + " " +
+                "AND m." + COL_STATUS + " != 'Recently Deleted'";
+
+        Cursor logCursor = db.rawQuery(logQuery, units);
+        int totalFromLog = 0;
+        if (logCursor.moveToFirst()) {
+            totalFromLog = logCursor.getInt(0);
         }
-        cursor.close();
-        return total;
+        logCursor.close();
+        if (totalFromLog > 0) {
+            return totalFromLog;
+        }
+
+        String fallbackQuery = "SELECT COALESCE(SUM(" + COL_CURRENT_PROGRESS + "), 0) FROM " + TABLE_MEDIA + " " +
+                "WHERE " + COL_UNIT + " IN (" + inClause + ") " +
+                "AND " + COL_STATUS + " != 'Recently Deleted' " +
+                "AND date(" + COL_LAST_UPDATED + ") >= " + dateFilter;
+        Cursor fallbackCursor = db.rawQuery(fallbackQuery, units);
+        int totalFallback = 0;
+        if (fallbackCursor.moveToFirst()) {
+            totalFallback = fallbackCursor.getInt(0);
+        }
+        fallbackCursor.close();
+        return totalFallback;
     }
 
     public int getTotalMinutesWatched() {
@@ -339,7 +400,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     public int getTotalPagesRead() {
         SQLiteDatabase db = this.getReadableDatabase();
-        // Explicitly only count Pages and Chapters, or Book/Manga types
         Cursor cursor = db.rawQuery("SELECT SUM(" + COL_CURRENT_PROGRESS + ") FROM " + TABLE_MEDIA + " WHERE " + COL_UNIT + " IN ('Pages', 'Chapters') AND " + COL_STATUS + " != 'Recently Deleted'", null);
         int total = 0;
         if (cursor.moveToFirst()) total = cursor.getInt(0);
@@ -384,28 +444,100 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     public String getTopGenre() {
-        SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT " + COL_GENRE + ", COUNT(*) as count FROM " + TABLE_MEDIA + " WHERE " + COL_STATUS + " != 'Recently Deleted' GROUP BY " + COL_GENRE + " ORDER BY count DESC LIMIT 1", null);
-        String genre = "N/A";
-        if (cursor.moveToFirst()) genre = cursor.getString(0);
-        cursor.close();
-        return genre;
+        java.util.Map<String, Integer> counts = getGenreCounts();
+        String topGenre = "N/A";
+        int highest = 0;
+        for (java.util.Map.Entry<String, Integer> entry : counts.entrySet()) {
+            if (entry.getValue() > highest) {
+                highest = entry.getValue();
+                topGenre = entry.getKey();
+            }
+        }
+        return topGenre;
     }
 
     public java.util.Map<String, Integer> getGenreCounts() {
         java.util.Map<String, Integer> counts = new java.util.HashMap<>();
         SQLiteDatabase db = this.getReadableDatabase();
-        Cursor cursor = db.rawQuery("SELECT " + COL_GENRE + ", COUNT(*) FROM " + TABLE_MEDIA + " WHERE " + COL_STATUS + " != 'Recently Deleted' GROUP BY " + COL_GENRE, null);
+        Cursor cursor = db.rawQuery("SELECT " + COL_GENRE + " FROM " + TABLE_MEDIA + " WHERE " + COL_STATUS + " != 'Recently Deleted'", null);
         if (cursor.moveToFirst()) {
             do {
-                String genre = cursor.getString(0);
-                if (genre == null || genre.isEmpty()) genre = "Uncategorized";
-                int count = cursor.getInt(1);
-                counts.put(genre, count);
+                String rawGenre = cursor.getString(0);
+                addGenreTokens(counts, rawGenre);
             } while (cursor.moveToNext());
         }
         cursor.close();
         return counts;
+    }
+
+    private void addGenreTokens(java.util.Map<String, Integer> counts, String rawGenre) {
+        if (rawGenre == null || rawGenre.trim().isEmpty()) {
+            counts.put("Uncategorized", counts.getOrDefault("Uncategorized", 0) + 1);
+            return;
+        }
+        String[] genres = rawGenre.split(",");
+        for (String token : genres) {
+            String normalized = token.trim();
+            if (normalized.isEmpty()) {
+                continue;
+            }
+            counts.put(normalized, counts.getOrDefault(normalized, 0) + 1);
+        }
+    }
+
+    public boolean addCollectionTag(int mediaId, String collectionName) {
+        if (collectionName == null || collectionName.trim().isEmpty()) {
+            return false;
+        }
+        SQLiteDatabase db = this.getWritableDatabase();
+        Cursor cursor = db.rawQuery(
+                "SELECT " + COL_GENRE + " FROM " + TABLE_MEDIA + " WHERE " + COL_ID + "=?",
+                new String[]{String.valueOf(mediaId)}
+        );
+        if (!cursor.moveToFirst()) {
+            cursor.close();
+            db.close();
+            return false;
+        }
+        String existing = cursor.getString(0);
+        cursor.close();
+
+        List<String> parts = new ArrayList<>();
+        if (existing != null && !existing.trim().isEmpty()) {
+            for (String token : existing.split(",")) {
+                String normalized = token.trim();
+                if (!normalized.isEmpty()) {
+                    parts.add(normalized);
+                }
+            }
+        }
+
+        String normalizedCollection = collectionName.trim();
+        boolean exists = false;
+        for (String token : parts) {
+            if (token.equalsIgnoreCase(normalizedCollection)) {
+                exists = true;
+                break;
+            }
+        }
+        if (!exists) {
+            parts.add(normalizedCollection);
+        }
+
+        StringBuilder merged = new StringBuilder();
+        for (int i = 0; i < parts.size(); i++) {
+            if (i > 0) {
+                merged.append(", ");
+            }
+            merged.append(parts.get(i));
+        }
+
+        ContentValues values = new ContentValues();
+        values.put(COL_GENRE, merged.toString());
+        values.put(COL_LAST_UPDATED, getDateTime());
+        int rows = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(mediaId)});
+        db.close();
+        return rows > 0;
     }
 
     public int getTotalCountByType(String type) {
@@ -423,11 +555,102 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     public Cursor getRandomPlanningMediaWeighted() {
+        return getRandomPlanningMediaWeighted(null, null);
+    }
+
+    public Cursor getRandomPlanningMediaWeighted(String mediaTypeFilter, String genreFilter) {
         SQLiteDatabase db = this.getReadableDatabase();
-        String query = "SELECT * FROM " + TABLE_MEDIA + " WHERE " + COL_STATUS + " = 'Planning' " +
+        StringBuilder queryBuilder = new StringBuilder("SELECT * FROM " + TABLE_MEDIA + " WHERE " + COL_STATUS + " = 'Planning' ");
+        List<String> args = new ArrayList<>();
+        if (mediaTypeFilter != null && !mediaTypeFilter.trim().isEmpty()) {
+            queryBuilder.append("AND ").append(COL_MEDIA_TYPE).append(" = ? ");
+            args.add(mediaTypeFilter.trim());
+        }
+        if (genreFilter != null && !genreFilter.trim().isEmpty()) {
+            queryBuilder.append("AND ").append(COL_GENRE).append(" LIKE ? ");
+            args.add("%" + genreFilter.trim() + "%");
+        }
+        queryBuilder.append(
                 "ORDER BY (ABS(RANDOM()) / 2147483647.0) / " +
-                "CASE " + COL_PRIORITY + " WHEN 'High' THEN 3.0 WHEN 'Medium' THEN 1.7 ELSE 1.0 END LIMIT 1";
-        return db.rawQuery(query, null);
+                "CASE " + COL_PRIORITY + " WHEN 'High' THEN 3.0 WHEN 'Medium' THEN 1.7 ELSE 1.0 END LIMIT 1"
+        );
+        return db.rawQuery(queryBuilder.toString(), args.toArray(new String[0]));
+    }
+
+    public List<String> getPlanningGenres() {
+        List<String> genres = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        String query = "SELECT DISTINCT " + COL_GENRE + " FROM " + TABLE_MEDIA + " " +
+                "WHERE " + COL_STATUS + " != 'Recently Deleted' AND " + COL_GENRE + " IS NOT NULL AND TRIM(" + COL_GENRE + ") != '' " +
+                "ORDER BY " + COL_GENRE + " COLLATE NOCASE";
+        Cursor cursor = db.rawQuery(query, null);
+        if (cursor.moveToFirst()) {
+            do {
+                String rawGenre = cursor.getString(0);
+                if (rawGenre == null) {
+                    continue;
+                }
+                String[] parts = rawGenre.split(",");
+                for (String part : parts) {
+                    String normalized = part.trim();
+                    if (!normalized.isEmpty() && !genres.contains(normalized)) {
+                        genres.add(normalized);
+                    }
+                }
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
+        return genres;
+    }
+
+    public List<String> getShakeGenresByType(String mediaTypeFilter) {
+        List<String> genres = new ArrayList<>();
+        LinkedHashSet<String> uniqueGenres = new LinkedHashSet<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        StringBuilder queryBuilder = new StringBuilder(
+                "SELECT " + COL_GENRE + " FROM " + TABLE_MEDIA + " " +
+                        "WHERE " + COL_STATUS + " NOT IN ('Ongoing', 'Completed', 'Recently Deleted') " +
+                        "AND " + COL_GENRE + " IS NOT NULL AND TRIM(" + COL_GENRE + ") != '' "
+        );
+        List<String> args = new ArrayList<>();
+        if (mediaTypeFilter != null && !mediaTypeFilter.trim().isEmpty()) {
+            queryBuilder.append("AND ").append(COL_MEDIA_TYPE).append(" = ? ");
+            args.add(mediaTypeFilter.trim());
+        }
+        queryBuilder.append("ORDER BY ").append(COL_GENRE).append(" COLLATE NOCASE");
+
+        Cursor cursor = db.rawQuery(queryBuilder.toString(), args.toArray(new String[0]));
+        if (cursor.moveToFirst()) {
+            do {
+                String rawGenre = cursor.getString(0);
+                if (rawGenre == null) {
+                    continue;
+                }
+                String[] parts = rawGenre.split(",");
+                for (String part : parts) {
+                    String normalized = part.trim();
+                    if (!normalized.isEmpty()) {
+                        uniqueGenres.add(normalized);
+                    }
+                }
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
+        genres.addAll(uniqueGenres);
+        return genres;
+    }
+
+    public boolean updateMediaMetadata(int id, String review, String journal, String mood, String priority, boolean isFavorite) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COL_REVIEW, review);
+        values.put(COL_JOURNAL, journal);
+        values.put(COL_MOOD, mood);
+        values.put(COL_PRIORITY, priority == null || priority.isEmpty() ? "Medium" : priority);
+        values.put(COL_IS_FAVORITE, isFavorite ? 1 : 0);
+        int result = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(id)});
+        db.close();
+        return result > 0;
     }
 
     public Cursor getHighestProgressOngoing() {
@@ -531,34 +754,56 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             {"Your Name", "Anime", "Romance", "Makoto Shinkai", 1, "Episodes", "Two teens swap bodies mysteriously."},
             
             // Manga
-            {"Berserk", "Manga", "Dark Fantasy", "Kentaro Miura", 373, "Chapters", "The journey of Guts, a lone mercenary."},
+            {"Berserk", "Manga", "Horror", "Kentaro Miura", 373, "Chapters", "The journey of Guts, a lone mercenary."},
             {"Solo Leveling", "Manga", "Action", "Chugong", 179, "Chapters", "Weak hunter becomes the strongest."},
             {"Dragon Ball", "Manga", "Action", "Akira Toriyama", 519, "Chapters", "Goku's quest for the Dragon Balls."},
             
             // Books
-            {"1984", "Book", "Dystopian", "George Orwell", 328, "Pages", "Totalitarianism and government surveillance."},
+            {"1984", "Book", "Science Fiction", "George Orwell", 328, "Pages", "Totalitarianism and government surveillance."},
             {"The Hobbit", "Book", "Fantasy", "J.R.R. Tolkien", 310, "Pages", "Bilbo Baggins' unexpected adventure."},
             {"Harry Potter", "Book", "Fantasy", "J.K. Rowling", 309, "Pages", "Young wizard's journey at Hogwarts."},
             {"Dune", "Book", "Sci-Fi", "Frank Herbert", 412, "Pages", "Political struggle on a desert planet."},
-            {"The Great Gatsby", "Book", "Classic", "F. Scott Fitzgerald", 180, "Pages", "Wealth, love, and the American dream."},
+            {"The Great Gatsby", "Book", "Literary Fiction", "F. Scott Fitzgerald", 180, "Pages", "Wealth, love, and the American dream."},
             {"Sherlock Holmes", "Book", "Mystery", "Arthur Conan Doyle", 350, "Pages", "Famous detective solving crimes."},
             {"Dracula", "Book", "Horror", "Bram Stoker", 418, "Pages", "The original vampire count."}
         };
 
         String[] statuses = {"Ongoing", "Completed", "Planning", "Dropped"};
 
+        String[] moods = {"Excited", "Happy", "Neutral", "Sad", "Mind-blown"};
+        String[] priorities = {"High", "Medium", "Low"};
+        int index = 0;
         for (Object[] row : mediaData) {
             ContentValues v = new ContentValues();
             String title = (String) row[0];
             String type = (String) row[1];
-            String genre = (String) row[2];
+            String baseGenre = (String) row[2];
             String creator = (String) row[3];
             int total = (int) row[4];
             String unit = (String) row[5];
             String desc = (String) row[6];
             
-            String status = statuses[(int) (Math.random() * statuses.length)];
-            int progress = status.equals("Completed") ? total : (status.equals("Planning") ? 0 : (int)(Math.random() * total));
+            String status = statuses[index % statuses.length];
+            int progress;
+            if ("Completed".equals(status)) {
+                progress = total;
+            } else if ("Planning".equals(status)) {
+                progress = 0;
+            } else if ("Dropped".equals(status)) {
+                progress = Math.max(1, total / 10);
+            } else {
+                progress = Math.max(1, (int) (total * 0.45f));
+            }
+
+            String genre = baseGenre;
+            if ("Sci-Fi".equalsIgnoreCase(baseGenre) && index % 2 == 0) {
+                genre = "Sci-Fi, Adventure";
+            } else if ("Fantasy".equalsIgnoreCase(baseGenre) && index % 3 == 0) {
+                genre = "Fantasy, Adventure";
+            }
+            String priority = priorities[index % priorities.length];
+            String mood = moods[index % moods.length];
+            boolean isFavorite = index % 5 == 0;
 
             v.put(COL_TITLE, title + " (Demo)");
             v.put(COL_MEDIA_TYPE, type);
@@ -570,8 +815,22 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             v.put(COL_CURRENT_PROGRESS, progress);
             v.put(COL_RATING, 3.0f + (float)(Math.random() * 2.0f));
             v.put(COL_DESCRIPTION, desc);
-            
-            db.insertWithOnConflict(TABLE_MEDIA, null, v, SQLiteDatabase.CONFLICT_IGNORE);
+            v.put(COL_PRIORITY, priority);
+            v.put(COL_MOOD, mood);
+            v.put(COL_IS_FAVORITE, isFavorite ? 1 : 0);
+            if ("Completed".equals(status)) {
+                v.put(COL_REVIEW, "Finished and recommended.");
+                v.put(COL_JOURNAL, "Great pacing and memorable moments.");
+            } else if ("Dropped".equals(status)) {
+                v.put(COL_REVIEW, "Paused for now.");
+                v.put(COL_JOURNAL, "Might return later.");
+            }
+
+            long mediaId = db.insertWithOnConflict(TABLE_MEDIA, null, v, SQLiteDatabase.CONFLICT_IGNORE);
+            if (mediaId != -1 && progress > 0) {
+                seedProgressHistory(db, (int) mediaId, progress);
+            }
+            index++;
         }
         db.close();
     }
@@ -588,5 +847,103 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "yyyy-MM-dd HH:mm:ss", Locale.getDefault());
         Date date = new Date();
         return dateFormat.format(date);
+    }
+
+    private int getCurrentProgress(SQLiteDatabase db, int id) {
+        int oldProgress = 0;
+        Cursor cursor = db.query(TABLE_MEDIA, new String[]{COL_CURRENT_PROGRESS},
+                COL_ID + "=?", new String[]{String.valueOf(id)}, null, null, null);
+        if (cursor != null) {
+            if (cursor.moveToFirst()) {
+                oldProgress = cursor.getInt(0);
+            }
+            cursor.close();
+        }
+        return oldProgress;
+    }
+
+    private void logProgressDelta(SQLiteDatabase db, int mediaId, int delta) {
+        if (delta <= 0) {
+            return;
+        }
+        ContentValues logValues = new ContentValues();
+        logValues.put(COL_LOG_MEDIA_ID, mediaId);
+        logValues.put(COL_PROGRESS_ADDED, delta);
+        db.insert(TABLE_PROGRESS_LOG, null, logValues);
+    }
+
+    private void logProgressDeltaAtDate(SQLiteDatabase db, int mediaId, int delta, String date) {
+        if (delta <= 0) {
+            return;
+        }
+        ContentValues logValues = new ContentValues();
+        logValues.put(COL_LOG_MEDIA_ID, mediaId);
+        logValues.put(COL_PROGRESS_ADDED, delta);
+        logValues.put(COL_LOG_DATE, date);
+        db.insert(TABLE_PROGRESS_LOG, null, logValues);
+    }
+
+    private void seedProgressHistory(SQLiteDatabase db, int mediaId, int progress) {
+        if (progress <= 0) {
+            return;
+        }
+
+        int daily = Math.max(1, progress / 5);
+        int weekly = Math.max(1, progress / 3);
+        int monthly = progress - daily - weekly;
+
+        if (monthly < 1) {
+            monthly = 1;
+            if (weekly > 1) {
+                weekly -= 1;
+            } else if (daily > 1) {
+                daily -= 1;
+            }
+        }
+
+        int distributed = daily + weekly + monthly;
+        if (distributed != progress) {
+            monthly += (progress - distributed);
+        }
+
+        logProgressDeltaAtDate(db, mediaId, daily, getDateOffset(0));
+        logProgressDeltaAtDate(db, mediaId, weekly, getDateOffset(-4));
+        logProgressDeltaAtDate(db, mediaId, monthly, getDateOffset(-18));
+    }
+
+    private String getDateOffset(int daysOffset) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.DAY_OF_YEAR, daysOffset);
+        return new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(calendar.getTime());
+    }
+
+    private void backfillProgressLogsFromCurrentProgress(SQLiteDatabase db) {
+        Cursor cursor = db.rawQuery(
+                "SELECT m." + COL_ID + ", m." + COL_CURRENT_PROGRESS + " FROM " + TABLE_MEDIA + " m " +
+                        "LEFT JOIN " + TABLE_PROGRESS_LOG + " l ON l." + COL_LOG_MEDIA_ID + " = m." + COL_ID + " " +
+                        "WHERE m." + COL_CURRENT_PROGRESS + " > 0 " +
+                        "GROUP BY m." + COL_ID + " " +
+                        "HAVING COUNT(l." + COL_LOG_ID + ") = 0",
+                null
+        );
+        if (cursor.moveToFirst()) {
+            do {
+                int mediaId = cursor.getInt(0);
+                int progress = cursor.getInt(1);
+                logProgressDelta(db, mediaId, progress);
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
+    }
+
+    private String buildInClause(int count) {
+        StringBuilder builder = new StringBuilder();
+        for (int i = 0; i < count; i++) {
+            if (i > 0) {
+                builder.append(", ");
+            }
+            builder.append("?");
+        }
+        return builder.toString();
     }
 }

@@ -28,6 +28,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import com.google.android.material.textfield.TextInputLayout;
 import java.io.File;
+import java.util.List;
 
 public class EditMediaActivity extends AppCompatActivity {
 
@@ -36,11 +37,11 @@ public class EditMediaActivity extends AppCompatActivity {
     private int mediaId;
     private DatabaseHelper dbHelper;
 
-    private TextInputEditText etTitle, etGenre, etReview, etImage, etJournal;
+    private TextInputEditText etTitle, etReview, etImage, etJournal;
     private TextInputLayout tilImage;
     private ImageView ivCover;
     private TextInputEditText etProgress, etTotal;
-    private AutoCompleteTextView autoType, autoStatus, autoUnit, autoPriority;
+    private AutoCompleteTextView autoType, autoStatus, autoUnit, autoPriority, autoGenre;
     private RatingBar rbRating;
     private ChipGroup chipGroupMood;
     private SwitchMaterial switchFavorite;
@@ -89,7 +90,6 @@ public class EditMediaActivity extends AppCompatActivity {
         collapsingToolbar = findViewById(R.id.toolbar_layout);
 
         etTitle = findViewById(R.id.et_edit_title);
-        etGenre = findViewById(R.id.et_edit_genre);
         etReview = findViewById(R.id.et_edit_review);
         etJournal = findViewById(R.id.et_edit_journal);
         etImage = findViewById(R.id.et_edit_image);
@@ -101,6 +101,7 @@ public class EditMediaActivity extends AppCompatActivity {
         autoStatus = findViewById(R.id.spinner_edit_status_auto);
         autoUnit = findViewById(R.id.spinner_edit_unit_auto);
         autoPriority = findViewById(R.id.spinner_edit_priority_auto);
+        autoGenre = findViewById(R.id.auto_edit_genre);
         rbRating = findViewById(R.id.rb_edit_rating);
         chipGroupMood = findViewById(R.id.chip_group_mood);
         switchFavorite = findViewById(R.id.switch_edit_favorite);
@@ -136,6 +137,7 @@ public class EditMediaActivity extends AppCompatActivity {
         String[] types = getResources().getStringArray(R.array.media_types);
         ArrayAdapter<String> adapterType = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, types);
         autoType.setAdapter(adapterType);
+        autoType.setOnItemClickListener((parent, view, position, id) -> updateGenreDropdown());
 
         String[] statuses = getResources().getStringArray(R.array.media_statuses);
         ArrayAdapter<String> adapterStatus = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, statuses);
@@ -148,6 +150,19 @@ public class EditMediaActivity extends AppCompatActivity {
         String[] priorities = getResources().getStringArray(R.array.priority_levels);
         ArrayAdapter<String> adapterPriority = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, priorities);
         autoPriority.setAdapter(adapterPriority);
+        
+        // Initial genre setup
+        updateGenreDropdown();
+    }
+    
+    private void updateGenreDropdown() {
+        String mediaType = autoType.getText().toString().trim();
+        if (mediaType.isEmpty()) {
+            mediaType = "Book"; // default
+        }
+        List<String> genres = GenreManager.getGenreListForMediaType(mediaType);
+        ArrayAdapter<String> genreAdapter = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, genres);
+        autoGenre.setAdapter(genreAdapter);
     }
 
     private void setupImagePreviewListener() {
@@ -200,7 +215,8 @@ public class EditMediaActivity extends AppCompatActivity {
             etTitle.setText(title);
             collapsingToolbar.setTitle(title);
 
-            etGenre.setText(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_GENRE)));
+            String genre = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_GENRE));
+            autoGenre.setText(genre, false);
             etReview.setText(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_REVIEW)));
             etJournal.setText(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_JOURNAL)));
             etProgress.setText(String.valueOf(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_CURRENT_PROGRESS))));
@@ -226,7 +242,7 @@ public class EditMediaActivity extends AppCompatActivity {
         String title = etTitle.getText().toString().trim();
         String type = autoType.getText().toString();
         String status = autoStatus.getText().toString();
-        String genre = etGenre.getText().toString().trim();
+        String genre = autoGenre.getText().toString().trim();
         String review = etReview.getText().toString().trim();
         String journal = etJournal.getText().toString().trim();
         String progressStr = etProgress.getText().toString().trim();
@@ -257,7 +273,9 @@ public class EditMediaActivity extends AppCompatActivity {
 
                     if (dbHelper.updateMedia(mediaId, title, type, genre, status, progress, total, unit, finalImage, rating, review, journal, mood, priority, isFavorite)) {
                         ToastUtils.showCustomToast(EditMediaActivity.this, "Changes saved");
-                        sendBroadcast(new Intent(DescriptionActivity.ACTION_MEDIA_UPDATED));
+                        Intent updateIntent = new Intent(DescriptionActivity.ACTION_MEDIA_UPDATED);
+                        updateIntent.setPackage(getPackageName());
+                        sendBroadcast(updateIntent);
                         finish();
                     } else {
                         ToastUtils.showCustomToast(EditMediaActivity.this, "Error: Could not save changes");

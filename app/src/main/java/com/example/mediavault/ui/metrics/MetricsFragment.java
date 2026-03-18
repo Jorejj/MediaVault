@@ -115,6 +115,7 @@ public class MetricsFragment extends Fragment {
         webView.getSettings().setJavaScriptEnabled(true);
         webView.getSettings().setLoadWithOverviewMode(true);
         webView.getSettings().setUseWideViewPort(true);
+        webView.getSettings().setDomStorageEnabled(true);
         webView.setBackgroundColor(Color.TRANSPARENT);
     }
 
@@ -173,9 +174,9 @@ public class MetricsFragment extends Fragment {
                 "legend: { enabled: false }," +
                 "xAxis: { categories: ['Pages', 'Hours', 'Episodes'], lineColor: '#555', tickColor: '#555', labels: { style: { color: '#E0E0E0', fontSize: '10px' } } }," +
                 "yAxis: { min: 0, title: { text: '' }, allowDecimals: false, gridLineColor: 'rgba(255,255,255,0.18)', labels: { style: { color: '#CFCFCF', fontSize: '10px' } } }," +
-                "tooltip: { shared: false, backgroundColor: 'rgba(10,10,10,0.92)', borderColor: '#D32F2F', style: { color: '#FFFFFF' }, " +
-                "formatter: function() { return this.series.name + ': <b>' + this.y + '</b> ' + this.x.toLowerCase(); } }," +
-                "plotOptions: { column: { depth: 24, borderWidth: 0, borderRadius: 4, pointPadding: 0.16, groupPadding: 0.22, maxPointWidth: 54 } }," +
+                "tooltip: { enabled: true, shared: true, useHTML: true, followTouchMove: true, backgroundColor: 'rgba(10,10,10,0.95)', borderColor: '#D32F2F', style: { color: '#FFFFFF' }, " +
+                "formatter: function() { return 'Progress: <b>' + this.points[0].y + '</b> ' + String(this.points[0].key).toLowerCase(); } }," +
+                "plotOptions: { column: { depth: 24, borderWidth: 0, borderRadius: 4, pointPadding: 0.16, groupPadding: 0.22, maxPointWidth: 54, stickyTracking: false } }," +
                 "series: [{ name: 'Progress', data: [" + pages + ", " + roundedHours + ", " + episodes + "], color: '#D32F2F' }]," +
                 "responsive: { rules: [{ condition: { maxWidth: 360 }, chartOptions: { chart: { marginLeft: 36, marginBottom: 38 }, xAxis: { labels: { style: { fontSize: '9px' } } }, yAxis: { labels: { style: { fontSize: '9px' } } } } }] }" +
                 "}";
@@ -212,7 +213,7 @@ public class MetricsFragment extends Fragment {
                 "chart: { type: 'pie', backgroundColor: 'transparent', spacing: [8, 8, 8, 8], options3d: { enabled: true, alpha: 42, beta: 0 } }," +
                 "title: { text: '' }," +
                 "credits: { enabled: false }," +
-                "tooltip: { pointFormat: '<b>{point.y}</b> entries', backgroundColor: 'rgba(10,10,10,0.92)', borderColor: '#D32F2F', style: { color: '#FFFFFF' } }," +
+                "tooltip: { enabled: true, followTouchMove: true, pointFormat: '<b>{point.y}</b> entries', backgroundColor: 'rgba(10,10,10,0.92)', borderColor: '#D32F2F', style: { color: '#FFFFFF' } }," +
                 "legend: { enabled: false }," +
                 "plotOptions: { pie: { depth: 36, center: ['50%', '56%'], size: '88%', innerSize: '30%', borderWidth: 0, dataLabels: { enabled: true, distance: -18, style: { color: '#FFFFFF', fontSize: '9px', fontWeight: '600', textOutline: 'none' }, formatter: function() { return this.percentage >= 6 ? this.point.name : ''; } } } }," +
                 "series: [{ name: 'Genres', colorByPoint: true, data: " + dataJson + " }]," +
@@ -226,10 +227,10 @@ public class MetricsFragment extends Fragment {
         String html = "<html>" +
                 "<head>" +
                 "<meta charset='UTF-8'>" +
-                "<meta name='viewport' content='width=device-width, initial-scale=1.0'>" +
+                "<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no'>" +
                 "<style>" +
-                "html, body, #container { width:100%; height:100%; margin:0; padding:0; background:transparent; overflow:hidden; }" +
-                "body { display:flex; align-items:center; justify-content:center; }" +
+                "html, body, #container { width:100%; height:100%; margin:0; padding:0; background:transparent; overflow:hidden; touch-action: manipulation; }" +
+                "body { display:flex; align-items:center; justify-content:center; -webkit-tap-highlight-color: transparent; }" +
                 "</style>" +
                 "<script src='https://code.highcharts.com/highcharts.js'></script>" +
                 "<script src='https://code.highcharts.com/highcharts-3d.js'></script>" +
@@ -239,6 +240,7 @@ public class MetricsFragment extends Fragment {
                 "<div id='container'></div>" +
                 "<script>" +
                 "try {" +
+                "Highcharts.setOptions({ lang: { thousandsSep: ',' } });" +
                 "const chart = Highcharts.chart('container', " + chartConfig + ");" +
                 "window.addEventListener('resize', function() { if (chart) { chart.reflow(); } });" +
                 "} catch(e) { console.error('Chart error:', e); }" +

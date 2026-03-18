@@ -1,21 +1,33 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <style name="Theme.MediaVault" parent="Theme.MaterialComponents.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/netflix_red</item>
-        <item name="colorPrimaryVariant">@color/netflix_red_dark</item>
-        <item name="colorOnPrimary">@color/white</item>
-
-        <item name="colorSecondary">@color/netflix_red_soft</item>
-        <item name="colorSecondaryVariant">@color/netflix_red_dark</item>
-        <item name="colorOnSecondary">@color/white</item>
-
-        <item name="android:statusBarColor">@color/charcoal_bg</item>
+        <!-- Primary Brand Colors -->
+        <item name="colorPrimary">@color/vault_red_primary</item>
+        <item name="colorPrimaryVariant">@color/vault_red_dark</item>
+        <item name="colorOnPrimary">@color/black</item>
+        
+        <!-- Secondary Brand Colors -->
+        <item name="colorSecondary">@color/vault_red_light</item>
+        <item name="colorSecondaryVariant">@color/vault_red_dark</item>
+        <item name="colorOnSecondary">@color/black</item>
+        
+        <!-- Status Bar -->
+        <item name="android:statusBarColor">@color/background_base</item>
         <item name="android:windowLightStatusBar">false</item>
-
-        <item name="android:windowBackground">@color/charcoal_bg</item>
-        <item name="colorCardBackground">@color/bg_card_dark</item>
-        <item name="colorBottomNav">@color/nav_bg_dark</item>
-        <item name="colorTextPrimary">@color/white</item>
-        <item name="colorTextSecondary">@color/text_secondary_dark</item>
-        <item name="colorIconTint">@color/white</item>
+        
+        <!-- Backgrounds -->
+        <item name="android:windowBackground">@color/background_base</item>
+        <item name="colorSurface">@color/background_surface</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        
+        <!-- Custom Attributes -->
+        <item name="colorCardBackground">@color/glass_surface_color</item>
+        <item name="colorBottomNav">@color/nav_background</item>
+        <item name="colorTextPrimary">@color/text_primary</item>
+        <item name="colorTextSecondary">@color/text_secondary</item>
+        <item name="colorIconTint">@color/text_primary</item>
+        
+        <!-- Typography Defaults -->
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_secondary</item>
     </style>
 </resources>

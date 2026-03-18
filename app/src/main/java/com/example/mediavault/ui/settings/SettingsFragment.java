@@ -16,6 +16,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.RelativeLayout;
+import android.widget.TextView;
 import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -121,15 +122,16 @@ public class SettingsFragment extends Fragment {
         View rowVault = view.findViewById(R.id.icon_vault).getParent() instanceof View ? (View) view.findViewById(R.id.icon_vault).getParent() : null;
         RelativeLayout btnAbout = view.findViewById(R.id.btn_about);
 
-        // Theme preference persistence
-        boolean isDarkMode = sharedPreferences.getBoolean("dark_mode", false);
+        // Check the current actual theme to set the initial switch state
+        int currentNightMode = getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK;
+        boolean isDarkMode = currentNightMode == android.content.res.Configuration.UI_MODE_NIGHT_YES;
         switchTheme.setChecked(isDarkMode);
 
         // 1. Theme Switcher (Dark Mode)
         switchTheme.setOnCheckedChangeListener((buttonView, isChecked) -> {
             int targetMode = isChecked ? AppCompatDelegate.MODE_NIGHT_YES : AppCompatDelegate.MODE_NIGHT_NO;
             if (AppCompatDelegate.getDefaultNightMode() != targetMode) {
-                sharedPreferences.edit().putBoolean("dark_mode", isChecked).apply();
+                // Apply the theme temporarily for the current session without saving it
                 AppCompatDelegate.setDefaultNightMode(targetMode);
             }
         });
@@ -466,22 +468,35 @@ public class SettingsFragment extends Fragment {
             JSONArray items = new JSONArray();
             while (cursor.moveToNext()) {
                 JSONObject item = new JSONObject();
-                item.put("title", cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_TITLE)));
-                item.put("type", cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_MEDIA_TYPE)));
-                item.put("genre", cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_GENRE)));
-                item.put("creator", cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_CREATOR)));
+                String title = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_TITLE));
+                String type = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_MEDIA_TYPE));
+                String genre = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_GENRE));
+                String creator = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_CREATOR));
+                String unit = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_UNIT));
+                String status = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_STATUS));
+                String review = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_REVIEW));
+                String journal = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_JOURNAL));
+                String mood = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_MOOD));
+                String priority = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_PRIORITY));
+                String image = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_IMAGE_PATH));
+                String description = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_DESCRIPTION));
+
+                item.put("title", title != null ? title : "Untitled");
+                item.put("type", type != null ? type : "Series");
+                item.put("genre", genre != null ? genre : "");
+                item.put("creator", creator != null ? creator : "");
                 item.put("total", cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_TOTAL_COUNT)));
-                item.put("unit", cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_UNIT)));
+                item.put("unit", unit != null ? unit : "Episodes");
                 item.put("progress", cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_CURRENT_PROGRESS)));
-                item.put("status", cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_STATUS)));
+                item.put("status", status != null ? status : "Planning");
                 item.put("rating", cursor.getDouble(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_RATING)));
-                item.put("review", cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_REVIEW)));
-                item.put("journal", cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_JOURNAL)));
-                item.put("mood", cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_MOOD)));
-                item.put("priority", cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_PRIORITY)));
+                item.put("review", review != null ? review : "");
+                item.put("journal", journal != null ? journal : "");
+                item.put("mood", mood != null ? mood : "");
+                item.put("priority", priority != null ? priority : "Medium");
                 item.put("favorite", cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_IS_FAVORITE)) == 1);
-                item.put("image", cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_IMAGE_PATH)));
-                item.put("description", cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_DESCRIPTION)));
+                item.put("image", image != null ? image : "");
+                item.put("description", description != null ? description : "");
                 items.put(item);
             }
 

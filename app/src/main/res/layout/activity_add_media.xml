@@ -98,10 +98,10 @@
 
             <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/til_api_search"
-                style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
+                app:boxBackgroundMode="none"
                 app:startIconDrawable="@android:drawable/ic_menu_search"
                 app:startIconContentDescription="@string/search">
 
@@ -109,6 +109,8 @@
                     android:id="@+id/et_api_search"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:background="@drawable/glass_input_bg"
+                    android:padding="12dp"
                     android:fontFamily="@font/sf_pro_regular"
                     android:hint="@string/search"
                     android:imeOptions="actionSearch"
@@ -197,10 +199,8 @@
                 android:layout_margin="@dimen/screen_padding_horizontal"
                 android:background="@drawable/glass_card_bg"
                 app:cardBackgroundColor="@android:color/transparent"
-                app:cardCornerRadius="22dp"
-                app:cardElevation="0dp"
-                app:strokeColor="@color/glass_border"
-                app:strokeWidth="1dp">
+                app:cardCornerRadius="24dp"
+                app:cardElevation="0dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -209,15 +209,17 @@
                     android:padding="16dp">
 
                     <com.google.android.material.textfield.TextInputLayout
-                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginBottom="12dp">
+                        android:layout_marginBottom="12dp"
+                        app:boxBackgroundMode="none">
 
                         <com.google.android.material.textfield.TextInputEditText
                             android:id="@+id/et_manual_title"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:background="@drawable/glass_input_bg"
+                            android:padding="12dp"
                             android:fontFamily="@font/sf_pro_regular"
                             android:hint="@string/title"
                             android:autofillHints="none"

@@ -1,5 +1,10 @@
 package com.example.mediavault;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
+import android.os.Build;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -28,6 +33,12 @@ public class MainActivity extends AppCompatActivity {
         
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.POST_NOTIFICATIONS}, 101);
+            }
+        }
 
         // Setup BlurView for Navbar
         setupBlurView();
@@ -79,13 +90,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void applySavedTheme() {
-        SharedPreferences prefs = getSharedPreferences("Settings", Context.MODE_PRIVATE);
-        boolean isDarkMode = prefs.getBoolean("dark_mode", false);
-        if (isDarkMode) {
-            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES);
-        } else {
-            AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_NO);
-        }
+        // Always follow the system device theme on startup
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
     }
 
     private void setupBlurView() {
@@ -103,5 +109,9 @@ public class MainActivity extends AppCompatActivity {
                 .setBlurRadius(radius)
                 .setBlurAutoUpdate(true)
                 .setHasFixedTransformationMatrix(true);
+        
+        // Dynamic overlay color from theme for Glassmorphism
+        int overlayColor = ContextCompat.getColor(this, R.color.glass_surface_color);
+        blurView.setOverlayColor(overlayColor);
     }
 }

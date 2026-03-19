@@ -131,7 +131,8 @@ public class SettingsFragment extends Fragment {
         switchTheme.setOnCheckedChangeListener((buttonView, isChecked) -> {
             int targetMode = isChecked ? AppCompatDelegate.MODE_NIGHT_YES : AppCompatDelegate.MODE_NIGHT_NO;
             if (AppCompatDelegate.getDefaultNightMode() != targetMode) {
-                // Apply the theme temporarily for the current session without saving it
+                // Apply and persist the theme
+                sharedPreferences.edit().putInt("theme_mode", targetMode).apply();
                 AppCompatDelegate.setDefaultNightMode(targetMode);
             }
         });

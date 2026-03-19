@@ -26,6 +26,7 @@ import com.google.android.material.textfield.TextInputEditText;
 import android.net.Uri;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputLayout;
 import java.io.File;
 import java.util.List;
@@ -62,6 +63,7 @@ public class EditMediaActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        com.example.mediavault.utils.ThemeUtils.applySavedTheme(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_edit_media);
 
@@ -278,7 +280,11 @@ public class EditMediaActivity extends AppCompatActivity {
                         sendBroadcast(updateIntent);
                         finish();
                     } else {
-                        ToastUtils.showCustomToast(EditMediaActivity.this, "Error: Could not save changes");
+                        new MaterialAlertDialogBuilder(EditMediaActivity.this)
+                                .setTitle("Update Failed")
+                                .setMessage("This title already exists in your library. Please use a unique title.")
+                                .setPositiveButton("OK", null)
+                                .show();
                     }
                 } catch (NumberFormatException e) {
                     ToastUtils.showCustomToast(EditMediaActivity.this, "Invalid progress or total value");

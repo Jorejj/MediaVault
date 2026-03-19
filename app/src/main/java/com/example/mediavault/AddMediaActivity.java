@@ -119,6 +119,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        com.example.mediavault.utils.ThemeUtils.applySavedTheme(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_media);
 

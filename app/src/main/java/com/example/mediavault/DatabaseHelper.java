@@ -68,7 +68,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         String createMediaTable = "CREATE TABLE " + TABLE_MEDIA + " (" +
                 COL_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 COL_API_ID + " TEXT, " +
-                COL_TITLE + " TEXT NOT NULL, " +
+                COL_TITLE + " TEXT NOT NULL COLLATE NOCASE, " +
                 COL_DESCRIPTION + " TEXT, " +
                 COL_CREATOR + " TEXT, " +
                 COL_MEDIA_TYPE + " TEXT NOT NULL, " +
@@ -87,7 +87,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 COL_DATE_ADDED + " DATETIME DEFAULT CURRENT_TIMESTAMP, " +
                 COL_LAST_UPDATED + " DATETIME DEFAULT CURRENT_TIMESTAMP, " +
                 COL_IS_FAVORITE + " INTEGER DEFAULT 0, " +
-                "CONSTRAINT unique_title UNIQUE (" + COL_TITLE + "), " +
+                "CONSTRAINT unique_title UNIQUE (" + COL_TITLE + " COLLATE NOCASE), " +
                 "CONSTRAINT check_status CHECK (" + COL_STATUS + " IN ('Ongoing', 'Completed', 'Planning', 'Dropped', 'Recently Deleted')), " +
                 "CONSTRAINT check_capacity_unit CHECK (" + COL_UNIT + " IN ('Pages', 'Episodes', 'Minutes', 'Chapters')), " +
                 "CONSTRAINT check_user_rating CHECK (" + COL_RATING + " >= 0.0 AND " + COL_RATING + " <= 5.0), " +

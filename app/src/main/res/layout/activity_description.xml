@@ -85,7 +85,7 @@
                     android:id="@+id/tv_description_type"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:background="@drawable/rating_pill_bg"
+                    android:background="@drawable/glass_pill_bg"
                     android:paddingHorizontal="12dp"
                     android:paddingVertical="4dp"
                     android:textColor="@color/accent_blue"
@@ -129,7 +129,7 @@
                 android:layout_marginTop="8dp"
                 android:textColor="?attr/colorTextSecondary"
                 android:textSize="14sp"
-                android:lineSpacingExtra="4dp"
+                android:lineSpacingExtra="6dp"
                 android:maxLines="8"
                 android:scrollbars="vertical"
                 android:fadeScrollbars="false"
@@ -249,7 +249,7 @@
                 android:layout_marginTop="8dp"
                 android:textColor="?attr/colorTextSecondary"
                 android:textSize="14sp"
-                android:lineSpacingExtra="4dp"
+                android:lineSpacingExtra="6dp"
                 tools:text="Your personal thoughts will appear here..." />
 
             <TextView
@@ -268,7 +268,7 @@
                 android:layout_marginTop="8dp"
                 android:textColor="?attr/colorTextSecondary"
                 android:textSize="14sp"
-                android:lineSpacingExtra="4dp"
+                android:lineSpacingExtra="6dp"
                 tools:text="I watched this with friends and loved the ending." />
 
             <androidx.recyclerview.widget.RecyclerView

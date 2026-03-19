@@ -60,13 +60,14 @@
             android:paddingHorizontal="@dimen/screen_padding_horizontal"
             android:paddingBottom="@dimen/screen_bottom_spacing">
 
-            <androidx.cardview.widget.CardView
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@drawable/glow_glass_bg"
+                app:cardBackgroundColor="@color/glass_surface_color"
+                app:strokeColor="@color/glass_border_soft"
+                app:strokeWidth="1dp"
                 app:cardCornerRadius="20dp"
                 app:cardElevation="0dp"
-                app:cardBackgroundColor="?attr/colorCardBackground"
                 android:layout_marginBottom="20dp">
 
                 <LinearLayout
@@ -237,15 +238,16 @@
                     </RelativeLayout>
 
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
 
-            <androidx.cardview.widget.CardView
+            <com.google.android.material.card.MaterialCardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:background="@drawable/glow_glass_bg"
+                app:cardBackgroundColor="@color/glass_surface_color"
+                app:strokeColor="@color/glass_border_soft"
+                app:strokeWidth="1dp"
                 app:cardCornerRadius="20dp"
-                app:cardElevation="0dp"
-                app:cardBackgroundColor="?attr/colorCardBackground">
+                app:cardElevation="0dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -319,7 +321,7 @@
                             android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
                     </RelativeLayout>
                 </LinearLayout>
-            </androidx.cardview.widget.CardView>
+            </com.google.android.material.card.MaterialCardView>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 

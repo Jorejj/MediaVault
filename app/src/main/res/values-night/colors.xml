@@ -1,20 +1,79 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="bg_main">#050505</color>
-    <color name="bg_card">#26FFFFFF</color>
-    <color name="text_primary">#FFFFFF</color>
-    <color name="text_secondary">#CCFFFFFF</color>
-    <color name="nav_bg">#E60F0F0F</color>
-    <color name="soft_grey_bg">#050505</color>
-    <color name="light_mode_bg">#050505</color>
-    <color name="glass_border">#99FFFFFF</color>
-    <color name="glass_border_light">#80FFFFFF</color>
-    <color name="chip_unselected_bg">#262626</color>
-    <color name="chip_unselected_text">#CCFFFFFF</color>
-    <color name="slate_grey_muted">#64748B</color>
+    <!-- Base Colors -->
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="transparent">#00000000</color>
 
-    <!-- New Vault Crimson Palette for Night Mode -->
-    <color name="vault_red_primary">#D32F2F</color>
-    <color name="vault_red_dark">#9A0007</color>
-    <color name="vault_red_soft">#EF5350</color>
+    <!-- Vault Red Palette (Accent) -->
+    <color name="vault_red_primary">#EF5350</color> <!-- Slightly lighter red for dark mode contrast -->
+    <color name="vault_red_dark">#B71C1C</color>
+    <color name="vault_red_soft">#2C1515</color>    <!-- Very dark red for backgrounds -->
+    <color name="vault_red_light">#E57373</color>
+
+    <!-- Text Colors (Dark Mode) -->
+    <color name="text_primary">#F8FAFC</color>    <!-- Almost White -->
+    <color name="text_secondary">#94A3B8</color>  <!-- Light Slate Grey -->
+    <color name="text_tertiary">#64748B</color>   <!-- Darker Grey -->
+    <color name="text_inverse">#0F172A</color>
+
+    <!-- Backgrounds (Dark Mode) -->
+    <color name="background_base">#0F0F0F</color> <!-- Deep Black/Grey -->
+    <color name="background_surface">#1E1E1E</color>
+
+    <!-- Glassmorphism (Dark Mode) -->
+    <!-- More transparent charcoal surface for glass pane (80% opacity) -->
+    <color name="glass_surface_color">#CC1E1E1E</color> 
+    <!-- Stronger white border for catch-light effect (50% White) -->
+    <color name="glass_border_soft">#80FFFFFF</color>     
+    <!-- Red Accent for highlights/ripples (Vibrant Red 50%) -->
+    <color name="accent_red_soft">#80EF5350</color>
+    
+    <!-- Mappings for existing resources -->
+    <color name="glass_background">@color/glass_surface_color</color>
+    <color name="glass_border">@color/glass_border_soft</color>
+    <color name="glass_border_contrast">@color/glass_border_soft</color>
+    <color name="text_primary_glass">@color/text_primary</color>
+
+    <!-- Navigation -->
+    <color name="nav_background">#F0121212</color> <!-- Almost opaque dark -->
+    <color name="nav_item_selected">#EF5350</color>
+    <color name="nav_item_unselected">#94A3B8</color>
+
+    <!-- UI Elements -->
+    <color name="divider">#334155</color>
+    <color name="chip_background">#334155</color>
+    <color name="chip_text">#F1F5F9</color>
+
+    <!-- Legacy/Mapped Colors -->
+    <color name="netflix_red">@color/vault_red_primary</color>
+    <color name="netflix_red_dark">@color/vault_red_dark</color>
+    <color name="netflix_red_soft">@color/vault_red_light</color>
+    <color name="bg_card">@color/glass_background</color>
+    <color name="accent_green">#1DB954</color>
+    <color name="crunchy_orange">#F47521</color>
+    <color name="bookly_blue">#3B82F6</color>
+    
+    <!-- Compatibility/Helper Colors -->
+    <color name="charcoal_bg">@color/background_base</color>
+    <color name="bg_card_dark">@color/glass_background</color>
+    <color name="nav_bg_dark">@color/nav_background</color>
+    <color name="text_secondary_dark">@color/text_secondary</color>
+    <color name="glass_border_light">@color/glass_border</color>
+
+    <!-- Legacy Greyscale (Compatibility) -->
+    <color name="grey_200">#121212</color>
+    <color name="grey_300">#1F1F1F</color>
+    <color name="grey_600">#64748B</color>
+    <color name="chip_unselected_bg">@color/chip_background</color>
+    <color name="chip_unselected_text">@color/chip_text</color>
+
+    <!-- Legacy Mappings (Added for Build Compatibility) -->
+    <color name="main_blue">@color/vault_red_primary</color>
+    <color name="cyber_surface">@color/glass_background</color>
+    <color name="cyber_surface_stroke">@color/glass_border</color>
+    <color name="cinematic_black">@color/black</color>
+    <color name="grey_100">#121212</color>
+    <color name="logo_text">@color/text_primary</color>
+    <color name="ongoing_red">@color/vault_red_primary</color>
 </resources>

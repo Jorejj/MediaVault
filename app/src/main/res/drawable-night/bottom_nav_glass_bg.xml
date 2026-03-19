@@ -3,14 +3,11 @@
     <item>
         <shape android:shape="rectangle">
             <!-- Bottom nav low brightness glass -->
-            <gradient
-                android:angle="90"
-                android:startColor="#F2121212"
-                android:endColor="#E61C1C1C" />
+            <solid android:color="@color/nav_background" />
             <corners android:radius="36dp" />
             <stroke
                 android:width="1dp"
-                android:color="#4DFFFFFF" />
+                android:color="@color/glass_border_soft" />
         </shape>
     </item>
 </layer-list>

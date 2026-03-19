@@ -134,18 +134,27 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
     }
 
     private void initRetrofit() {
+        okhttp3.OkHttpClient okHttpClient = new okhttp3.OkHttpClient.Builder()
+                .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                .writeTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                .build();
+
         jikanRetrofit = new Retrofit.Builder()
                 .baseUrl("https://api.jikan.moe/v4/")
+                .client(okHttpClient)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
 
         googleBooksRetrofit = new Retrofit.Builder()
                 .baseUrl("https://www.googleapis.com/books/v1/")
+                .client(okHttpClient)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
 
         tmdbRetrofit = new Retrofit.Builder()
                 .baseUrl("https://api.themoviedb.org/3/")
+                .client(okHttpClient)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
     }
@@ -748,6 +757,8 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         final String finalPriority = priority;
         final boolean finalIsFavorite = isFavorite;
 
+        btnManualDone.setEnabled(false);
+
         new Thread(() -> {
             String finalImageUrl = ImageUtils.downloadAndSaveImage(AddMediaActivity.this, imageUrl);
             runOnUiThread(() -> {
@@ -769,13 +780,16 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                         snackbar.show();
                         
                     } else {
-                        Log.e(TAG, "Insertion failed for title: " + title);
-                        ToastUtils.showCustomToast(AddMediaActivity.this, "Error: Could not save to database.");
+                        btnManualDone.setEnabled(true);
+                        Log.e(TAG, "Insertion failed (likely duplicate) for title: " + title);
+                        showDuplicateEntryDialog();
                     }
                 } catch (SQLiteConstraintException e) {
+                    btnManualDone.setEnabled(true);
                     Log.e(TAG, "Constraint violation: " + e.getMessage());
                     showDuplicateEntryDialog();
                 } catch (Exception e) {
+                    btnManualDone.setEnabled(true);
                     Log.e(TAG, "Unexpected DB error: " + e.getMessage());
                     ToastUtils.showCustomToast(AddMediaActivity.this, "A database error occurred.");
                 }

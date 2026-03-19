@@ -13,8 +13,6 @@
         app:cardBackgroundColor="@android:color/transparent"
         app:cardCornerRadius="24dp"
         app:cardElevation="0dp"
-        app:strokeColor="@color/glass_border"
-        app:strokeWidth="1dp"
         app:layout_constraintBottom_toTopOf="@id/btn_shake_back"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
@@ -54,19 +52,19 @@
                 <Spinner
                     android:id="@+id/spinner_shake_type"
                     android:layout_width="0dp"
-                    android:layout_height="40dp"
+                    android:layout_height="50dp"
                     android:layout_weight="1"
-                    android:background="@drawable/search_bar_bg"
+                    android:background="@drawable/glass_input_bg"
                     android:paddingHorizontal="10dp"
                     android:contentDescription="Filter by media type" />
 
                 <Spinner
                     android:id="@+id/spinner_shake_genre"
                     android:layout_width="0dp"
-                    android:layout_height="40dp"
+                    android:layout_height="50dp"
                     android:layout_marginStart="10dp"
                     android:layout_weight="1"
-                    android:background="@drawable/search_bar_bg"
+                    android:background="@drawable/glass_input_bg"
                     android:paddingHorizontal="10dp"
                     android:contentDescription="Filter by genre" />
             </LinearLayout>

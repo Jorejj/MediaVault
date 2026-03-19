@@ -46,9 +46,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-import eightbitlab.com.blurview.BlurView;
-import eightbitlab.com.blurview.RenderScriptBlur;
-
 public class ShakeFragment extends Fragment {
 
     private static final String TAG = "ShakeFragment";
@@ -150,18 +147,16 @@ public class ShakeFragment extends Fragment {
 
             View dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_shake_recommendation, null);
             
-            // Safer Blur implementation
-            setupDialogBlurSafely(dialogView);
-
             AlertDialog dialog = new AlertDialog.Builder(requireContext(), R.style.CustomAlertDialog)
                     .setView(dialogView)
                     .setCancelable(false)
                     .create();
 
             if (dialog.getWindow() != null) {
+                // Ensure the dialog window background is transparent so the card corners show
                 dialog.getWindow().setBackgroundDrawableResource(android.R.color.transparent);
-                // Heavy dimming is more stable than BlurView on some devices
-                dialog.getWindow().setDimAmount(0.85f);
+                // Soft dimming
+                dialog.getWindow().setDimAmount(0.65f);
             }
 
             TextView tvTitle = dialogView.findViewById(R.id.tv_recom_title);
@@ -203,6 +198,7 @@ public class ShakeFragment extends Fragment {
             dialog.show();
             cursor.close();
         } else {
+            vibrate(); // Feedback even if no results found
             revertIcons();
             ToastUtils.showCustomToast(getContext(), "No planning titles found for the selected filters.");
             if (cursor != null) cursor.close();
@@ -267,34 +263,6 @@ public class ShakeFragment extends Fragment {
             }
         } catch (Exception e) {
             Log.e(TAG, "Vibration failed: " + e.getMessage());
-        }
-    }
-
-    private void setupDialogBlurSafely(View dialogView) {
-        // RenderScriptBlur is deprecated and crashes on newer SDKs with high compileSdk
-        // We will only attempt to use BlurView if we can safely initialize the algorithm
-        try {
-            BlurView blurView = dialogView.findViewById(R.id.dialog_blur_view);
-            if (blurView == null) return;
-            
-            float radius = 20f;
-            ViewGroup rootView = (ViewGroup) requireActivity().getWindow().getDecorView().findViewById(android.R.id.content);
-            Drawable windowBackground = requireActivity().getWindow().getDecorView().getBackground();
-
-            // Only setup if we are on a version that definitely supports RS or if we handle the error
-            blurView.setupWith(rootView)
-                    .setFrameClearDrawable(windowBackground)
-                    .setBlurAlgorithm(new RenderScriptBlur(requireContext()))
-                    .setBlurRadius(radius)
-                    .setBlurAutoUpdate(true)
-                    .setHasFixedTransformationMatrix(true);
-        } catch (Throwable t) {
-            Log.e(TAG, "BlurView setup failed (Throwable): " + t.getMessage());
-            // Most likely a NoClassDefFoundError or UnsatisfiedLinkError from RenderScript
-            View blurView = dialogView.findViewById(R.id.dialog_blur_view);
-            if (blurView != null) {
-                blurView.setBackgroundColor(0x99000000); // Fallback to semi-transparent dark
-            }
         }
     }
 

@@ -166,31 +166,43 @@ public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHol
                     Context context = v.getContext();
                     switch (menuItem.getItemId()) {
                         case 1: // Recover
-                            dbHelper.updateProgress(item.getId(), item.getProgress(), "Planning", item.getRatingValue());
-                            ToastUtils.showCustomToast(context, "Recovered to Planning");
-                            item.setStatus("Planning");
-                            updateList(mediaItems); // Refresh list
+                            com.example.mediavault.AppExecutor.executeDb(() -> {
+                                boolean success = dbHelper.updateProgress(item.getId(), item.getProgress(), "Planning", item.getRatingValue());
+                                if (success) {
+                                    com.example.mediavault.AppExecutor.runOnMain(() -> {
+                                        ToastUtils.showCustomToast(context, "Recovered to Planning");
+                                        item.setStatus("Planning");
+                                        updateList(mediaItems); // Refresh list
+                                    });
+                                }
+                            });
                             return true;
                         case 2: // Permanently Delete
                             new MaterialAlertDialogBuilder(context)
                                 .setTitle("Delete Permanently?")
                                 .setMessage("This action cannot be undone.")
                                 .setPositiveButton("Delete", (dialog, which) -> {
-                                    dbHelper.deleteMedia(item.getId());
-                                    int adapterPosition = holder.getBindingAdapterPosition();
-                                    if (adapterPosition != RecyclerView.NO_POSITION) {
-                                        mediaItems.remove(adapterPosition);
-                                        notifyItemRemoved(adapterPosition);
-                                    } else {
-                                        int fallbackIndex = mediaItems.indexOf(item);
-                                        if (fallbackIndex >= 0) {
-                                            mediaItems.remove(fallbackIndex);
-                                            notifyItemRemoved(fallbackIndex);
-                                        } else {
-                                            notifyDataSetChanged();
+                                    com.example.mediavault.AppExecutor.executeDb(() -> {
+                                        boolean success = dbHelper.deleteMedia(item.getId());
+                                        if (success) {
+                                            com.example.mediavault.AppExecutor.runOnMain(() -> {
+                                                int adapterPosition = holder.getBindingAdapterPosition();
+                                                if (adapterPosition != RecyclerView.NO_POSITION) {
+                                                    mediaItems.remove(adapterPosition);
+                                                    notifyItemRemoved(adapterPosition);
+                                                } else {
+                                                    int fallbackIndex = mediaItems.indexOf(item);
+                                                    if (fallbackIndex >= 0) {
+                                                        mediaItems.remove(fallbackIndex);
+                                                        notifyItemRemoved(fallbackIndex);
+                                                    } else {
+                                                        notifyDataSetChanged();
+                                                    }
+                                                }
+                                                ToastUtils.showCustomToast(context, "Permanently deleted");
+                                            });
                                         }
-                                    }
-                                    ToastUtils.showCustomToast(context, "Permanently deleted");
+                                    });
                                 })
                                 .setNegativeButton("Cancel", null)
                                 .show();
@@ -200,21 +212,27 @@ public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHol
                                 .setTitle("Delete " + item.getTitle() + "?")
                                 .setMessage("It will be moved to Recently Deleted.")
                                 .setPositiveButton("Delete", (dialog, which) -> {
-                                    dbHelper.updateProgress(item.getId(), item.getProgress(), "Recently Deleted", item.getRatingValue());
-                                    int adapterPosition = holder.getBindingAdapterPosition();
-                                    if (adapterPosition != RecyclerView.NO_POSITION) {
-                                        mediaItems.remove(adapterPosition);
-                                        notifyItemRemoved(adapterPosition);
-                                    } else {
-                                        int fallbackIndex = mediaItems.indexOf(item);
-                                        if (fallbackIndex >= 0) {
-                                            mediaItems.remove(fallbackIndex);
-                                            notifyItemRemoved(fallbackIndex);
-                                        } else {
-                                            notifyDataSetChanged();
+                                    com.example.mediavault.AppExecutor.executeDb(() -> {
+                                        boolean success = dbHelper.updateProgress(item.getId(), item.getProgress(), "Recently Deleted", item.getRatingValue());
+                                        if (success) {
+                                            com.example.mediavault.AppExecutor.runOnMain(() -> {
+                                                int adapterPosition = holder.getBindingAdapterPosition();
+                                                if (adapterPosition != RecyclerView.NO_POSITION) {
+                                                    mediaItems.remove(adapterPosition);
+                                                    notifyItemRemoved(adapterPosition);
+                                                } else {
+                                                    int fallbackIndex = mediaItems.indexOf(item);
+                                                    if (fallbackIndex >= 0) {
+                                                        mediaItems.remove(fallbackIndex);
+                                                        notifyItemRemoved(fallbackIndex);
+                                                    } else {
+                                                        notifyDataSetChanged();
+                                                    }
+                                                }
+                                                ToastUtils.showCustomToast(context, "Moved to Recently Deleted");
+                                            });
                                         }
-                                    }
-                                    ToastUtils.showCustomToast(context, "Moved to Recently Deleted");
+                                    });
                                 })
                                 .setNegativeButton("Cancel", null)
                                 .show();
@@ -281,21 +299,25 @@ public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHol
                         ToastUtils.showCustomToast(context, "Collection name is required");
                         return;
                     }
-                    boolean updated = dbHelper.addCollectionTag(item.getId(), collectionName);
-                    if (!updated) {
-                        ToastUtils.showCustomToast(context, "Could not update collection");
-                        return;
-                    }
-                    String currentGenre = item.getGenre() == null ? "" : item.getGenre();
-                    if (!currentGenre.toLowerCase(Locale.ROOT).contains(collectionName.toLowerCase(Locale.ROOT))) {
-                        String newGenre = currentGenre.isEmpty() ? collectionName : currentGenre + ", " + collectionName;
-                        item.setGenre(newGenre);
-                    }
-                    int adapterPosition = holder.getBindingAdapterPosition();
-                    if (adapterPosition != RecyclerView.NO_POSITION) {
-                        notifyItemChanged(adapterPosition);
-                    }
-                    ToastUtils.showCustomToast(context, "Added to " + collectionName);
+                    com.example.mediavault.AppExecutor.executeDb(() -> {
+                        boolean updated = dbHelper.addCollectionTag(item.getId(), collectionName);
+                        com.example.mediavault.AppExecutor.runOnMain(() -> {
+                            if (!updated) {
+                                ToastUtils.showCustomToast(context, "Could not update collection");
+                                return;
+                            }
+                            String currentGenre = item.getGenre() == null ? "" : item.getGenre();
+                            if (!currentGenre.toLowerCase(Locale.ROOT).contains(collectionName.toLowerCase(Locale.ROOT))) {
+                                String newGenre = currentGenre.isEmpty() ? collectionName : currentGenre + ", " + collectionName;
+                                item.setGenre(newGenre);
+                            }
+                            int adapterPosition = holder.getBindingAdapterPosition();
+                            if (adapterPosition != RecyclerView.NO_POSITION) {
+                                notifyItemChanged(adapterPosition);
+                            }
+                            ToastUtils.showCustomToast(context, "Added to " + collectionName);
+                        });
+                    });
                 })
                 .setNegativeButton("Cancel", null)
                 .show();

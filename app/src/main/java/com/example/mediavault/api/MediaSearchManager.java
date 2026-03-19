@@ -28,28 +28,39 @@ public class MediaSearchManager {
     private final Retrofit openLibraryRetrofit;
 
     public MediaSearchManager() {
+        okhttp3.OkHttpClient okHttpClient = new okhttp3.OkHttpClient.Builder()
+                .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                .readTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                .writeTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+                .build();
+
         jikanRetrofit = new Retrofit.Builder()
                 .baseUrl("https://api.jikan.moe/v4/")
+                .client(okHttpClient)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
 
         googleBooksRetrofit = new Retrofit.Builder()
                 .baseUrl("https://www.googleapis.com/books/v1/")
+                .client(okHttpClient)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
 
         tmdbRetrofit = new Retrofit.Builder()
                 .baseUrl("https://api.themoviedb.org/3/")
+                .client(okHttpClient)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
 
         tvMazeRetrofit = new Retrofit.Builder()
                 .baseUrl("https://api.tvmaze.com/")
+                .client(okHttpClient)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
 
         openLibraryRetrofit = new Retrofit.Builder()
                 .baseUrl("https://openlibrary.org/")
+                .client(okHttpClient)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
     }

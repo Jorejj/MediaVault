@@ -4,7 +4,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:gravity="center"
-    android:background="@color/white">
+    android:background="@color/background_base">
 
     <ImageView
         android:id="@+id/logo"
@@ -20,7 +20,7 @@
         android:text="MediaVault"
         android:textSize="30sp"
         android:fontFamily="@font/sf_pro_heavy"
-        android:textColor="@color/logo_text" />
+        android:textColor="?attr/colorTextPrimary" />
 
     <TextView
         android:id="@+id/subtitle"
@@ -30,4 +30,4 @@
         android:text="Your Offline Universal Media Tracker"
         android:textSize="14sp"
         android:fontFamily="@font/sf_pro_medium"
-        android:textColor="#757575" /> </LinearLayout>
+        android:textColor="?attr/colorTextSecondary" /> </LinearLayout>

@@ -1,70 +1,80 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Base Colors -->
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="transparent">#00000000</color>
 
-    <!-- New Vault Crimson Palette -->
-    <color name="vault_red_primary">#D32F2F</color>
-    <color name="vault_red_dark">#9A0007</color>
-    <color name="vault_red_soft">#EF5350</color>
+    <!-- Vault Red Palette (Accent) -->
+    <color name="vault_red_primary">#D32F2F</color> <!-- Standard Red -->
+    <color name="vault_red_dark">#9A0007</color>   <!-- Darker Red for gradients/states -->
+    <color name="vault_red_soft">#FFCDD2</color>   <!-- Soft Red for backgrounds/ripples -->
+    <color name="vault_red_light">#EF5350</color>  <!-- Lighter Red for highlights -->
 
-    <color name="logo_text">@color/vault_red_primary</color>
-    <color name="main_blue">@color/vault_red_primary</color>
+    <!-- Text Colors (Light Mode) -->
+    <color name="text_primary">#0F172A</color>    <!-- Dark Blue/Grey for high contrast -->
+    <color name="text_secondary">#475569</color>  <!-- Muted Blue/Grey -->
+    <color name="text_tertiary">#94A3B8</color>   <!-- Light Grey for hints -->
+    <color name="text_inverse">#FFFFFF</color>
+
+    <!-- Backgrounds (Light Mode) -->
+    <color name="background_base">#F8FAFC</color> <!-- Very light cool grey/white -->
+    <color name="background_surface">#FFFFFF</color>
+
+    <!-- Glassmorphism (Light Mode) -->
+    <!-- More transparent white surface for glass pane (85% opacity) -->
+    <color name="glass_surface_color">#D9FFFFFF</color> 
+    <!-- Stronger dark border for definition (40% Black) -->
+    <color name="glass_border_soft">#66000000</color>       
+    <!-- Red Accent for highlights/ripples (Vibrant Red 50%) -->
+    <color name="accent_red_soft">#80D32F2F</color> 
+    
+    <!-- Mappings for existing resources -->
+    <color name="glass_background">@color/glass_surface_color</color>
+    <color name="glass_border">@color/glass_border_soft</color>
+    <color name="glass_border_contrast">@color/glass_border_soft</color>
+    <color name="text_primary_glass">@color/text_primary</color>
+
+    <!-- Navigation -->
+    <color name="nav_background">#F0FFFFFF</color> <!-- Almost opaque white -->
+    <color name="nav_item_selected">#D32F2F</color>
+    <color name="nav_item_unselected">#64748B</color>
+
+    <!-- UI Elements -->
+    <color name="divider">#E2E8F0</color>
+    <color name="chip_background">#F1F5F9</color>
+    <color name="chip_text">#334155</color>
+    
+    <!-- Legacy/Mapped Colors (for compatibility) -->
     <color name="netflix_red">@color/vault_red_primary</color>
     <color name="netflix_red_dark">@color/vault_red_dark</color>
-    <color name="netflix_red_soft">@color/vault_red_soft</color>
+    <color name="netflix_red_soft">@color/vault_red_light</color>
+    <color name="bg_card">@color/glass_background</color>
+    <color name="accent_green">#1DB954</color>
     <color name="crunchy_orange">#F47521</color>
     <color name="bookly_blue">#3B82F6</color>
-    <color name="spotify_green">#1DB954</color>
-    <color name="slate_grey_muted">#64748B</color>
-    <color name="obsidian_bg">#050505</color>
-    <color name="light_mode_bg">#F4F6FB</color>
-
-    <color name="light_background">#F0F4F8</color>
-    <color name="grey_800">#424242</color>
-    <color name="grey_600">#757575</color>
-    <color name="grey_300">#E0E0E0</color>
-    <color name="grey_200">#EEEEEE</color>
-    <color name="grey_100">#F5F5F5</color>
-
+    
+    <!-- Compatibility/Helper Colors -->
+    <color name="light_mode_bg">@color/background_base</color>
+    <color name="bg_main">@color/background_base</color>
+    <color name="nav_bg">@color/nav_background</color>
     <color name="accent_blue">@color/vault_red_primary</color>
     <color name="vault_accent_blue">@color/vault_red_dark</color>
-    <color name="accent_blue_variant">@color/vault_red_soft</color>
+    <color name="glass_border_light">@color/glass_border</color>
 
-    <color name="cyber_bg_dark">#121212</color>
-    <color name="cyber_surface">#1F1F1F</color>
-    <color name="cyber_surface_stroke">#33FFFFFF</color>
-    <color name="text_primary_dark">#FFFFFF</color>
-    <color name="text_secondary_dark">#CCFFFFFF</color>
-    <color name="text_tertiary_dark">#99FFFFFF</color>
-    <color name="vault_background_dark">#121212</color>
-    <color name="vault_surface_dark">#232323</color>
-    <color name="vault_accent_blue_dim">#70D32F2F</color>
+    <!-- Legacy Greyscale (Compatibility) -->
+    <color name="grey_200">#EEEEEE</color>
+    <color name="grey_300">#E0E0E0</color>
+    <color name="grey_600">#757575</color>
+    <color name="chip_unselected_bg">@color/chip_background</color>
+    <color name="chip_unselected_text">@color/chip_text</color>
 
-    <color name="accent_cyan">@color/vault_red_soft</color>
-    <color name="accent_purple">@color/vault_red_dark</color>
-    <color name="accent_green">#1DB954</color>
-
-    <color name="bg_main">#F4F6FB</color>
-    <color name="bg_card">#66FFFFFF</color>
-    <color name="text_primary">#0F172A</color>
-    <color name="text_secondary">#475569</color>
-    <color name="nav_bg">#F2FFFFFF</color>
-
-    <color name="bg_main_dark">#050505</color>
-    <color name="bg_card_dark">#26FFFFFF</color>
-    <color name="search_bar_dark">#2C2C2C</color>
-    <color name= "nav_bg_dark">#E60F0F0F</color>
-
-    <color name="charcoal_bg">#050505</color>
-    <color name="soft_grey_bg">#F4F6FB</color>
-    <color name="glass_white">#26FFFFFF</color>
-    <color name="glass_dark">#26121212</color>
-    <color name="glass_border">#6655697F</color>
-    <color name="glass_border_light">#80FFFFFF</color>
-    <color name="cinematic_black">#050505</color>
+    <!-- Legacy Mappings (Added for Build Compatibility) -->
+    <color name="main_blue">@color/vault_red_primary</color>
+    <color name="cyber_surface">@color/glass_background</color>
+    <color name="cyber_surface_stroke">@color/glass_border</color>
+    <color name="cinematic_black">@color/black</color>
+    <color name="grey_100">#F5F5F5</color>
+    <color name="logo_text">@color/text_primary</color>
     <color name="ongoing_red">@color/vault_red_primary</color>
-
-    <color name="chip_unselected_bg">#E2E8F0</color>
-    <color name="chip_unselected_text">#334155</color>
 </resources>

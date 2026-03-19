@@ -90,8 +90,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void applySavedTheme() {
-        // Always follow the system device theme on startup
-        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM);
+        com.example.mediavault.utils.ThemeUtils.applySavedTheme(this);
     }
 
     private void setupBlurView() {

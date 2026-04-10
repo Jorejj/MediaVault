@@ -127,46 +127,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        // Create media_library table
-        String createMediaTable = "CREATE TABLE " + TABLE_MEDIA + " (" +
-                COL_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                COL_API_ID + " TEXT, " +
-                COL_TITLE + " TEXT NOT NULL COLLATE NOCASE, " +
-                COL_DESCRIPTION + " TEXT, " +
-                COL_CREATOR + " TEXT, " +
-                COL_MEDIA_TYPE + " TEXT NOT NULL, " +
-                COL_GENRE + " TEXT, " +
-                COL_IMAGE_PATH + " TEXT, " +
-                COL_CURRENT_PROGRESS + " REAL DEFAULT 0.0, " +
-                COL_PREVIOUS_PROGRESS + " REAL DEFAULT 0.0, " +
-                COL_TOTAL_COUNT + " INTEGER NOT NULL, " +
-                COL_UNIT + " TEXT NOT NULL, " +
-                COL_RUNTIME + " TEXT, " +
-                COL_STATUS + " TEXT DEFAULT 'Planning', " +
-                COL_RATING + " REAL DEFAULT 0.0, " +
-                COL_REVIEW + " TEXT, " +
-                COL_JOURNAL + " TEXT, " +
-                COL_MOOD + " TEXT, " +
-                COL_PRIORITY + " TEXT DEFAULT 'Medium', " +
-                COL_DATE_ADDED + " DATETIME DEFAULT CURRENT_TIMESTAMP, " +
-                COL_LAST_UPDATED + " DATETIME DEFAULT CURRENT_TIMESTAMP, " +
-                COL_IS_FAVORITE + " INTEGER DEFAULT 0, " +
-                COL_SOURCE_URL + " TEXT, " +
-                COL_CONTENT_TYPE + " TEXT, " +
-                COL_CURRENT_SEASON + " INTEGER DEFAULT 1, " +
-                COL_CURRENT_EPISODE + " INTEGER DEFAULT 1, " +
-                "CONSTRAINT unique_title_type UNIQUE (" + COL_TITLE + " COLLATE NOCASE, " + COL_MEDIA_TYPE + "), " +
-                "CONSTRAINT check_status CHECK (" + COL_STATUS + " IN ('Ongoing', 'Completed', 'Planning', 'Dropped', 'Recently Deleted')), " +
-                "CONSTRAINT check_capacity_unit CHECK (" + COL_UNIT + " IN ('Pages', 'Episodes', 'Minutes', 'Chapters')), " +
-                "CONSTRAINT check_user_rating CHECK (" + COL_RATING + " >= 0.0 AND " + COL_RATING + " <= 5.0), " +
-                "CONSTRAINT check_priority_level CHECK (" + COL_PRIORITY + " IN ('High', 'Medium', 'Low')), " +
-                "CONSTRAINT check_total_capacity CHECK (" + COL_TOTAL_COUNT + " > 0), " +
-                "CONSTRAINT check_current_progress CHECK ((" + COL_MEDIA_TYPE + " = 'Series' AND " + COL_CURRENT_PROGRESS + " >= 0) OR (" + COL_MEDIA_TYPE + " != 'Series' AND " + COL_CURRENT_PROGRESS + " >= 0 AND " + COL_CURRENT_PROGRESS + " <= " + COL_TOTAL_COUNT + ")), " +
-                "CONSTRAINT check_series_season CHECK (" + COL_CURRENT_SEASON + " >= 1), " +
-                "CONSTRAINT check_series_episode CHECK (" + COL_CURRENT_EPISODE + " >= 1), " +
-                "CONSTRAINT check_image_path CHECK (" + COL_IMAGE_PATH + " IS NULL OR " + COL_IMAGE_PATH + " != ''))";
-        
-        db.execSQL(createMediaTable);
+        createMediaTable(db);
 
         // Create progress_log table for metrics
         String createLogTable = "CREATE TABLE " + TABLE_PROGRESS_LOG + " (" +
@@ -217,6 +178,48 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.execSQL(createMediaMetadataTable);
 
         createTrigger(db);
+    }
+
+    private void createMediaTable(SQLiteDatabase db) {
+        String createMediaTable = "CREATE TABLE " + TABLE_MEDIA + " (" +
+                COL_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                COL_API_ID + " TEXT, " +
+                COL_TITLE + " TEXT NOT NULL COLLATE NOCASE, " +
+                COL_DESCRIPTION + " TEXT, " +
+                COL_CREATOR + " TEXT, " +
+                COL_MEDIA_TYPE + " TEXT NOT NULL, " +
+                COL_GENRE + " TEXT, " +
+                COL_IMAGE_PATH + " TEXT, " +
+                COL_CURRENT_PROGRESS + " REAL DEFAULT 0.0, " +
+                COL_PREVIOUS_PROGRESS + " REAL DEFAULT 0.0, " +
+                COL_TOTAL_COUNT + " INTEGER NOT NULL, " +
+                COL_UNIT + " TEXT NOT NULL, " +
+                COL_RUNTIME + " TEXT, " +
+                COL_STATUS + " TEXT DEFAULT 'Planning', " +
+                COL_RATING + " REAL DEFAULT 0.0, " +
+                COL_REVIEW + " TEXT, " +
+                COL_JOURNAL + " TEXT, " +
+                COL_MOOD + " TEXT, " +
+                COL_PRIORITY + " TEXT DEFAULT 'Medium', " +
+                COL_DATE_ADDED + " DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+                COL_LAST_UPDATED + " DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+                COL_IS_FAVORITE + " INTEGER DEFAULT 0, " +
+                COL_SOURCE_URL + " TEXT, " +
+                COL_CONTENT_TYPE + " TEXT, " +
+                COL_CURRENT_SEASON + " INTEGER DEFAULT 1, " +
+                COL_CURRENT_EPISODE + " INTEGER DEFAULT 1, " +
+                "CONSTRAINT unique_title_type UNIQUE (" + COL_TITLE + " COLLATE NOCASE, " + COL_MEDIA_TYPE + "), " +
+                "CONSTRAINT check_status CHECK (" + COL_STATUS + " IN ('Ongoing', 'Completed', 'Planning', 'Dropped', 'Recently Deleted')), " +
+                "CONSTRAINT check_capacity_unit CHECK (" + COL_UNIT + " IN ('Pages', 'Episodes', 'Minutes', 'Chapters')), " +
+                "CONSTRAINT check_user_rating CHECK (" + COL_RATING + " >= 0.0 AND " + COL_RATING + " <= 5.0), " +
+                "CONSTRAINT check_priority_level CHECK (" + COL_PRIORITY + " IN ('High', 'Medium', 'Low')), " +
+                "CONSTRAINT check_total_capacity CHECK (" + COL_TOTAL_COUNT + " > 0), " +
+                "CONSTRAINT check_current_progress CHECK ((" + COL_MEDIA_TYPE + " = 'Series' AND " + COL_CURRENT_PROGRESS + " >= 0) OR (" + COL_MEDIA_TYPE + " != 'Series' AND " + COL_CURRENT_PROGRESS + " >= 0 AND " + COL_CURRENT_PROGRESS + " <= " + COL_TOTAL_COUNT + ")), " +
+                "CONSTRAINT check_series_season CHECK (" + COL_CURRENT_SEASON + " >= 1), " +
+                "CONSTRAINT check_series_episode CHECK (" + COL_CURRENT_EPISODE + " >= 1), " +
+                "CONSTRAINT check_image_path CHECK (" + COL_IMAGE_PATH + " IS NULL OR " + COL_IMAGE_PATH + " != ''))";
+
+        db.execSQL(createMediaTable);
     }
 
     private void createTrigger(SQLiteDatabase db) {
@@ -284,7 +287,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         }
         if (oldVersion < 13) {
             db.execSQL("ALTER TABLE " + TABLE_MEDIA + " RENAME TO temp_media");
-            onCreate(db);
+            createMediaTable(db);
+            createTrigger(db);
             
             db.execSQL("INSERT INTO " + TABLE_MEDIA + " (" +
                     COL_ID + ", " + COL_API_ID + ", " + COL_TITLE + ", " + COL_DESCRIPTION + ", " +

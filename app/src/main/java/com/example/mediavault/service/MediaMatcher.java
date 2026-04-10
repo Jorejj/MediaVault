@@ -86,9 +86,17 @@ public class MediaMatcher {
     // Fallback for generic patterns like "Chapter 123"
     private static final Pattern GENERIC_PROGRESS_PATTERN = Pattern.compile("(?i)(?:\\b(?:chapter|ch\\.?|episode|ep\\.?)\\s*)(\\d+(?:[\\.\\-]\\d+)?)");
     private static final Pattern BILIBILI_DURATION_PATTERN = Pattern.compile("\\b\\d{1,2}:\\d{2}(?::\\d{2})?\\s*/\\s*\\d{1,2}:\\d{2}(?::\\d{2})?\\b");
+    private static final Pattern BILIBILI_TIMECODE_PATTERN = Pattern.compile("\\b\\d{1,2}:\\d{2}(?::\\d{2})?\\b");
     private static final Pattern BILIBILI_CONTROL_PATTERN = Pattern.compile("(?i).*(danmaku|弹幕|播放|暂停|倍速|清晰度|全屏|画质|subtitles?|captions?|fullscreen|quality|speed|pause|play).*");
     private static final Pattern BILIBILI_EPISODE_PATTERN = Pattern.compile("(?i).*(\\bep\\s*\\d+\\b|\\bepisode\\s*\\d+\\b|第\\s*\\d+\\s*[话集]).*");
+    private static final Pattern BILIBILI_EP_PREFIX_PATTERN = Pattern.compile("(?i)(?:^|\\b)(?:ep(?:isode)?\\.?\\s*|e\\s*)(\\d{1,4})(?:\\b|$)");
+    private static final Pattern BILIBILI_CN_EP_PATTERN = Pattern.compile("(?i)第\\s*(\\d{1,4})\\s*[话集]");
+    private static final Pattern BILIBILI_METRIC_PATTERN = Pattern.compile("(?i)^\\d+(?:[\\.,]\\d+)?\\s*[kmbw万亿]$");
+    private static final Pattern BILIBILI_SELECTED_PATTERN = Pattern.compile("(?i).*(selected|current|playing|watching|now\\s*playing|continue\\s*watching|已选|选中|当前|正在播放|在看|續看).*");
     private static final Pattern AUTH_NOISE_PATTERN = Pattern.compile("(?i).*(log\\s*in|login|sign\\s*in|sign\\s*up|register|create\\s+account|verification\\s*code|otp|captcha).*");
+    private static final Pattern STATUS_SOURCE_LINE_PATTERN = Pattern.compile("(?i)^(?:ongoing|completed|hiatus|cancelled|canceled|dropped|publishing|finished)(?:\\s*[·•\\-]\\s*[\\p{L}\\p{M}\\d][\\p{L}\\p{M}\\d\\s\\.,'’:_&\\-]{1,60})?$");
+    private static final Pattern DETAIL_TAB_PATTERN = Pattern.compile("(?i)^(?:in\\s+library|soon|tracking|webview|overview|details|chapters?|related|similar|description|reviews?)$");
+    private static final Pattern AUTHOR_LIST_PATTERN = Pattern.compile("^[\\p{L}\\p{M}][\\p{L}\\p{M}'’\\-. ]{0,30}(?:,\\s*[\\p{L}\\p{M}][\\p{L}\\p{M}'’\\-. ]{0,30}){1,4}$");
 
     private final DatabaseHelper dbHelper;
     private final FloatingAssistantManager assistantManager;
@@ -116,7 +124,9 @@ public class MediaMatcher {
             "thriller", "magic", "supernatural", "system", "urban", "school", "xianxia", "wuxia",
             "fanfic", "fanfiction", "movie", "movies", "film", "films", "tv", "show", "shows",
             "series", "anime", "manga", "manhwa", "manhua", "comic", "comics", "webtoon",
-            "media", "content", "novels", "chapters", "chapter", "latest", "popular", "trending"
+            "media", "content", "novels", "chapters", "chapter", "latest", "popular", "trending",
+            "ongoing", "completed", "status", "author", "creator", "artist", "tracking", "webview",
+            "library", "bookmark", "soon"
     ));
 
     public MediaMatcher(Context context) {
@@ -192,11 +202,11 @@ public class MediaMatcher {
             boolean bilibiliPackage = isBilibiliPackage(packageName);
             boolean bilibiliPlayerState = !bilibiliPackage || isBilibiliPlayerState(textNodes, context);
 
-            // Canonical title session from detected BOOK_DETAIL pages
+            // Canonical title session from detected MEDIA_DETAIL pages
             String sessionTitle = packageTitleSession.get(packageName);
             if (!(bilibiliPackage && !bilibiliPlayerState)
                     && context != null
-                    && context.type == ScreenContextDetector.ScreenType.BOOK_DETAIL
+                    && context.type == ScreenContextDetector.ScreenType.MEDIA_DETAIL
                     && isLikelyBookTitle(context.extractedTitle)) {
                 sessionTitle = context.extractedTitle.trim();
                 packageTitleSession.put(packageName, sessionTitle);
@@ -538,6 +548,7 @@ public class MediaMatcher {
      */
     private static float extractProgress(List<String> textNodes, List<String> titleCandidates, float currentProgress, String packageName, String sessionTitle) {
         float bestMatch = -1f;
+        boolean bilibiliPackage = isBilibiliPackage(packageName);
         List<String> normalizedCandidates = new java.util.ArrayList<>();
         if (titleCandidates != null) {
             for (String candidate : titleCandidates) {
@@ -609,6 +620,12 @@ public class MediaMatcher {
                 }
             }
         }
+        if (bestMatch == -1f && bilibiliPackage && titleFoundInNodes) {
+            float selected = extractBilibiliEpisodeCandidate(textNodes, true);
+            if (selected > currentProgress) {
+                bestMatch = selected;
+            }
+        }
         return bestMatch;
     }
 
@@ -631,12 +648,21 @@ public class MediaMatcher {
         if (t.length() < 3 || t.length() > 120) return false;
         if (t.matches("^\\d{1,5}(?:[\\.:\\-)]\\s*|\\s+).+")) return false;
         if (t.split("\\s+").length > 12) return false;
+        if (STATUS_SOURCE_LINE_PATTERN.matcher(t).matches()) return false;
+        if (DETAIL_TAB_PATTERN.matcher(t).matches()) return false;
+        if (AUTHOR_LIST_PATTERN.matcher(t).matches()) return false;
+        if (looksLikeSingleNoiseToken(t)) return false;
         if (isLikelyChapterOrBodyText(t) || isLikelyUiText(t)) return false;
         return true;
     }
 
     private static boolean isLikelyUiText(String text) {
         String t = text.toLowerCase(Locale.US);
+        if (STATUS_SOURCE_LINE_PATTERN.matcher(text).matches()
+                || DETAIL_TAB_PATTERN.matcher(text).matches()
+                || AUTHOR_LIST_PATTERN.matcher(text).matches()) {
+            return true;
+        }
         if (t.matches(".*\\b(read now|continue reading|contents|content|media content|comments?|reviews?|add to library|library|home|search|ranking|explore|menu|settings|back|more options?|share|report|follow|bookmark|fanfic|movies?|series|tv shows?|genres?)\\b.*")) {
             return true;
         }
@@ -658,7 +684,10 @@ public class MediaMatcher {
                 .trim();
         if (normalized.isEmpty()) return false;
         String[] tokens = normalized.split("\\s+");
-        if (tokens.length < 2 || tokens.length > 6) return false;
+        if (tokens.length == 1) {
+            return TITLE_NOISE_TOKENS.contains(tokens[0]);
+        }
+        if (tokens.length > 6) return false;
         int noiseCount = 0;
         for (String token : tokens) {
             if (TITLE_NOISE_TOKENS.contains(token)) {
@@ -666,6 +695,14 @@ public class MediaMatcher {
             }
         }
         return noiseCount >= 2 && noiseCount >= Math.max(2, (int) Math.ceil(tokens.length * 0.66f));
+    }
+
+    private static boolean looksLikeSingleNoiseToken(String text) {
+        if (text == null) {
+            return false;
+        }
+        String normalized = text.toLowerCase(Locale.US).replaceAll("[^a-z]", "");
+        return !normalized.isEmpty() && TITLE_NOISE_TOKENS.contains(normalized);
     }
 
     private static boolean isBilibiliPackage(String packageName) {
@@ -715,7 +752,8 @@ public class MediaMatcher {
             return false;
         }
         float delta = foundProgress - currentProgress;
-        if (delta > 5f) {
+        float maxJump = currentProgress <= 1f ? 80f : 20f;
+        if (delta > maxJump) {
             return false;
         }
         // BiliBili episode progress should usually be whole numbers.
@@ -727,10 +765,40 @@ public class MediaMatcher {
         String sessionTitle = packageTitleSession.get(packageName);
         if (!isLikelyBookTitle(sessionTitle)) return;
 
+        float currentProgress = packageLastProgress.getOrDefault(packageName, -1f);
+        int total = Integer.MAX_VALUE;
+        int resolvedId = resolveExistingMediaId(sessionTitle, null);
+        if (resolvedId > 0) {
+            Cursor cursor = dbHelper.getMediaById(resolvedId);
+            if (cursor != null) {
+                try {
+                    if (cursor.moveToFirst()) {
+                        if (currentProgress < 0f) {
+                            currentProgress = cursor.getFloat(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_CURRENT_PROGRESS));
+                        }
+                        total = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_TOTAL_COUNT));
+                    }
+                } finally {
+                    cursor.close();
+                }
+            }
+        }
+
         float best = -1f;
+        boolean bilibiliPackage = isBilibiliPackage(packageName);
         for (CharSequence cs : eventTexts) {
             if (cs == null) continue;
-            MediaMatch match = parseMedia(cs.toString());
+            String raw = cs.toString();
+            if (bilibiliPackage) {
+                float explicitEpisode = extractBilibiliEpisodeFromText(raw, false);
+                if (explicitEpisode > 0f
+                        && (currentProgress < 0f || explicitEpisode > currentProgress)
+                        && explicitEpisode <= total
+                        && (best < 0f || explicitEpisode > best)) {
+                    best = explicitEpisode;
+                }
+            }
+            MediaMatch match = parseMedia(raw);
             if (match != null && match.progress > best) {
                 best = match.progress;
             }
@@ -739,6 +807,75 @@ public class MediaMatcher {
         if (best > 0f) {
             packageLastProgress.put(packageName, best);
             applySyntheticProgressUpdate(packageName, sessionTitle, best, "click-signal");
+        }
+    }
+
+    private static float extractBilibiliEpisodeCandidate(List<String> textNodes, boolean requireSelectedSignal) {
+        if (textNodes == null || textNodes.isEmpty()) {
+            return -1f;
+        }
+        float best = -1f;
+        for (String node : textNodes) {
+            float candidate = extractBilibiliEpisodeFromText(node, requireSelectedSignal);
+            if (candidate > 0f && (best < 0f || candidate > best)) {
+                best = candidate;
+            }
+        }
+        return best;
+    }
+
+    private static float extractBilibiliEpisodeFromText(String raw, boolean requireSelectedSignal) {
+        if (raw == null) {
+            return -1f;
+        }
+        String text = raw.trim();
+        if (text.isEmpty()) {
+            return -1f;
+        }
+        if (BILIBILI_DURATION_PATTERN.matcher(text).find() || BILIBILI_TIMECODE_PATTERN.matcher(text).find()) {
+            return -1f;
+        }
+        if (BILIBILI_METRIC_PATTERN.matcher(text).matches()) {
+            return -1f;
+        }
+        String lower = text.toLowerCase(Locale.US);
+        if (BILIBILI_CONTROL_PATTERN.matcher(lower).matches()
+                || lower.contains("download")
+                || lower.contains("share")
+                || lower.contains("comment")) {
+            return -1f;
+        }
+        boolean hasSelectedSignal = BILIBILI_SELECTED_PATTERN.matcher(text).matches();
+        if (requireSelectedSignal && !hasSelectedSignal) {
+            return -1f;
+        }
+
+        Matcher matcher = BILIBILI_EP_PREFIX_PATTERN.matcher(text);
+        if (matcher.find()) {
+            return parseEpisodeNumber(matcher.group(1));
+        }
+        matcher = BILIBILI_CN_EP_PATTERN.matcher(text);
+        if (matcher.find()) {
+            return parseEpisodeNumber(matcher.group(1));
+        }
+        if (text.matches("^\\d{1,4}$")) {
+            return parseEpisodeNumber(text);
+        }
+        return -1f;
+    }
+
+    private static float parseEpisodeNumber(String rawNumber) {
+        if (rawNumber == null) {
+            return -1f;
+        }
+        try {
+            int value = Integer.parseInt(rawNumber.trim());
+            if (value <= 0 || value > 5000) {
+                return -1f;
+            }
+            return value;
+        } catch (NumberFormatException ignored) {
+            return -1f;
         }
     }
 

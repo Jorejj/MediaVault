@@ -90,7 +90,7 @@
     <string name="auto_about">About</string>
     <string name="auto_about_mediavault">About MediaVault</string>
     <string name="auto_accessibility_service">Accessibility Service</string>
-    <string name="auto_account_and_data">Account &amp;amp; Data</string>
+    <string name="auto_account_and_data">Account &amp; Data</string>
     <string name="auto_add">Add</string>
     <string name="auto_add_app">Add App</string>
     <string name="auto_add_collection">Add collection</string>
@@ -110,13 +110,13 @@
     <string name="auto_automatic_media_progress_on">Automatic media progress: On</string>
     <string name="auto_automatic_title_tracking_on">Automatic title tracking: On</string>
     <string name="auto_automatically_track_your_progress_in_external_re">Automatically track your progress in external reading and video apps.</string>
-    <string name="auto_automation_and_experience">Automation &amp;amp; Experience</string>
+    <string name="auto_automation_and_experience">Automation &amp; Experience</string>
     <string name="auto_avg_rating_0">Avg Rating: 0</string>
     <string name="auto_back">Back</string>
     <string name="auto_back_to_home">Back to Home</string>
     <string name="auto_back_to_settings">Back to Settings</string>
     <string name="auto_backlog_spotlight">Backlog Spotlight</string>
-    <string name="auto_backup_and_restore">Backup &amp;amp; Restore</string>
+    <string name="auto_backup_and_restore">Backup &amp; Restore</string>
     <string name="auto_basic_information">Basic Information</string>
     <string name="auto_battery_optimization">Battery Optimization</string>
     <string name="auto_book_title_here">Book Title Here</string>
@@ -193,10 +193,10 @@
     <string name="auto_genre">Genre</string>
     <string name="auto_genre_distribution">Genre Distribution</string>
     <string name="auto_happy">Happy</string>
-    <string name="auto_help_and_faq">Help &amp;amp; FAQ</string>
+    <string name="auto_help_and_faq">Help &amp; FAQ</string>
     <string name="auto_how_external_tracking_works">How External Tracking Works</string>
     <string name="auto_last_7_nights_0_7_goal_nights_met">Last 7 nights: 0 / 7 goal nights met</string>
-    <string name="auto_legal_and_support">Legal &amp;amp; Support</string>
+    <string name="auto_legal_and_support">Legal &amp; Support</string>
     <string name="auto_library">Library</string>
     <string name="auto_library_health">Library Health</string>
     <string name="auto_lorem_ipsum_dolor_sit_amet_consectetur_adipiscin">Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.</string>
@@ -246,7 +246,7 @@
     <string name="auto_reminder_vibration">Reminder vibration</string>
     <string name="auto_remove">Remove</string>
     <string name="auto_reset">Reset</string>
-    <string name="auto_resolve_and_play">▶ Resolve &amp;amp; Play</string>
+    <string name="auto_resolve_and_play">▶ Resolve &amp; Play</string>
     <string name="auto_resume_series">Resume Series</string>
     <string name="auto_retry">🔄 Retry</string>
     <string name="auto_retry_2">Retry</string>

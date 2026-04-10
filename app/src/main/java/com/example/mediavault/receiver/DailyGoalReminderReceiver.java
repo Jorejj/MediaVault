@@ -38,13 +38,13 @@ public class DailyGoalReminderReceiver extends BroadcastReceiver {
     public void onReceive(Context context, Intent intent) {
         DailyGoalsManager goalsManager = DailyGoalsManager.getInstance(context);
 
-        // Re-arm next reminder immediately so Android 12+/14 exact alarms keep chaining daily.
-        scheduleNextReminder(context, goalsManager);
-
         if (intent != null && ACTION_TEST_REMINDER.equals(intent.getAction())) {
             sendNotification(context, goalsManager, "Daily Goal Reminder (Test)", "This is a test reminder notification.");
             return;
         }
+
+        // Re-arm next reminder immediately so Android 12+/14 exact alarms keep chaining daily.
+        scheduleNextReminder(context, goalsManager);
         
         // Only notify if user has set at least one goal
         if (!goalsManager.hasAnyGoalSet()) {
@@ -172,7 +172,7 @@ public class DailyGoalReminderReceiver extends BroadcastReceiver {
             if (goalsManager.isReminderVibrationEnabled()) {
                 builder.setVibrate(goalsManager.getReminderVibrationPattern());
             } else {
-                builder.setVibrate(new long[]{0L});
+                builder.setVibrate(null);
             }
         }
 
@@ -191,8 +191,13 @@ public class DailyGoalReminderReceiver extends BroadcastReceiver {
             NotificationChannel channel = new NotificationChannel(channelId, name, importance);
             channel.setDescription(description);
 
-            channel.enableVibration(goalsManager.isReminderVibrationEnabled());
-            channel.setVibrationPattern(goalsManager.getReminderVibrationPattern());
+            if (goalsManager.isReminderVibrationEnabled()) {
+                channel.enableVibration(true);
+                channel.setVibrationPattern(goalsManager.getReminderVibrationPattern());
+            } else {
+                channel.enableVibration(false);
+                channel.setVibrationPattern(null);
+            }
 
             if (goalsManager.isReminderSoundEnabled()) {
                 Uri soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);

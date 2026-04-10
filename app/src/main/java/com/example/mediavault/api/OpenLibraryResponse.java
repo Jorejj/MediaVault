@@ -30,8 +30,15 @@ public class OpenLibraryResponse {
         @SerializedName("first_publish_year")
         private Integer firstPublishYear;
 
+        @SerializedName("number_of_pages_median")
+        private Integer pageCount;
+
         public String getTitle() {
             return title;
+        }
+
+        public Integer getPageCount() {
+            return pageCount;
         }
 
         public List<String> getAuthorName() {

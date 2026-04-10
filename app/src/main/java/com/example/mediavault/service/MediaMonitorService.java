@@ -232,14 +232,16 @@ public class MediaMonitorService extends AccessibilityService {
             if (!debounceHandler.hasMessages(MSG_DEBOUNCE_SCAN)) {
                 debounceHandler.sendEmptyMessageDelayed(MSG_DEBOUNCE_SCAN, 350);
             }
-        } else if (eventType == AccessibilityEvent.TYPE_VIEW_CLICKED) {
+        } else if (eventType == AccessibilityEvent.TYPE_VIEW_CLICKED
+                || eventType == AccessibilityEvent.TYPE_VIEW_SELECTED) {
             matcher.onClickSignal(packageName, event.getText());
         }
     }
 
     private void scanActiveWindow() {
+        boolean forcePrompt = System.currentTimeMillis() < manualPromptRequestUntilMs;
         SharedPreferences settingsPrefs = getSharedPreferences(SETTINGS_PREFS, MODE_PRIVATE);
-        if (isTrackingPaused(settingsPrefs)) {
+        if (isTrackingPaused(settingsPrefs) && !forcePrompt) {
             return;
         }
         AccessibilityNodeInfo rootNode = getRootInActiveWindow();
@@ -249,15 +251,16 @@ public class MediaMonitorService extends AccessibilityService {
         }
 
         String packageName = rootNode.getPackageName() != null ? rootNode.getPackageName().toString() : "";
-        if ((packageName.isEmpty() || activePackages == null || !activePackages.contains(packageName))
+        boolean packageMonitored = activePackages != null && activePackages.contains(packageName);
+        if ((packageName.isEmpty() || !packageMonitored)
                 && lastObservedPackage != null
                 && !lastObservedPackage.isEmpty()
-                && activePackages != null
-                && activePackages.contains(lastObservedPackage)) {
+                && (forcePrompt || (activePackages != null && activePackages.contains(lastObservedPackage)))) {
             Log.d(TAG, "scanActiveWindow using fallback observed package: " + lastObservedPackage + " (root package was: " + packageName + ")");
             packageName = lastObservedPackage;
+            packageMonitored = activePackages != null && activePackages.contains(packageName);
         }
-        if (packageName.isEmpty() || activePackages == null || !activePackages.contains(packageName)) {
+        if (packageName.isEmpty() || (!packageMonitored && !forcePrompt)) {
             Log.d(TAG, "scanActiveWindow skipped, package not monitored: " + packageName);
             rootNode.recycle();
             return;
@@ -280,7 +283,7 @@ public class MediaMonitorService extends AccessibilityService {
         if (!textNodes.isEmpty()) {
             // Detect screen context for new floating widget
             ScreenContextDetector.ScreenContext context = ScreenContextDetector.detectContext(textNodes);
-            if (context.type == ScreenContextDetector.ScreenType.BOOK_DETAIL
+            if (context.type == ScreenContextDetector.ScreenType.MEDIA_DETAIL
                     && (context.extractedTitle == null || context.extractedTitle.trim().isEmpty())) {
                 String fallbackTitle = ScreenContextDetector.extractTitleFromDetail(textNodes);
                 if (fallbackTitle != null && !fallbackTitle.trim().isEmpty()) {
@@ -290,21 +293,22 @@ public class MediaMonitorService extends AccessibilityService {
                             context.additionalInfo,
                             context.extractedProgress,
                             context.author,
-                            context.totalChapters
+                            context.totalChapters,
+                            context.detectedMediaType
                     );
                 }
             }
-            boolean forcePrompt = System.currentTimeMillis() < manualPromptRequestUntilMs;
             if (forcePrompt && (context.extractedTitle == null || context.extractedTitle.trim().isEmpty())) {
                 String fallbackTitle = ScreenContextDetector.extractTitleFromDetail(textNodes);
                 if (fallbackTitle != null && !fallbackTitle.trim().isEmpty()) {
                     context = new ScreenContextDetector.ScreenContext(
-                            ScreenContextDetector.ScreenType.BOOK_DETAIL,
+                            ScreenContextDetector.ScreenType.MEDIA_DETAIL,
                             fallbackTitle,
                             "Manual scan title fallback",
                             context.extractedProgress,
                             context.author,
-                            context.totalChapters
+                            context.totalChapters,
+                            context.detectedMediaType
                     );
                 }
             }
@@ -317,7 +321,7 @@ public class MediaMonitorService extends AccessibilityService {
                 assistantManager.updateContext(context);
             }
             
-            if (assistantEnabled && context.type == ScreenContextDetector.ScreenType.BOOK_DETAIL) {
+            if (assistantEnabled && (context.type == ScreenContextDetector.ScreenType.MEDIA_DETAIL || forcePrompt)) {
                 Log.i(TAG, "Book detail screen detected: " + context.extractedTitle);
                 
                 // Show detection prompt in new widget
@@ -346,7 +350,8 @@ public class MediaMonitorService extends AccessibilityService {
                                 context.extractedProgress,
                                 context.author,
                                 context.totalChapters,
-                                context.additionalInfo
+                                context.additionalInfo,
+                                context.detectedMediaType
                         );
                     }
                     manualPromptRequestUntilMs = 0L;

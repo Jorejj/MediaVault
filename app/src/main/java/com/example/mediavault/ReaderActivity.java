@@ -14,6 +14,7 @@ import com.example.mediavault.ui.library.MediaItem;
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -113,12 +114,14 @@ public class ReaderActivity extends AppCompatActivity {
             if (contentUrl != null && contentUrl.startsWith("/")) {
                 File dir = new File(contentUrl);
                 if (dir.exists() && dir.isDirectory()) {
-                    File[] files = dir.listFiles();
+                    File[] files = dir.listFiles((parent, name) -> {
+                        String lower = name.toLowerCase(Locale.ROOT);
+                        return lower.endsWith(".jpg") || lower.endsWith(".png");
+                    });
                     if (files != null) {
+                        Arrays.sort(files, (a, b) -> naturalCompare(a.getName(), b.getName()));
                         for (File f : files) {
-                            if (f.getName().endsWith(".jpg") || f.getName().endsWith(".png")) {
-                                pages.add(f.getAbsolutePath());
-                            }
+                            pages.add(f.getAbsolutePath());
                         }
                     }
                 }
@@ -178,5 +181,47 @@ public class ReaderActivity extends AppCompatActivity {
         super.onDestroy();
         timeHandler.removeCallbacksAndMessages(null);
         uiHideHandler.removeCallbacksAndMessages(null);
+    }
+
+    private static int naturalCompare(String a, String b) {
+        int i = 0;
+        int j = 0;
+        int aLen = a.length();
+        int bLen = b.length();
+
+        while (i < aLen && j < bLen) {
+            char ca = a.charAt(i);
+            char cb = b.charAt(j);
+
+            if (Character.isDigit(ca) && Character.isDigit(cb)) {
+                long numA = 0;
+                while (i < aLen && Character.isDigit(a.charAt(i))) {
+                    numA = (numA * 10) + (a.charAt(i) - '0');
+                    i++;
+                }
+
+                long numB = 0;
+                while (j < bLen && Character.isDigit(b.charAt(j))) {
+                    numB = (numB * 10) + (b.charAt(j) - '0');
+                    j++;
+                }
+
+                int numberCompare = Long.compare(numA, numB);
+                if (numberCompare != 0) {
+                    return numberCompare;
+                }
+                continue;
+            }
+
+            int charCompare = Character.compare(Character.toLowerCase(ca), Character.toLowerCase(cb));
+            if (charCompare != 0) {
+                return charCompare;
+            }
+
+            i++;
+            j++;
+        }
+
+        return Integer.compare(aLen, bLen);
     }
 }

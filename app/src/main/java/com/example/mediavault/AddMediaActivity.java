@@ -77,12 +77,11 @@ import java.util.Locale;
 public class AddMediaActivity extends AppCompatActivity implements MediaSearchAdapter.OnItemClickListener {
 
     private static final String TAG = "AddMediaDB_Error";
-    private static final String TMDB_API_KEY = "b839069f4d8893e2d87c422727980edc";
     private static final String ANILIST_LIGHT_NOVEL_QUERY =
             "query ($search: String) { " +
                     "Page(page: 1, perPage: 10) { " +
                     "media(search: $search, type: MANGA, format_in: [NOVEL, ONE_SHOT]) { " +
-                    "id title { romaji english native } description(asHtml: false) coverImage { large } startDate { year } " +
+                    "id title { romaji english native } description(asHtml: false) coverImage { large } startDate { year } chapters " +
                     "} } }";
 
     private View layoutSearchApi, layoutManualEntry, coordinatorLayout;
@@ -491,10 +490,13 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
             Runnable onComplete
     ) {
         AniListSearchApiService service = aniListRetrofit.create(AniListSearchApiService.class);
+        Map<String, Object> body = new HashMap<>();
+        body.put("query", ANILIST_LIGHT_NOVEL_QUERY);
         Map<String, String> variables = new HashMap<>();
         variables.put("search", query);
-        String variablesJson = gson.toJson(variables);
-        service.searchAnime(ANILIST_LIGHT_NOVEL_QUERY, variablesJson).enqueue(new Callback<AniListSearchResponse>() {
+        body.put("variables", variables);
+
+        service.searchAnime(body).enqueue(new Callback<AniListSearchResponse>() {
             @Override
             public void onResponse(@NonNull Call<AniListSearchResponse> call, @NonNull Response<AniListSearchResponse> response) {
                 if (response.isSuccessful() && response.body() != null
@@ -517,7 +519,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                                 "AniList",
                                 sanitizeDescription(media.description),
                                 media.coverImage != null ? media.coverImage.large : null,
-                                null,
+                                media.chapters,
                                 "Chapters",
                                 sourceUrl,
                                 "search",
@@ -687,7 +689,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                                 authors,
                                 "OpenLibrary metadata result",
                                 doc.getCoverUrl(),
-                                null,
+                                doc.getPageCount(),
                                 "Pages",
                                 sourceUrl,
                                 "reader",
@@ -862,12 +864,19 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
     }
 
     private void searchTmdb(String query, String type) {
+        if (TextUtils.isEmpty(BuildConfig.TMDB_API_KEY)) {
+            pbSearchLoading.setVisibility(View.GONE);
+            btnApiSearchSubmit.setEnabled(true);
+            rvApiResults.setVisibility(View.VISIBLE);
+            showProviderCoverageFallback(query, type.equals("Movie") ? "Movie" : "Series");
+            return;
+        }
         TmdbApiService service = tmdbRetrofit.create(TmdbApiService.class);
         Call<TmdbResponse> call;
         if (type.equals("Movie")) {
-            call = service.searchMovies(TMDB_API_KEY, query);
+            call = service.searchMovies(BuildConfig.TMDB_API_KEY, query);
         } else {
-            call = service.searchTv(TMDB_API_KEY, query);
+            call = service.searchTv(BuildConfig.TMDB_API_KEY, query);
         }
 
         call.enqueue(new Callback<TmdbResponse>() {
@@ -914,7 +923,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
 
     private void fetchTmdbDetails(TmdbApiService service, TmdbResponse.TmdbItem item, String type, List<MediaSearchResult> results, Runnable onComplete) {
         if (type.equals("Movie")) {
-            service.getMovieDetails(item.getId(), TMDB_API_KEY).enqueue(new Callback<MovieDetailResponse>() {
+            service.getMovieDetails(item.getId(), BuildConfig.TMDB_API_KEY).enqueue(new Callback<MovieDetailResponse>() {
                 @Override
                 public void onResponse(Call<MovieDetailResponse> call, Response<MovieDetailResponse> response) {
                     Integer runtime = null;
@@ -938,7 +947,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                 }
             });
         } else {
-            service.getTvDetails(item.getId(), TMDB_API_KEY).enqueue(new Callback<TvDetailResponse>() {
+            service.getTvDetails(item.getId(), BuildConfig.TMDB_API_KEY).enqueue(new Callback<TvDetailResponse>() {
                 @Override
                 public void onResponse(Call<TvDetailResponse> call, Response<TvDetailResponse> response) {
                     Integer episodes = null;
@@ -1178,18 +1187,29 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         selectedReleaseYear = result.getReleaseYear();
         selectedResultTitle = result.getTitle();
         selectedMetadataProfile = result.getMetadataProfile();
+        
+        // 1. Set Type (this triggers default capacity UI)
         setSpinnerToValue(spinnerManualType, result.getType());
         spinnerManualType.setEnabled(launchedFromTracker || result.getType() == null || result.getType().isEmpty());
+        
+        // 2. Refresh UI based on type defaults
         updateManualCapacityUI();
 
-        etManualTotal.setText(result.getCapacity() != null ? String.valueOf(result.getCapacity()) : "");
-        etManualTotal.setEnabled(result.getCapacity() == null);
+        // 3. OVERRIDE with specific API data if available
+        if (result.getCapacity() != null && result.getCapacity() > 0) {
+            etManualTotal.setText(String.valueOf(result.getCapacity()));
+            etManualTotal.setEnabled(false); // Lock if we have certain API data
+        } else {
+            etManualTotal.setText("");
+            etManualTotal.setEnabled(true);
+        }
 
-        setSpinnerToValue(spinnerTotalUnit, result.getUnit());
-        spinnerTotalUnit.setEnabled(launchedFromTracker
-                || result.getUnit() == null
-                || result.getUnit().isEmpty()
-                || result.getUnit().equals("Unknown"));
+        if (result.getUnit() != null && !result.getUnit().isEmpty() && !result.getUnit().equalsIgnoreCase("Unknown")) {
+            setSpinnerToValue(spinnerTotalUnit, result.getUnit());
+            spinnerTotalUnit.setEnabled(false);
+        } else {
+            spinnerTotalUnit.setEnabled(true);
+        }
 
         etManualImage.setText(result.getImageUrl());
         if (tilManualImage != null) {

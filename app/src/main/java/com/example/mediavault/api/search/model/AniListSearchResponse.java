@@ -34,6 +34,12 @@ public class AniListSearchResponse {
 
         @SerializedName("startDate")
         public StartDate startDate;
+
+        @SerializedName("chapters")
+        public Integer chapters;
+
+        @SerializedName("episodes")
+        public Integer episodes;
     }
 
     public static class Title {

@@ -305,7 +305,68 @@ public class SettingsFragment extends Fragment {
             });
         }
 
+        // 11. Debug Button Handlers (Always active now)
+        View btnIncManga = view.findViewById(R.id.btn_debug_inc_manga);
+        View btnIncAnime = view.findViewById(R.id.btn_debug_inc_anime);
+        View btnRecalc = view.findViewById(R.id.btn_debug_recalc_streak);
+
+        if (btnIncManga != null) {
+            btnIncManga.setOnClickListener(v -> {
+                DailyGoalsManager.getInstance(requireContext()).incrementMangaProgress();
+                ToastUtils.showCustomToast(getContext(), "Manga Progress +1 (Async)");
+                view.postDelayed(() -> updateDebugInfo(view), 500);
+            });
+        }
+
+        if (btnIncAnime != null) {
+            btnIncAnime.setOnClickListener(v -> {
+                DailyGoalsManager.getInstance(requireContext()).incrementAnimeProgress();
+                ToastUtils.showCustomToast(getContext(), "Anime Progress +1 (Async)");
+                view.postDelayed(() -> updateDebugInfo(view), 500);
+            });
+        }
+
+        if (btnRecalc != null) {
+            btnRecalc.setOnClickListener(v -> {
+                DailyGoalsManager.getInstance(requireContext()).calculateCurrentStreak();
+                ToastUtils.showCustomToast(getContext(), "Recalculating Streak...");
+                view.postDelayed(() -> updateDebugInfo(view), 800);
+            });
+        }
+
+        // Initial update of debug info
+        updateDebugInfo(view);
+
         return view;
+    }
+
+    private void updateDebugInfo(View view) {
+        if (view == null) return;
+        TextView tvInfo = view.findViewById(R.id.tv_debug_info);
+        if (tvInfo == null) return;
+
+        DailyGoalsManager manager = DailyGoalsManager.getInstance(requireContext());
+        int streak = manager.getStreakCount();
+        
+        // Check if goal met for today
+        com.example.mediavault.AppExecutor.getInstance().diskIO().execute(() -> {
+            String today = new java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(new java.util.Date());
+            com.example.mediavault.DailyProgress progress = dbHelper.getDailyProgress(today);
+            
+            int pageGoal = manager.getGoalPages();
+            int epGoal = manager.getGoalEpisodes();
+            
+            boolean met = (pageGoal > 0 && progress.pagesRead >= pageGoal) || 
+                          (epGoal > 0 && progress.episodesWatched >= epGoal);
+
+            String info = String.format(java.util.Locale.US, 
+                "Streak: %d | Goals Met: %s\nToday: %.0f/%d pages, %.0f/%d episodes", 
+                streak, (met ? "YES" : "NO"), 
+                progress.pagesRead, pageGoal, 
+                progress.episodesWatched, epGoal);
+
+            view.post(() -> tvInfo.setText(info));
+        });
     }
 
     @Override
@@ -321,6 +382,7 @@ public class SettingsFragment extends Fragment {
         // Update permission indicators
         updatePermissionIndicators();
         updateReminderAlertSummary();
+        updateDebugInfo(getView());
     }
     
     /**

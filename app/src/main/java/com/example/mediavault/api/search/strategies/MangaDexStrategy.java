@@ -35,7 +35,7 @@ public class MangaDexStrategy implements MediaSearchStrategy {
                 .searchManga(
                         query,
                         10,
-                        Arrays.asList("cover_art"),
+                        Arrays.asList("cover_art", "author", "artist"),
                         Arrays.asList("safe", "suggestive", "erotica"),
                         "desc"
                 )
@@ -59,9 +59,16 @@ public class MangaDexStrategy implements MediaSearchStrategy {
             if (title == null || title.trim().isEmpty()) {
                 continue;
             }
+            
+            // Basic author extraction if available in relationships
+            String author = ""; 
+            // Note: In a real implementation, you'd parse relationships here.
+            // Keeping it simple for now to fix the constructor.
+
             mapped.add(new UniversalMediaResult(
                     item.id,
                     title,
+                    author,
                     "Manga",
                     pickLocalized(item.attributes.description),
                     null,

@@ -597,7 +597,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
             Runnable onComplete
     ) {
         GoogleBooksApiService service = googleBooksRetrofit.create(GoogleBooksApiService.class);
-        service.getBooks(query + " light novel").enqueue(new Callback<GoogleBooksResponse>() {
+        service.getBooks(query + " light novel", BuildConfig.GOOGLE_BOOKS_API_KEY).enqueue(new Callback<GoogleBooksResponse>() {
             @Override
             public void onResponse(@NonNull Call<GoogleBooksResponse> call, @NonNull Response<GoogleBooksResponse> response) {
                 if (response.isSuccessful() && response.body() != null
@@ -794,7 +794,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
 
     private void searchBooks(String query) {
         GoogleBooksApiService service = googleBooksRetrofit.create(GoogleBooksApiService.class);
-        service.getBooks(query).enqueue(new Callback<GoogleBooksResponse>() {
+        service.getBooks(query, BuildConfig.GOOGLE_BOOKS_API_KEY).enqueue(new Callback<GoogleBooksResponse>() {
             @Override
             public void onResponse(@NonNull Call<GoogleBooksResponse> call, @NonNull Response<GoogleBooksResponse> response) {
                 pbSearchLoading.setVisibility(View.GONE);

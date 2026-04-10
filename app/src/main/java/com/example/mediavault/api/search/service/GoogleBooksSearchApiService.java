@@ -16,6 +16,7 @@ public interface GoogleBooksSearchApiService {
             @Query("maxResults") int maxResults,
             @Query("printType") String printType,
             @Query("orderBy") String orderBy,
-            @Query("langRestrict") String language
+            @Query("langRestrict") String language,
+            @Query("key") String apiKey
     );
 }

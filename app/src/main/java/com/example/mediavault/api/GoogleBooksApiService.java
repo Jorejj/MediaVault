@@ -8,6 +8,7 @@ public interface GoogleBooksApiService {
 
     @GET("volumes")
     Call<GoogleBooksResponse> getBooks(
-            @Query("q") String query
+            @Query("q") String query,
+            @Query("key") String apiKey
     );
 }

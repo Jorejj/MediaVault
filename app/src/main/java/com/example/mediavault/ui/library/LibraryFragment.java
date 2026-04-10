@@ -139,8 +139,6 @@ public class LibraryFragment extends Fragment {
                 currentCategory = "Series";
             } else if (checkedId == R.id.chip_movies) {
                 currentCategory = "Movie";
-            } else if (checkedId == R.id.chip_trash) {
-                currentCategory = "Trash";
             } else {
                 currentCategory = "All";
             }
@@ -244,41 +242,34 @@ public class LibraryFragment extends Fragment {
             boolean matchesCategory;
             boolean matchesCollection;
 
-            // Handle Category (Type) + Trash
-            if (currentCategory.equals("Trash")) {
-                matchesCategory = "Recently Deleted".equals(item.getStatus());
-                matchesCollection = true;
+            // Exclude items in Trash from normal view
+            if ("Recently Deleted".equals(item.getStatus())) {
+                continue; 
+            }
+
+            if (currentCategory.equals("All")) {
+                matchesCategory = true;
+            } else if (currentCategory.equals("Book")) {
+                matchesCategory = item.getType().equalsIgnoreCase("Book") || item.getType().equalsIgnoreCase("Manga");
             } else {
-                // Not Trash selected
-                if ("Recently Deleted".equals(item.getStatus())) {
-                    // Item is deleted, but we are not in Trash view -> exclude
-                    continue; 
-                }
+                matchesCategory = item.getType().equalsIgnoreCase(currentCategory);
+            }
 
-                if (currentCategory.equals("All")) {
-                    matchesCategory = true;
-                } else if (currentCategory.equals("Book")) {
-                    matchesCategory = item.getType().equalsIgnoreCase("Book") || item.getType().equalsIgnoreCase("Manga");
-                } else {
-                    matchesCategory = item.getType().equalsIgnoreCase(currentCategory);
-                }
-
-                // Handle Collection filter (separate from status persistence).
-                if (currentCollectionFilter.equals("All")) {
-                    matchesCollection = true;
-                } else if (currentCollectionFilter.equals("Favorites")) {
-                    matchesCollection = item.isFavorite();
-                } else if ("Ongoing".equalsIgnoreCase(currentCollectionFilter)
-                        || "Completed".equalsIgnoreCase(currentCollectionFilter)
-                        || "Planning".equalsIgnoreCase(currentCollectionFilter)
-                        || "Dropped".equalsIgnoreCase(currentCollectionFilter)) {
-                    matchesCollection = item.getStatus().equalsIgnoreCase(currentCollectionFilter);
-                } else {
-                    String genre = item.getGenre() != null ? item.getGenre() : "";
-                    boolean matchesName = genre.toLowerCase(Locale.ROOT).contains(currentCollectionFilter.toLowerCase(Locale.ROOT));
-                    boolean matchesTypeConstraint = isTypeConstraintMatch(item.getType(), currentCollectionTypeConstraint);
-                    matchesCollection = matchesName && matchesTypeConstraint;
-                }
+            // Handle Collection filter
+            if (currentCollectionFilter.equals("All")) {
+                matchesCollection = true;
+            } else if (currentCollectionFilter.equals("Favorites")) {
+                matchesCollection = item.isFavorite();
+            } else if ("Ongoing".equalsIgnoreCase(currentCollectionFilter)
+                    || "Completed".equalsIgnoreCase(currentCollectionFilter)
+                    || "Planning".equalsIgnoreCase(currentCollectionFilter)
+                    || "Dropped".equalsIgnoreCase(currentCollectionFilter)) {
+                matchesCollection = item.getStatus().equalsIgnoreCase(currentCollectionFilter);
+            } else {
+                String genre = item.getGenre() != null ? item.getGenre() : "";
+                boolean matchesName = genre.toLowerCase(Locale.ROOT).contains(currentCollectionFilter.toLowerCase(Locale.ROOT));
+                boolean matchesTypeConstraint = isTypeConstraintMatch(item.getType(), currentCollectionTypeConstraint);
+                matchesCollection = matchesName && matchesTypeConstraint;
             }
 
             boolean matchesSearch = item.getTitle().toLowerCase(Locale.ROOT).contains(currentSearchQuery) ||

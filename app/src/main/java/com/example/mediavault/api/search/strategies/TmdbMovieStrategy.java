@@ -54,6 +54,7 @@ public class TmdbMovieStrategy implements MediaSearchStrategy {
             mapped.add(new UniversalMediaResult(
                     String.valueOf(item.id),
                     item.title,
+                    "", // Author/Director placeholder
                     "Movie",
                     item.overview,
                     poster,

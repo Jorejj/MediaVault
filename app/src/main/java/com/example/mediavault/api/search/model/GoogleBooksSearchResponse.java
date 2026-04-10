@@ -20,6 +20,9 @@ public class GoogleBooksSearchResponse {
         @SerializedName("title")
         public String title;
 
+        @SerializedName("authors")
+        public List<String> authors;
+
         @SerializedName("description")
         public String description;
 
@@ -36,5 +39,8 @@ public class GoogleBooksSearchResponse {
     public static class ImageLinks {
         @SerializedName("thumbnail")
         public String thumbnail;
+        
+        @SerializedName("smallThumbnail")
+        public String smallThumbnail;
     }
 }

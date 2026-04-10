@@ -22,6 +22,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class MediaSearchManager {
     private static final String TAG = "MediaSearchManager";
     private static final String TMDB_API_KEY = "b839069f4d8893e2d87c422727980edc";
+    private static final String GOOGLE_BOOKS_API_KEY = "AIzaSyDeiOakIZXHccHCWrwYlxaEzANla_4nyy4";
 
     private final Retrofit jikanRetrofit;
     private final Retrofit googleBooksRetrofit;
@@ -268,7 +269,7 @@ public class MediaSearchManager {
 
     private void enrichBookMetadata(Context context, int mediaId, String title) {
         GoogleBooksApiService service = googleBooksRetrofit.create(GoogleBooksApiService.class);
-        service.getBooks(title).enqueue(new Callback<GoogleBooksResponse>() {
+        service.getBooks(title, GOOGLE_BOOKS_API_KEY).enqueue(new Callback<GoogleBooksResponse>() {
             @Override
             public void onResponse(@NonNull Call<GoogleBooksResponse> call, @NonNull Response<GoogleBooksResponse> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().getItems() != null && !response.body().getItems().isEmpty()) {
@@ -447,7 +448,7 @@ public class MediaSearchManager {
     private void searchBookImage(Context context, int mediaId, String title) {
         // Try Google Books first
         GoogleBooksApiService service = googleBooksRetrofit.create(GoogleBooksApiService.class);
-        service.getBooks(title).enqueue(new Callback<GoogleBooksResponse>() {
+        service.getBooks(title, GOOGLE_BOOKS_API_KEY).enqueue(new Callback<GoogleBooksResponse>() {
             @Override
             public void onResponse(@NonNull Call<GoogleBooksResponse> call, @NonNull Response<GoogleBooksResponse> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().getItems() != null && !response.body().getItems().isEmpty()) {

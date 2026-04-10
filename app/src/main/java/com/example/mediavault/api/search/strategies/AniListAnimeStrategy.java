@@ -68,6 +68,7 @@ public class AniListAnimeStrategy implements MediaSearchStrategy {
             mapped.add(new UniversalMediaResult(
                     String.valueOf(media.id),
                     title,
+                    "", // Anime usually uses Studios/Staff, keeping empty for author
                     "Anime",
                     media.description,
                     media.coverImage == null ? null : media.coverImage.large,

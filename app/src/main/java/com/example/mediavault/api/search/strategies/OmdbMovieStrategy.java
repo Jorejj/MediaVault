@@ -55,6 +55,7 @@ public class OmdbMovieStrategy implements MediaSearchStrategy {
             mapped.add(new UniversalMediaResult(
                     item.imdbId,
                     item.title,
+                    "", // OMDb search endpoint doesn't return director/author, would need a Get-by-ID call
                     "Movie",
                     null,
                     normalizePoster(item.poster),

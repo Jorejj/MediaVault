@@ -6,6 +6,7 @@ package com.example.mediavault.api.search;
 public class UniversalMediaResult {
     private final String sourceId;
     private final String title;
+    private final String author;
     private final String mediaType;
     private final String description;
     private final String imageUrl;
@@ -16,6 +17,7 @@ public class UniversalMediaResult {
     public UniversalMediaResult(
             String sourceId,
             String title,
+            String author,
             String mediaType,
             String description,
             String imageUrl,
@@ -25,6 +27,7 @@ public class UniversalMediaResult {
     ) {
         this.sourceId = sourceId;
         this.title = title;
+        this.author = author;
         this.mediaType = mediaType;
         this.description = description;
         this.imageUrl = imageUrl;
@@ -39,6 +42,10 @@ public class UniversalMediaResult {
 
     public String getTitle() {
         return title;
+    }
+
+    public String getAuthor() {
+        return author;
     }
 
     public String getMediaType() {

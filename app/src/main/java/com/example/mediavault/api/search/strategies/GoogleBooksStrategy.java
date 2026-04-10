@@ -1,5 +1,6 @@
 package com.example.mediavault.api.search.strategies;
 
+import com.example.mediavault.BuildConfig;
 import com.example.mediavault.api.search.MediaSearchStrategy;
 import com.example.mediavault.api.search.ProviderHttpException;
 import com.example.mediavault.api.search.UniversalMediaResult;
@@ -30,7 +31,7 @@ public class GoogleBooksStrategy implements MediaSearchStrategy {
     @Override
     public List<UniversalMediaResult> executeSearch(String query) throws IOException {
         Response<GoogleBooksSearchResponse> response = apiService
-                .searchBooks(query, 10, "books", "relevance", "en")
+                .searchBooks(query, 10, "books", "relevance", "en", BuildConfig.GOOGLE_BOOKS_API_KEY)
                 .execute();
 
         if (!response.isSuccessful()) {
@@ -47,9 +48,16 @@ public class GoogleBooksStrategy implements MediaSearchStrategy {
             if (item == null || item.volumeInfo == null || item.volumeInfo.title == null || item.volumeInfo.title.trim().isEmpty()) {
                 continue;
             }
+            
+            String author = "";
+            if (item.volumeInfo.authors != null && !item.volumeInfo.authors.isEmpty()) {
+                author = String.join(", ", item.volumeInfo.authors);
+            }
+
             mapped.add(new UniversalMediaResult(
                     item.id,
                     item.volumeInfo.title,
+                    author,
                     "Book",
                     item.volumeInfo.description,
                     normalizeThumbnail(item.volumeInfo.imageLinks),
@@ -62,10 +70,10 @@ public class GoogleBooksStrategy implements MediaSearchStrategy {
     }
 
     private String normalizeThumbnail(GoogleBooksSearchResponse.ImageLinks imageLinks) {
-        if (imageLinks == null || imageLinks.thumbnail == null || imageLinks.thumbnail.trim().isEmpty()) {
-            return null;
-        }
-        return imageLinks.thumbnail.replace("http://", "https://");
+        if (imageLinks == null) return null;
+        String url = imageLinks.thumbnail != null ? imageLinks.thumbnail : imageLinks.smallThumbnail;
+        if (url == null || url.trim().isEmpty()) return null;
+        return url.replace("http://", "https://");
     }
 
     private int parseYear(String publishedDate) {

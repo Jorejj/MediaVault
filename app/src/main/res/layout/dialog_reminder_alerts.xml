@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="20dp">
+
+    <com.google.android.material.switchmaterial.SwitchMaterial
+        android:id="@+id/switch_reminder_sound"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/auto_reminder_sound"
+        android:textColor="?attr/colorTextPrimary"
+        android:fontFamily="@font/sf_pro_medium" />
+
+    <com.google.android.material.switchmaterial.SwitchMaterial
+        android:id="@+id/switch_reminder_vibration"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:text="@string/auto_reminder_vibration"
+        android:textColor="?attr/colorTextPrimary"
+        android:fontFamily="@font/sf_pro_medium" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:text="@string/auto_vibration_intensity"
+        android:textColor="?attr/colorTextSecondary"
+        android:textSize="13sp"
+        android:fontFamily="@font/sf_pro_regular" />
+
+    <Spinner
+        android:id="@+id/spinner_reminder_intensity"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:alpha="0.75"
+        android:text="@string/auto_changes_apply_to_the_next_reminder_notification"
+        android:textColor="?attr/colorTextSecondary"
+        android:textSize="12sp"
+        android:fontFamily="@font/sf_pro_regular" />
+
+</LinearLayout>

@@ -34,6 +34,15 @@ public class TmdbResponse {
         @SerializedName("first_air_date")
         private String firstAirDate;
 
+        @SerializedName("popularity")
+        private Float popularity;
+
+        @SerializedName("vote_average")
+        private Float voteAverage;
+
+        @SerializedName("original_language")
+        private String originalLanguage;
+
         public int getId() {
             return id;
         }
@@ -52,6 +61,18 @@ public class TmdbResponse {
 
         public String getReleaseDate() {
             return releaseDate != null ? releaseDate : firstAirDate;
+        }
+
+        public Float getPopularity() {
+            return popularity;
+        }
+
+        public Float getVoteAverage() {
+            return voteAverage;
+        }
+
+        public String getOriginalLanguage() {
+            return originalLanguage;
         }
     }
 }

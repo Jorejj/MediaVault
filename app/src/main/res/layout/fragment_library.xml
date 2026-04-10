@@ -44,14 +44,14 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     style="@style/TextScreenTitle"
-                    android:text="Library"
+                    android:text="@string/auto_library"
                     android:textSize="24sp" />
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     style="@style/TextBody"
-                    android:text="Your Library"
+                    android:text="@string/auto_your_library"
                     android:textSize="14sp" />
             </LinearLayout>
 
@@ -89,7 +89,7 @@
                         android:layout_weight="1"
                         android:layout_marginStart="12dp"
                         android:background="@android:color/transparent"
-                        android:hint="Search library..."
+                        android:hint="@string/auto_search_library"
                         android:inputType="text"
                         android:maxLines="1"
                         android:textSize="14sp"
@@ -109,7 +109,7 @@
                         android:background="?attr/selectableItemBackgroundBorderless"
                         android:src="@drawable/ic_add"
                         android:scaleType="centerInside"
-                        android:contentDescription="Add collection"
+                        android:contentDescription="@string/auto_add_collection"
                         app:tint="?attr/colorIconTint" />
 
                     <ImageButton
@@ -147,7 +147,7 @@
                         style="@style/Widget.MaterialComponents.Chip.Choice"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="All"
+                        android:text="@string/auto_all"
                         android:checked="true"
                         app:chipBackgroundColor="@color/netflix_red"
                         android:textColor="@color/white"
@@ -159,7 +159,7 @@
                         style="@style/Widget.MaterialComponents.Chip.Choice"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Books"
+                        android:text="@string/books"
                         app:chipBackgroundColor="@color/chip_unselected_bg"
                         android:textColor="@color/chip_unselected_text"
                         app:chipCornerRadius="20dp"
@@ -170,7 +170,7 @@
                         style="@style/Widget.MaterialComponents.Chip.Choice"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Anime"
+                        android:text="@string/auto_anime"
                         app:chipBackgroundColor="@color/chip_unselected_bg"
                         android:textColor="@color/chip_unselected_text"
                         app:chipCornerRadius="20dp"
@@ -181,7 +181,7 @@
                         style="@style/Widget.MaterialComponents.Chip.Choice"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Series"
+                        android:text="@string/auto_series"
                         app:chipBackgroundColor="@color/chip_unselected_bg"
                         android:textColor="@color/chip_unselected_text"
                         app:chipCornerRadius="20dp"
@@ -192,7 +192,7 @@
                         style="@style/Widget.MaterialComponents.Chip.Choice"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Movies"
+                        android:text="@string/auto_movies"
                         app:chipBackgroundColor="@color/chip_unselected_bg"
                         android:textColor="@color/chip_unselected_text"
                         app:chipCornerRadius="20dp"
@@ -203,7 +203,7 @@
                         style="@style/Widget.MaterialComponents.Chip.Choice"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Recently Deleted"
+                        android:text="@string/auto_recently_deleted"
                         app:chipBackgroundColor="@color/chip_unselected_bg"
                         android:textColor="@color/chip_unselected_text"
                         app:chipCornerRadius="20dp"
@@ -235,7 +235,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:checked="true"
-                        android:text="All Collections"
+                        android:text="@string/auto_all_collections"
                         app:chipBackgroundColor="@color/chip_unselected_bg"
                         android:textColor="@color/chip_unselected_text"
                         app:chipCornerRadius="20dp"
@@ -246,7 +246,7 @@
                         style="@style/Widget.MaterialComponents.Chip.Choice"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Ongoing"
+                        android:text="@string/auto_ongoing"
                         app:chipBackgroundColor="@color/chip_unselected_bg"
                         android:textColor="@color/chip_unselected_text"
                         app:chipCornerRadius="20dp"
@@ -257,7 +257,7 @@
                         style="@style/Widget.MaterialComponents.Chip.Choice"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Planning"
+                        android:text="@string/auto_planning"
                         app:chipBackgroundColor="@color/chip_unselected_bg"
                         android:textColor="@color/chip_unselected_text"
                         app:chipCornerRadius="20dp"
@@ -268,7 +268,7 @@
                         style="@style/Widget.MaterialComponents.Chip.Choice"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Completed"
+                        android:text="@string/auto_completed"
                         app:chipBackgroundColor="@color/chip_unselected_bg"
                         android:textColor="@color/chip_unselected_text"
                         app:chipCornerRadius="20dp"
@@ -279,7 +279,7 @@
                         style="@style/Widget.MaterialComponents.Chip.Choice"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Dropped"
+                        android:text="@string/auto_dropped"
                         app:chipBackgroundColor="@color/chip_unselected_bg"
                         android:textColor="@color/chip_unselected_text"
                         app:chipCornerRadius="20dp"
@@ -290,7 +290,7 @@
                         style="@style/Widget.MaterialComponents.Chip.Choice"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Favorites"
+                        android:text="@string/auto_favorites"
                         app:chipBackgroundColor="@color/chip_unselected_bg"
                         android:textColor="@color/chip_unselected_text"
                         app:chipCornerRadius="20dp"
@@ -301,7 +301,7 @@
                         style="@style/Widget.MaterialComponents.Chip.Choice"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="+ Collection"
+                        android:text="@string/auto_collection"
                         android:checkable="false"
                         android:visibility="gone"
                         app:chipBackgroundColor="@color/chip_unselected_bg"
@@ -326,9 +326,48 @@
         app:layoutManager="androidx.recyclerview.widget.GridLayoutManager"
         app:spanCount="2"/>
 
-    <!-- No media found placeholder -->
+    <!-- Empty state -->
     <LinearLayout
         android:id="@+id/empty_state_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="32dp"
+        android:visibility="gone">
+        
+        <ImageView
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            android:layout_gravity="center"
+            android:src="@drawable/ic_library"
+            android:alpha="0.3"
+            app:tint="?attr/colorTextSecondary"/>
+        
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginTop="16dp"
+            android:text="@string/auto_your_vault_is_empty"
+            android:textColor="?attr/colorTextPrimary"
+            android:textSize="18sp"
+            android:fontFamily="@font/sf_pro_bold" />
+        
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_marginTop="8dp"
+            android:text="@string/auto_add_your_first_media_to_get_started"
+            android:textColor="?attr/colorTextSecondary"
+            android:textSize="14sp"
+            android:fontFamily="@font/sf_pro_regular" />
+    </LinearLayout>
+
+    <!-- No media found placeholder (legacy) -->
+    <LinearLayout
+        android:id="@+id/empty_state_view_legacy"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
@@ -347,14 +386,14 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
-            android:text="No media found"
+            android:text="@string/auto_no_media_found"
             style="@style/TextSectionTitle" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="Try adjusting your search or filters"
+            android:text="@string/auto_try_adjusting_your_search_or_filters"
             style="@style/TextBody" />
     </LinearLayout>
 

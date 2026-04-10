@@ -2,6 +2,7 @@ package com.example.mediavault.ui.settings;
 
 import android.content.ContentResolver;
 import android.content.ContentValues;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -11,11 +12,16 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.PowerManager;
+import android.provider.Settings;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.RelativeLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
@@ -27,9 +33,11 @@ import androidx.appcompat.widget.SwitchCompat;
 import androidx.core.content.FileProvider;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
-
 import com.example.mediavault.DatabaseHelper;
+import com.example.mediavault.DailyGoalsManager;
 import com.example.mediavault.R;
+import com.example.mediavault.receiver.DailyGoalReminderReceiver;
+import com.example.mediavault.service.MediaMonitorService;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.EncodeHintType;
@@ -40,7 +48,6 @@ import com.google.zxing.common.BitMatrix;
 import com.journeyapps.barcodescanner.ScanContract;
 import com.journeyapps.barcodescanner.ScanIntentResult;
 import com.journeyapps.barcodescanner.ScanOptions;
-
 import java.io.BufferedWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -53,18 +60,31 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.nio.charset.StandardCharsets;
 import java.util.EnumMap;
-
 import android.widget.ImageView;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import com.example.mediavault.widget.ToastUtils;
+import java.util.Locale;
 
 public class SettingsFragment extends Fragment {
 
+    private static final String TAG = "SettingsFragment";
+    private static final String MONITORED_APPS_PREFS = "monitored_apps_prefs";
+    private static final String KEY_OPEN_ADD_DIALOG_ONCE = "open_add_dialog_once";
+
     private SharedPreferences sharedPreferences;
     private DatabaseHelper dbHelper;
+    private TextView textBatteryStatus;
+    private SwitchCompat switchMonitoring;
+    private SwitchCompat switchAssistant;
+    
+    // Status indicators
+    private View indicatorAccessibility;
+    private View indicatorOverlay;
+    private TextView textAccessibilityStatus;
+    private TextView textOverlayStatus;
+    private TextView textReminderAlertStatus;
 
     private final ActivityResultLauncher<String> requestBackupLauncher = registerForActivityResult(
             new ActivityResultContracts.CreateDocument("application/octet-stream"),
@@ -107,10 +127,20 @@ public class SettingsFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_settings, container, false);
 
         sharedPreferences = requireActivity().getSharedPreferences("Settings", Context.MODE_PRIVATE);
-        dbHelper = new DatabaseHelper(getContext());
+        dbHelper = DatabaseHelper.getInstance(getContext());
 
         // UI Components
         SwitchCompat switchTheme = view.findViewById(R.id.switch_theme);
+        switchMonitoring = view.findViewById(R.id.switch_monitoring);
+        switchAssistant = view.findViewById(R.id.switch_assistant);
+        SwitchCompat switchAnchor = view.findViewById(R.id.switch_persistent_anchor);
+        View rowMonitoring = view.findViewById(R.id.row_monitoring);
+        View rowAssistant = view.findViewById(R.id.row_assistant);
+        View rowMonitoredApps = view.findViewById(R.id.row_monitored_apps);
+        View rowBatteryOptimization = view.findViewById(R.id.row_battery_optimization);
+        View rowReminderAlerts = view.findViewById(R.id.row_reminder_alerts);
+        TextView textBatteryStatus = view.findViewById(R.id.text_battery_status);
+        textReminderAlertStatus = view.findViewById(R.id.text_reminder_alert_status);
         View rowExportData = view.findViewById(R.id.row_export_data);
         View rowQrVault = view.findViewById(R.id.row_qr_vault);
         View rowClearDatabase = view.findViewById(R.id.row_clear_database);
@@ -121,11 +151,24 @@ public class SettingsFragment extends Fragment {
         View rowShake = view.findViewById(R.id.icon_shake).getParent() instanceof View ? (View) view.findViewById(R.id.icon_shake).getParent() : null;
         View rowVault = view.findViewById(R.id.icon_vault).getParent() instanceof View ? (View) view.findViewById(R.id.icon_vault).getParent() : null;
         RelativeLayout btnAbout = view.findViewById(R.id.btn_about);
+        
+        // Status indicators
+        indicatorAccessibility = view.findViewById(R.id.indicator_accessibility);
+        indicatorOverlay = view.findViewById(R.id.indicator_overlay);
+        textAccessibilityStatus = view.findViewById(R.id.text_accessibility_status);
+        textOverlayStatus = view.findViewById(R.id.text_overlay_status);
+
+        this.textBatteryStatus = textBatteryStatus;
 
         // Check the current actual theme to set the initial switch state
         int currentNightMode = getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK;
         boolean isDarkMode = currentNightMode == android.content.res.Configuration.UI_MODE_NIGHT_YES;
         switchTheme.setChecked(isDarkMode);
+
+        // Load Automation Settings
+        switchMonitoring.setChecked(sharedPreferences.getBoolean("external_tracking_enabled", false));
+        switchAssistant.setChecked(sharedPreferences.getBoolean("floating_assistant_enabled", false));
+        switchAnchor.setChecked(sharedPreferences.getBoolean("persistent_anchor_enabled", false));
 
         // 1. Theme Switcher (Dark Mode)
         switchTheme.setOnCheckedChangeListener((buttonView, isChecked) -> {
@@ -136,6 +179,80 @@ public class SettingsFragment extends Fragment {
                 AppCompatDelegate.setDefaultNightMode(targetMode);
             }
         });
+
+        // Automation Switches
+        switchMonitoring.setOnCheckedChangeListener((btn, isChecked) -> {
+            sharedPreferences.edit().putBoolean("external_tracking_enabled", isChecked).apply();
+            notifyWidgetSettingsChanged();
+            if (isChecked && !isMediaMonitorServiceEnabled()) {
+                openAccessibilitySettingsWithGuidance();
+            }
+        });
+
+        switchAssistant.setOnCheckedChangeListener((btn, isChecked) -> {
+            sharedPreferences.edit().putBoolean("floating_assistant_enabled", isChecked).apply();
+            notifyWidgetSettingsChanged();
+            if (isChecked) {
+                requestOverlayPermissionIfNeeded();
+            }
+        });
+
+        switchAnchor.setOnCheckedChangeListener((btn, isChecked) -> {
+            sharedPreferences.edit().putBoolean("persistent_anchor_enabled", isChecked).apply();
+            notifyWidgetSettingsChanged();
+            if (isChecked) {
+                requestOverlayPermissionIfNeeded();
+            }
+            // Update the assistant manager state
+            com.example.mediavault.service.FloatingAssistantManager.getInstance(requireContext())
+                    .ensureAnchorVisible();
+        });
+
+        if (rowMonitoring != null) {
+            rowMonitoring.setOnClickListener(v -> {
+                if (!isMediaMonitorServiceEnabled()) {
+                    openAccessibilitySettingsWithGuidance();
+                }
+            });
+        }
+
+        if (rowAssistant != null) {
+            rowAssistant.setOnClickListener(v -> requestOverlayPermissionIfNeeded());
+        }
+
+        if (rowMonitoredApps != null) {
+            rowMonitoredApps.setOnClickListener(v -> {
+                Navigation.findNavController(v).navigate(R.id.action_settings_to_monitored_apps);
+            });
+            rowMonitoredApps.setOnLongClickListener(v -> {
+                requireContext()
+                        .getSharedPreferences(MONITORED_APPS_PREFS, Context.MODE_PRIVATE)
+                        .edit()
+                        .putBoolean(KEY_OPEN_ADD_DIALOG_ONCE, true)
+                        .apply();
+                Navigation.findNavController(v).navigate(R.id.action_settings_to_monitored_apps);
+                ToastUtils.showCustomToast(requireContext(), "Choose app to add to monitored list");
+                return true;
+            });
+        }
+
+        if (rowBatteryOptimization != null) {
+            rowBatteryOptimization.setOnClickListener(v -> {
+                Intent intent = new Intent();
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    intent.setAction(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS);
+                } else {
+                    intent.setAction(Settings.ACTION_SETTINGS);
+                }
+                startActivity(intent);
+            });
+            updateBatteryStatus(textBatteryStatus);
+        }
+
+        if (rowReminderAlerts != null) {
+            rowReminderAlerts.setOnClickListener(v -> showReminderAlertSettingsDialog());
+        }
+        updateReminderAlertSummary();
 
         // 2. Export Data Action
         if (rowExportData != null) {
@@ -191,6 +308,161 @@ public class SettingsFragment extends Fragment {
         return view;
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (textBatteryStatus != null) {
+            updateBatteryStatus(textBatteryStatus);
+        }
+        
+        // Refresh switch states based on actual service status
+        refreshServiceStatus();
+        
+        // Update permission indicators
+        updatePermissionIndicators();
+        updateReminderAlertSummary();
+    }
+    
+    /**
+     * Update the visual permission status indicators (green/red dots)
+     */
+    private void updatePermissionIndicators() {
+        boolean accessibilityEnabled = com.example.mediavault.utils.AccessibilityServiceHelper.isServiceEnabled(requireContext());
+        boolean overlayEnabled = com.example.mediavault.utils.AccessibilityServiceHelper.isOverlayPermissionGranted(requireContext());
+        
+        // Update Accessibility indicator
+        if (indicatorAccessibility != null) {
+            int colorRes = accessibilityEnabled ? android.R.color.holo_green_dark : R.color.vault_red_primary;
+            indicatorAccessibility.getBackground().setTint(
+                    androidx.core.content.ContextCompat.getColor(requireContext(), colorRes));
+        }
+        if (textAccessibilityStatus != null) {
+            textAccessibilityStatus.setText(accessibilityEnabled 
+                    ? "✓ Service active" 
+                    : "Tap to enable accessibility service");
+        }
+        
+        // Update Overlay indicator
+        if (indicatorOverlay != null) {
+            int colorRes = overlayEnabled ? android.R.color.holo_green_dark : R.color.vault_red_primary;
+            indicatorOverlay.getBackground().setTint(
+                    androidx.core.content.ContextCompat.getColor(requireContext(), colorRes));
+        }
+        if (textOverlayStatus != null) {
+            textOverlayStatus.setText(overlayEnabled 
+                    ? "✓ Permission granted" 
+                    : "Tap to enable overlay permission");
+        }
+    }
+    
+    /**
+     * Refresh switches to reflect actual service/permission states.
+     * This handles cases where permissions were revoked externally (e.g., after app update).
+     */
+    private void refreshServiceStatus() {
+        if (switchMonitoring == null || switchAssistant == null) return;
+        
+        boolean accessibilityEnabled = com.example.mediavault.utils.AccessibilityServiceHelper.isServiceEnabled(requireContext());
+        boolean overlayEnabled = com.example.mediavault.utils.AccessibilityServiceHelper.isOverlayPermissionGranted(requireContext());
+        
+        // Update switch states without triggering listeners
+        switchMonitoring.setOnCheckedChangeListener(null);
+        switchAssistant.setOnCheckedChangeListener(null);
+        
+        // If accessibility is disabled, uncheck the monitoring switch
+        if (!accessibilityEnabled && switchMonitoring.isChecked()) {
+            switchMonitoring.setChecked(false);
+            sharedPreferences.edit().putBoolean("external_tracking_enabled", false).apply();
+            notifyWidgetSettingsChanged();
+        }
+        
+        // If overlay is disabled, uncheck the assistant switch
+        if (!overlayEnabled && switchAssistant.isChecked()) {
+            switchAssistant.setChecked(false);
+            sharedPreferences.edit().putBoolean("floating_assistant_enabled", false).apply();
+            notifyWidgetSettingsChanged();
+        }
+        
+        // Re-attach listeners
+        switchMonitoring.setOnCheckedChangeListener((btn, isChecked) -> {
+            sharedPreferences.edit().putBoolean("external_tracking_enabled", isChecked).apply();
+            notifyWidgetSettingsChanged();
+            if (isChecked && !isMediaMonitorServiceEnabled()) {
+                openAccessibilitySettingsWithGuidance();
+            }
+        });
+        
+        switchAssistant.setOnCheckedChangeListener((btn, isChecked) -> {
+            sharedPreferences.edit().putBoolean("floating_assistant_enabled", isChecked).apply();
+            notifyWidgetSettingsChanged();
+            if (isChecked) {
+                requestOverlayPermissionIfNeeded();
+            }
+        });
+
+        // Re-sync service/widget state after returning from Android settings screens.
+        notifyWidgetSettingsChanged();
+    }
+
+    private void notifyWidgetSettingsChanged() {
+        Intent intent = new Intent(MediaMonitorService.ACTION_WIDGET_SETTINGS_CHANGED);
+        intent.setPackage(requireContext().getPackageName());
+        requireContext().sendBroadcast(intent);
+    }
+
+    private void requestOverlayPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M || Settings.canDrawOverlays(requireContext())) {
+            return;
+        }
+        Intent intent = new Intent(
+                Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                Uri.parse("package:" + requireContext().getPackageName())
+        );
+        startActivity(intent);
+    }
+
+    private boolean isMediaMonitorServiceEnabled() {
+        String enabledServices = Settings.Secure.getString(
+                requireContext().getContentResolver(),
+                Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+        );
+        if (enabledServices == null || enabledServices.trim().isEmpty()) {
+            return false;
+        }
+        String targetService = new ComponentName(requireContext(), MediaMonitorService.class).flattenToString();
+        return enabledServices.contains(targetService);
+    }
+
+    private void openAccessibilitySettingsWithGuidance() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            new MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("Enable External Tracking")
+                    .setMessage("Android 14+ may block Accessibility for restricted apps.\n\n1) Open App info for MediaVault.\n2) Tap the menu and enable 'Allow restricted settings'.\n3) Return and enable MediaVault in Accessibility.")
+                    .setPositiveButton("Open Accessibility", (dialog, which) ->
+                            startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)))
+                    .setNegativeButton("Cancel", null)
+                    .show();
+            return;
+        }
+        startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS));
+    }
+
+    private void updateBatteryStatus(TextView statusView) {
+        if (statusView == null) return;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            PowerManager pm = (PowerManager) requireContext().getSystemService(Context.POWER_SERVICE);
+            if (pm.isIgnoringBatteryOptimizations(requireContext().getPackageName())) {
+                statusView.setText(com.example.mediavault.R.string.auto_unrestricted);
+                statusView.setTextColor(getResources().getColor(android.R.color.holo_green_dark));
+            } else {
+                statusView.setText(com.example.mediavault.R.string.auto_optimized);
+                statusView.setTextColor(getResources().getColor(android.R.color.holo_orange_dark));
+            }
+        } else {
+            statusView.setText("N/A");
+        }
+    }
+
     private void showSeedDataDialog() {
         new MaterialAlertDialogBuilder(requireContext())
                 .setTitle("Vault Management")
@@ -221,6 +493,76 @@ public class SettingsFragment extends Fragment {
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
+    }
+
+    private void showReminderAlertSettingsDialog() {
+        DailyGoalsManager manager = DailyGoalsManager.getInstance(requireContext());
+        View dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_reminder_alerts, null);
+
+        com.google.android.material.switchmaterial.SwitchMaterial switchSound =
+                dialogView.findViewById(R.id.switch_reminder_sound);
+        com.google.android.material.switchmaterial.SwitchMaterial switchVibration =
+                dialogView.findViewById(R.id.switch_reminder_vibration);
+        Spinner spinnerIntensity = dialogView.findViewById(R.id.spinner_reminder_intensity);
+
+        String[] options = {"Low", "Medium", "High"};
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(
+                requireContext(),
+                android.R.layout.simple_spinner_dropdown_item,
+                options
+        );
+        spinnerIntensity.setAdapter(adapter);
+
+        switchSound.setChecked(manager.isReminderSoundEnabled());
+        switchVibration.setChecked(manager.isReminderVibrationEnabled());
+
+        String intensity = manager.getReminderVibrationIntensity();
+        int selection = 1;
+        if ("low".equals(intensity)) {
+            selection = 0;
+        } else if ("high".equals(intensity)) {
+            selection = 2;
+        }
+        spinnerIntensity.setSelection(selection);
+
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Reminder Alerts")
+                .setView(dialogView)
+                .setPositiveButton("Save", (dialog, which) -> {
+                    manager.setReminderSoundEnabled(switchSound.isChecked());
+                    manager.setReminderVibrationEnabled(switchVibration.isChecked());
+                    String selectedIntensity = options[spinnerIntensity.getSelectedItemPosition()].toLowerCase(Locale.ROOT);
+                    manager.setReminderVibrationIntensity(selectedIntensity);
+                    DailyGoalReminderReceiver.refreshNotificationChannel(requireContext(), manager);
+                    DailyGoalReminderReceiver.scheduleNextReminder(requireContext(), manager);
+                    updateReminderAlertSummary();
+                    ToastUtils.showCustomToast(getContext(), "Reminder alert settings updated");
+                })
+                .setNeutralButton("System Channel", (dialog, which) -> openReminderChannelSettings(manager))
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private void openReminderChannelSettings(DailyGoalsManager manager) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Intent intent = new Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS);
+            intent.putExtra(Settings.EXTRA_APP_PACKAGE, requireContext().getPackageName());
+            intent.putExtra(Settings.EXTRA_CHANNEL_ID, DailyGoalReminderReceiver.getChannelId(manager));
+            startActivity(intent);
+        } else {
+            Intent intent = new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                    Uri.parse("package:" + requireContext().getPackageName()));
+            startActivity(intent);
+        }
+    }
+
+    private void updateReminderAlertSummary() {
+        if (textReminderAlertStatus == null || getContext() == null) return;
+        DailyGoalsManager manager = DailyGoalsManager.getInstance(requireContext());
+        String status = manager.isReminderSoundEnabled() ? "S" : "-";
+        status += "/";
+        status += manager.isReminderVibrationEnabled() ? manager.getReminderVibrationIntensity().substring(0, 1).toUpperCase(Locale.ROOT) : "-";
+        textReminderAlertStatus.setText(status);
     }
 
     private void showBackupRestoreDialog() {
@@ -385,7 +727,7 @@ public class SettingsFragment extends Fragment {
                 item.put("genre", cursor.getString(2));
                 item.put("total", cursor.getInt(3));
                 item.put("unit", cursor.getString(4));
-                item.put("progress", cursor.getInt(5));
+                item.put("progress", cursor.getDouble(5));
                 item.put("status", cursor.getString(6));
                 item.put("priority", cursor.getString(7));
                 item.put("rating", cursor.getDouble(8));
@@ -488,7 +830,7 @@ public class SettingsFragment extends Fragment {
                 item.put("creator", creator != null ? creator : "");
                 item.put("total", cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_TOTAL_COUNT)));
                 item.put("unit", unit != null ? unit : "Episodes");
-                item.put("progress", cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_CURRENT_PROGRESS)));
+                item.put("progress", cursor.getDouble(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_CURRENT_PROGRESS)));
                 item.put("status", status != null ? status : "Planning");
                 item.put("rating", cursor.getDouble(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_RATING)));
                 item.put("review", review != null ? review : "");
@@ -514,7 +856,7 @@ public class SettingsFragment extends Fragment {
     private void importVaultJson(Uri uri) {
         try (InputStream in = requireContext().getContentResolver().openInputStream(uri)) {
             if (in == null) {
-                ToastUtils.showCustomToast(getContext(), "Import failed");
+                ToastUtils.showCustomToast(getContext(), "Unable to read JSON file");
                 return;
             }
             ByteArrayOutputStream buffer = new ByteArrayOutputStream();
@@ -545,12 +887,13 @@ public class SettingsFragment extends Fragment {
                         item.optString("description", "")
                 );
                 if (id != -1) {
+                    float importedProgress = (float) Math.max(item.optDouble("progress", 0.0), 0.0);
                     dbHelper.updateMedia((int) id,
                             item.optString("title", "Untitled"),
                             item.optString("type", "Series"),
                             item.optString("genre", ""),
                             item.optString("status", "Planning"),
-                            Math.max(item.optInt("progress", 0), 0),
+                            importedProgress,
                             Math.max(item.optInt("total", 1), 1),
                             item.optString("unit", "Episodes"),
                             item.optString("image", ""),
@@ -559,7 +902,9 @@ public class SettingsFragment extends Fragment {
                             item.optString("journal", ""),
                             item.optString("mood", ""),
                             item.optString("priority", "Medium"),
-                            item.optBoolean("favorite", false));
+                            item.optBoolean("favorite", false),
+                            item.optString("description", ""),
+                            item.optString("creator", ""));
                     imported++;
                 }
             }
@@ -611,14 +956,17 @@ public class SettingsFragment extends Fragment {
     private void saveCsvToDownloadsLegacy(String fileName) {
         File downloadsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
         File mediaVaultDir = new File(downloadsDir, "MediaVault");
-        if (!mediaVaultDir.exists()) mediaVaultDir.mkdirs();
+        if (!mediaVaultDir.exists()) {
+            boolean created = mediaVaultDir.mkdirs();
+            if (!created) Log.e(TAG, "Failed to create directory: " + mediaVaultDir.getAbsolutePath());
+        }
         
         File file = new File(mediaVaultDir, fileName);
         try (FileOutputStream out = new FileOutputStream(file)) {
             writeCsvToOutputStream(out);
             ToastUtils.showCustomToast(getContext(), "Exported to Downloads/MediaVault");
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.e(TAG, "Export failed", e);
             ToastUtils.showCustomToast(getContext(), "Export failed");
         }
     }
@@ -630,7 +978,7 @@ public class SettingsFragment extends Fragment {
                 ToastUtils.showCustomToast(getContext(), "Data exported to Downloads/MediaVault");
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.e(TAG, "Export to URI failed", e);
             ToastUtils.showCustomToast(getContext(), "Export failed");
         }
     }

@@ -13,6 +13,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.VibrationEffect;
 import android.os.Vibrator;
+import android.os.VibratorManager;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -74,7 +75,7 @@ public class ShakeFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_shake, container, false);
 
-        dbHelper = new DatabaseHelper(requireContext());
+        dbHelper = DatabaseHelper.getInstance(requireContext());
         sharedPreferences = requireContext().getSharedPreferences("Settings", Context.MODE_PRIVATE);
 
         mSensorManager = (SensorManager) requireContext().getSystemService(Context.SENSOR_SERVICE);
@@ -253,16 +254,30 @@ public class ShakeFragment extends Fragment {
 
     private void vibrate() {
         try {
-            Vibrator v = (Vibrator) requireContext().getSystemService(Context.VIBRATOR_SERVICE);
-            if (v != null) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    v.vibrate(VibrationEffect.createOneShot(180, VibrationEffect.DEFAULT_AMPLITUDE));
-                } else {
-                    v.vibrate(180);
+            Vibrator vibrator = null;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                VibratorManager manager = (VibratorManager) requireContext().getSystemService(Context.VIBRATOR_MANAGER_SERVICE);
+                if (manager != null) {
+                    vibrator = manager.getDefaultVibrator();
                 }
+            } else {
+                vibrator = (Vibrator) requireContext().getSystemService(Context.VIBRATOR_SERVICE);
+            }
+
+            if (vibrator != null && vibrator.hasVibrator()) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    vibrator.vibrate(VibrationEffect.createOneShot(180, VibrationEffect.DEFAULT_AMPLITUDE));
+                } else {
+                    vibrator.vibrate(180);
+                }
+            } else if (pulseView != null) {
+                pulseView.performHapticFeedback(android.view.HapticFeedbackConstants.CONFIRM);
             }
         } catch (Exception e) {
             Log.e(TAG, "Vibration failed: " + e.getMessage());
+            if (pulseView != null) {
+                pulseView.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
+            }
         }
     }
 
@@ -293,6 +308,12 @@ public class ShakeFragment extends Fragment {
             context.unregisterReceiver(updateReceiver);
             isUpdateReceiverRegistered = false;
         }
+        
+        // Clear animation to prevent memory leak
+        if (pulseView != null) {
+            pulseView.clearAnimation();
+        }
+        
         super.onPause();
     }
 }

@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@android:color/black">
+
+    <!-- Manga Pages RecyclerView -->
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/rv_manga_pages"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scrollbars="none"
+        android:clickable="true"
+        android:focusable="true" />
+
+    <!-- Loading Indicator -->
+    <ProgressBar
+        android:id="@+id/pb_loading_chapter"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_gravity="center"
+        android:visibility="gone" />
+
+    <!-- Overlay Controls (Auto-hide) -->
+    <LinearLayout
+        android:id="@+id/overlay_controls"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:background="#88000000"
+        android:clickable="true"
+        android:focusable="true">
+
+        <!-- Top Bar -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="16dp"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/tv_chapter_info"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/auto_chapter_1"
+                android:textSize="18sp"
+                android:textColor="@android:color/white"
+                android:fontFamily="@font/sf_pro_bold" />
+
+            <ImageButton
+                android:id="@+id/btn_close_reader"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:src="@android:drawable/ic_menu_close_clear_cancel"
+                app:tint="@android:color/white"
+                android:contentDescription="@string/auto_close" />
+        </LinearLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <!-- Bottom Navigation -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:padding="16dp"
+            android:gravity="center">
+
+            <ImageButton
+                android:id="@+id/btn_prev_chapter"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:layout_marginEnd="24dp"
+                android:background="@drawable/glass_pill_bg"
+                android:src="@android:drawable/ic_media_previous"
+                app:tint="@android:color/white"
+                android:contentDescription="@string/auto_previous_chapter" />
+
+            <ImageButton
+                android:id="@+id/btn_next_chapter"
+                android:layout_width="56dp"
+                android:layout_height="56dp"
+                android:background="@drawable/glass_pill_bg"
+                android:src="@android:drawable/ic_media_next"
+                app:tint="@android:color/white"
+                android:contentDescription="@string/auto_next_chapter" />
+        </LinearLayout>
+    </LinearLayout>
+</FrameLayout>

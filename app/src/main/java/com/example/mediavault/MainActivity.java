@@ -16,6 +16,8 @@ import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.navigation.ui.NavigationUI;
 
+import com.example.mediavault.DailyGoalsManager;
+import com.example.mediavault.receiver.DailyGoalReminderReceiver;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
@@ -87,6 +89,13 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
         }
+        
+        // Schedule periodic service status check
+        com.example.mediavault.worker.ServiceStatusWorker.schedule(this);
+        com.example.mediavault.worker.DailyResetWorker.schedule(this);
+
+        DailyGoalsManager goalsManager = DailyGoalsManager.getInstance(this);
+        DailyGoalReminderReceiver.scheduleNextReminder(this, goalsManager);
     }
 
     private void applySavedTheme() {
@@ -112,5 +121,111 @@ public class MainActivity extends AppCompatActivity {
         // Dynamic overlay color from theme for Glassmorphism
         int overlayColor = ContextCompat.getColor(this, R.color.glass_surface_color);
         blurView.setOverlayColor(overlayColor);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        checkServiceStatus();
+    }
+
+    /**
+     * Check if accessibility service is enabled and show dialog if not
+     */
+    private void checkServiceStatus() {
+        com.example.mediavault.utils.AccessibilityServiceHelper.ServiceStatus status = 
+            com.example.mediavault.utils.AccessibilityServiceHelper.getDetailedStatus(this);
+        
+        // Only show permission dialog if wizard has been completed and permissions are missing
+        // (Wizard handles first-time setup)
+        boolean wizardCompleted = getSharedPreferences("mediavault_prefs", MODE_PRIVATE)
+                .getBoolean("permission_wizard_completed", false);
+        
+        if (!status.fullyOperational && wizardCompleted && shouldShowPermissionPrompt()) {
+            showPermissionDialog(status);
+        } else if (status.fullyOperational) {
+            // Service is working - cancel any old notifications and reset prompt flag
+            com.example.mediavault.utils.AccessibilityServiceHelper.cancelServiceDisabledNotification(this);
+            // Reset the "don't ask" flag when permissions are granted
+            getSharedPreferences("Settings", MODE_PRIVATE)
+                .edit()
+                .putBoolean("skip_permission_prompt", false)
+                .apply();
+        }
+    }
+    
+    /**
+     * Show a user-friendly dialog explaining missing permissions
+     */
+    private void showPermissionDialog(com.example.mediavault.utils.AccessibilityServiceHelper.ServiceStatus status) {
+        String title;
+        String message;
+        String buttonText;
+        
+        if (!status.accessibilityEnabled && !status.overlayEnabled) {
+            title = "Setup Required";
+            message = "MediaVault needs two permissions to track your reading progress:\n\n" +
+                      "1️⃣ Accessibility Service - Detects what you're reading\n" +
+                      "2️⃣ Overlay Permission - Shows the floating tracker\n\n" +
+                      "Let's enable Accessibility first.";
+            buttonText = "Enable Accessibility";
+        } else if (!status.accessibilityEnabled) {
+            title = "Tracking Disabled";
+            message = "The media tracking service was disabled.\n\n" +
+                      "This can happen after an app update. " +
+                      "Re-enable it to continue tracking your reading progress automatically.";
+            buttonText = "Enable Tracking";
+        } else {
+            title = "Overlay Permission Needed";
+            message = "The floating tracker needs permission to appear over other apps.\n\n" +
+                      "This lets you see your reading progress and quickly add new media.";
+            buttonText = "Grant Permission";
+        }
+        
+        new com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+            .setTitle(title)
+            .setMessage(message)
+            .setIcon(R.drawable.ic_vault)
+            .setPositiveButton(buttonText, (dialog, which) -> {
+                if (!status.accessibilityEnabled) {
+                    com.example.mediavault.utils.AccessibilityServiceHelper.openAccessibilitySettings(this);
+                } else {
+                    com.example.mediavault.utils.AccessibilityServiceHelper.openOverlaySettings(this);
+                }
+            })
+            .setNegativeButton("Later", null)
+            .setNeutralButton("Don't Ask Again", (dialog, which) -> {
+                // Save preference to not show again
+                getSharedPreferences("Settings", MODE_PRIVATE)
+                    .edit()
+                    .putBoolean("skip_permission_prompt", true)
+                    .apply();
+            })
+            .setCancelable(true)
+            .show();
+    }
+    
+    /**
+     * Check if user dismissed permission prompt permanently
+     */
+    private boolean shouldShowPermissionPrompt() {
+        return !getSharedPreferences("Settings", MODE_PRIVATE)
+            .getBoolean("skip_permission_prompt", false);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        // Avoid tearing down overlays during normal tracking lifecycle.
+        if (isFinishing()) {
+            SharedPreferences prefs = getSharedPreferences("Settings", MODE_PRIVATE);
+            boolean trackingEnabled = prefs.getBoolean("external_tracking_enabled", false);
+            boolean assistantEnabled = prefs.getBoolean("floating_assistant_enabled", false);
+            if (!(trackingEnabled && assistantEnabled)) {
+                com.example.mediavault.service.FloatingAssistantManager manager =
+                        com.example.mediavault.service.FloatingAssistantManager.getInstance(this);
+                manager.destroyAll();
+            }
+        }
     }
 }

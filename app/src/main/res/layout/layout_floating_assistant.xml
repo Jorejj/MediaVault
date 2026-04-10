@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="12dp"
+    android:background="@drawable/glass_card_bg"
+    android:gravity="center_vertical"
+    android:elevation="8dp">
+
+    <ImageView
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:src="@drawable/ic_vault"
+        android:contentDescription="@string/app_name"
+        app:tint="@color/accent_blue" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginStart="12dp"
+        android:layout_marginEnd="16dp">
+
+        <TextView
+            android:id="@+id/text_floating_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/auto_one_piece"
+            android:textColor="@color/text_primary"
+            android:textStyle="bold"
+            android:textSize="14sp" />
+
+        <TextView
+            android:id="@+id/text_floating_progress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/auto_updated_to_ch_1071"
+            android:textColor="@color/text_secondary"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+    <Button
+        android:id="@+id/btn_floating_undo"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
+        android:text="@string/auto_undo"
+        android:textAllCaps="false"
+        android:textSize="12sp"
+        android:background="@drawable/button_background"
+        android:textColor="@color/white"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp" />
+
+    <ImageButton
+        android:id="@+id/btn_floating_close"
+        android:layout_width="32dp"
+        android:layout_height="32dp"
+        android:src="@drawable/ic_delete"
+        android:background="@android:color/transparent"
+        app:tint="@color/text_secondary"
+        android:layout_marginStart="8dp"
+        android:contentDescription="@string/auto_close" />
+
+</LinearLayout>

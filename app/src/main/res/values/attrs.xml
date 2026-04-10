@@ -5,4 +5,5 @@
     <attr name="colorTextPrimary" format="color" />
     <attr name="colorTextSecondary" format="color" />
     <attr name="colorIconTint" format="color" />
+    <attr name="colorOnSurfaceVariant" format="color" />
 </resources>

@@ -4,10 +4,12 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
-import android.util.TypedValue;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -18,17 +20,23 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
-import androidx.core.graphics.ColorUtils;
 import androidx.fragment.app.Fragment;
+import com.example.mediavault.AppExecutor;
+import com.example.mediavault.DailyGoalsManager;
 import com.example.mediavault.DatabaseHelper;
 import com.example.mediavault.DescriptionActivity;
 import com.example.mediavault.R;
 import com.example.mediavault.widget.ToastUtils;
 import com.google.android.material.tabs.TabLayout;
+
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.Locale;
 import java.util.Map;
 
 public class MetricsFragment extends Fragment {
+    private static final String TAG = "MetricsFragment";
 
     private WebView webviewMonthlyActivity;
     private WebView webviewVaultComposition;
@@ -36,7 +44,10 @@ public class MetricsFragment extends Fragment {
     
     private TextView txtCountCompleted, txtCountOngoing, txtCountPlanning, txtCountDropped;
     private TextView txtBacklogStatus, txtBacklogPercentage, txtTopGenre, txtAvgRating;
+    private TextView txtStreakSnapshotSummary;
+    private TextView[] streakDayViews;
     private ProgressBar progressBacklogHealth;
+
     private String chartTextPrimaryHex = "#FFFFFF";
     private String chartTextSecondaryHex = "#D0D0D0";
     private String chartGridLineHex = "rgba(255,255,255,0.18)";
@@ -61,7 +72,7 @@ public class MetricsFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         View view = inflater.inflate(R.layout.fragment_metrics, container, false);
         
-        dbHelper = new DatabaseHelper(requireContext());
+        dbHelper = DatabaseHelper.getInstance(requireContext());
         
         webviewMonthlyActivity = view.findViewById(R.id.webview_monthly_activity);
         webviewVaultComposition = view.findViewById(R.id.webview_vault_composition);
@@ -71,18 +82,31 @@ public class MetricsFragment extends Fragment {
         configureWebView(webviewVaultComposition);
         setupChartThemePalette();
         
+        // Overview
         txtCountCompleted = view.findViewById(R.id.txt_count_completed);
         txtCountOngoing = view.findViewById(R.id.txt_count_ongoing);
         txtCountPlanning = view.findViewById(R.id.txt_count_planning);
         txtCountDropped = view.findViewById(R.id.txt_count_dropped);
         
+        // Backlog Health
         txtBacklogStatus = view.findViewById(R.id.txt_backlog_status);
         txtBacklogPercentage = view.findViewById(R.id.txt_backlog_percentage);
         progressBacklogHealth = view.findViewById(R.id.progress_backlog_health);
         
+        // Genre & Rating
         txtTopGenre = view.findViewById(R.id.txt_top_genre);
         txtAvgRating = view.findViewById(R.id.txt_avg_rating);
-        
+        txtStreakSnapshotSummary = view.findViewById(R.id.txt_streak_snapshot_summary);
+        streakDayViews = new TextView[]{
+                view.findViewById(R.id.txt_streak_day_0),
+                view.findViewById(R.id.txt_streak_day_1),
+                view.findViewById(R.id.txt_streak_day_2),
+                view.findViewById(R.id.txt_streak_day_3),
+                view.findViewById(R.id.txt_streak_day_4),
+                view.findViewById(R.id.txt_streak_day_5),
+                view.findViewById(R.id.txt_streak_day_6)
+        };
+
         refreshData();
         
         tabLayoutMetrics.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
@@ -121,6 +145,27 @@ public class MetricsFragment extends Fragment {
         super.onPause();
     }
 
+    @Override
+    public void onDestroyView() {
+        if (webviewMonthlyActivity != null) {
+            webviewMonthlyActivity.stopLoading();
+            webviewMonthlyActivity.loadUrl("about:blank");
+            webviewMonthlyActivity.clearHistory();
+            webviewMonthlyActivity.removeAllViews();
+            webviewMonthlyActivity.destroy();
+            webviewMonthlyActivity = null;
+        }
+        if (webviewVaultComposition != null) {
+            webviewVaultComposition.stopLoading();
+            webviewVaultComposition.loadUrl("about:blank");
+            webviewVaultComposition.clearHistory();
+            webviewVaultComposition.removeAllViews();
+            webviewVaultComposition.destroy();
+            webviewVaultComposition = null;
+        }
+        super.onDestroyView();
+    }
+
     private void configureWebView(WebView webView) {
         webView.getSettings().setJavaScriptEnabled(true);
         webView.getSettings().setLoadWithOverviewMode(true);
@@ -134,60 +179,125 @@ public class MetricsFragment extends Fragment {
     }
 
     private void refreshData() {
-        setupOverviewData();
-        setupVaultCompositionChart();
-        setupBacklogHealth();
-        setupHabitProgressChart(tabLayoutMetrics.getSelectedTabPosition());
+        AppExecutor.getInstance().diskIO().execute(() -> {
+            int completedCount = dbHelper.getStatusCount("Completed");
+            int ongoingCount = dbHelper.getStatusCount("Ongoing");
+            int planningCount = dbHelper.getStatusCount("Planning");
+            int droppedCount = dbHelper.getStatusCount("Dropped");
+            String topGenre = dbHelper.getTopGenre();
+            float avgRating = dbHelper.getAverageRating();
+
+            int selectedTab = tabLayoutMetrics.getSelectedTabPosition();
+            float pages = 0;
+            double hours = 0.0;
+            float episodes = 0;
+
+            switch (selectedTab) {
+                case 0:
+                    pages = dbHelper.getDailyPages();
+                    hours = dbHelper.getDailyMinutes() / 60.0;
+                    episodes = dbHelper.getDailyEpisodes();
+                    break;
+                case 1:
+                    pages = dbHelper.getWeeklyPages();
+                    hours = dbHelper.getWeeklyMinutes() / 60.0;
+                    episodes = dbHelper.getWeeklyEpisodes();
+                    break;
+                case 2:
+                    pages = dbHelper.getMonthlyPages();
+                    hours = dbHelper.getMonthlyMinutes() / 60.0;
+                    episodes = dbHelper.getMonthlyEpisodes();
+                    break;
+                case 3:
+                    pages = dbHelper.getTotalPagesRead();
+                    hours = dbHelper.getTotalMinutesWatched() / 60.0;
+                    episodes = dbHelper.getTotalEpisodesWatched();
+                    break;
+            }
+
+            Map<String, Integer> genreCounts = dbHelper.getGenreCounts();
+            int[] streakHistory = dbHelper.getRecentGoalHistory(7);
+
+            final float finalPages = pages;
+            final double finalHours = hours;
+            final float finalEpisodes = episodes;
+            final int[] finalStreakHistory = streakHistory;
+
+            AppExecutor.getInstance().mainThread().execute(() -> {
+                if (!isAdded()) return;
+
+                txtCountCompleted.setText(String.valueOf(completedCount));
+                txtCountOngoing.setText(String.valueOf(ongoingCount));
+                txtCountPlanning.setText(String.valueOf(planningCount));
+                txtCountDropped.setText(String.valueOf(droppedCount));
+                txtTopGenre.setText(String.format("Top Genre: %s", topGenre));
+                txtAvgRating.setText(String.format(Locale.getDefault(), "Avg Rating: %.1f", avgRating));
+
+                updateBacklogHealthUI(completedCount, planningCount, ongoingCount);
+                renderHabitChart(finalPages, finalHours, finalEpisodes);
+                renderCompositionChart(genreCounts);
+                renderStreakSnapshot(finalStreakHistory);
+            });
+        });
     }
 
-    private void setupOverviewData() {
-        txtCountCompleted.setText(String.valueOf(dbHelper.getStatusCount("Completed")));
-        txtCountOngoing.setText(String.valueOf(dbHelper.getStatusCount("Ongoing")));
-        txtCountPlanning.setText(String.valueOf(dbHelper.getStatusCount("Planning")));
-        txtCountDropped.setText(String.valueOf(dbHelper.getStatusCount("Dropped")));
-        
-        txtTopGenre.setText(String.format("Top Genre: %s", dbHelper.getTopGenre()));
-        txtAvgRating.setText(String.format(Locale.getDefault(), "Avg Rating: %.1f", dbHelper.getAverageRating()));
-    }
-
-    private void setupHabitProgressChart(int position) {
-        int pages = 0;
-        double hours = 0.0;
-        int episodes = 0;
-        int safePosition = position < 0 ? 0 : position;
-
-        switch (safePosition) {
-            case 0: // Daily
-                pages = dbHelper.getDailyPages();
-                hours = dbHelper.getDailyMinutes() / 60.0;
-                episodes = dbHelper.getDailyEpisodes();
-                break;
-            case 1: // Weekly
-                pages = dbHelper.getWeeklyPages();
-                hours = dbHelper.getWeeklyMinutes() / 60.0;
-                episodes = dbHelper.getWeeklyEpisodes();
-                break;
-            case 2: // Monthly
-                pages = dbHelper.getMonthlyPages();
-                hours = dbHelper.getMonthlyMinutes() / 60.0;
-                episodes = dbHelper.getMonthlyEpisodes();
-                break;
-            case 3: // All-Time
-                pages = dbHelper.getTotalPagesRead();
-                hours = dbHelper.getTotalMinutesWatched() / 60.0;
-                episodes = dbHelper.getTotalEpisodesWatched();
-                break;
+    private void renderStreakSnapshot(int[] history) {
+        if (history == null || history.length == 0 || streakDayViews == null) {
+            return;
         }
 
-        int roundedHours = (int) Math.round(hours);
+        int metCount = 0;
+        Calendar calendar = Calendar.getInstance();
+        calendar.add(Calendar.DAY_OF_YEAR, -(history.length - 1));
+
+        for (int i = 0; i < history.length && i < streakDayViews.length; i++) {
+            TextView cell = streakDayViews[i];
+            if (cell == null) {
+                calendar.add(Calendar.DAY_OF_YEAR, 1);
+                continue;
+            }
+
+            if (history[i] == 1) {
+                metCount++;
+            }
+
+            String label = new SimpleDateFormat("E", Locale.getDefault()).format(calendar.getTime());
+            String dayInitial = label.isEmpty() ? "-" : label.substring(0, 1).toUpperCase(Locale.getDefault());
+            String mark = history[i] == 1 ? "✓" : "·";
+            cell.setText(dayInitial + "\n" + mark);
+            cell.setTextColor(ContextCompat.getColor(requireContext(),
+                    history[i] == 1 ? R.color.accent_green : R.color.text_secondary));
+            calendar.add(Calendar.DAY_OF_YEAR, 1);
+        }
+
+        if (txtStreakSnapshotSummary != null) {
+            txtStreakSnapshotSummary.setText(
+                    String.format(Locale.getDefault(), "Last 7 nights: %d / %d goal nights met", metCount, history.length)
+            );
+        }
+    }
+
+    private void updateBacklogHealthUI(int completed, int planning, int ongoing) {
+        int total = completed + planning + ongoing;
+        int progress = (total > 0) ? (completed * 100 / total) : 0;
+        progressBacklogHealth.setProgress(progress);
+        txtBacklogPercentage.setText(String.format(Locale.getDefault(), "%d%% Completed", progress));
         
-        // Use raw values for linear scale
-        int pagesVal = pages;
-        int hoursVal = roundedHours;
-        int episodesVal = episodes;
-        
-        // Calculate max value to determine scale
-        int maxVal = Math.max(pagesVal, Math.max(hoursVal, episodesVal));
+        if (progress >= 70) {
+            txtBacklogStatus.setText(com.example.mediavault.R.string.auto_excellent);
+            txtBacklogStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.accent_green));
+        } else if (progress >= 40) {
+            txtBacklogStatus.setText(com.example.mediavault.R.string.backlog_status_healthy);
+            txtBacklogStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.vault_red_primary));
+        } else {
+            txtBacklogStatus.setText(com.example.mediavault.R.string.backlog_status_overwhelming);
+            txtBacklogStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.vault_red_dark));
+        }
+    }
+
+    private void renderHabitChart(float pages, double hours, float episodes) {
+        double roundedHours = Math.round(hours * 10.0) / 10.0;
+        double maxVal = Math.max(pages, Math.max(roundedHours, episodes));
         String maxAttr = maxVal == 0 ? "max: 10," : "";
 
         String chartConfig = "{" +
@@ -196,19 +306,18 @@ public class MetricsFragment extends Fragment {
                 "credits: { enabled: false }," +
                 "legend: { enabled: false }," +
                 "xAxis: { categories: ['Pages', 'Hours', 'Episodes'], lineColor: '" + chartTextSecondaryHex + "', tickColor: '" + chartTextSecondaryHex + "', labels: { style: { color: '" + chartTextPrimaryHex + "', fontSize: '12px', fontWeight: '600' } } }," +
-                "yAxis: { type: 'linear', min: 0, " + maxAttr + " allowDecimals: false, title: { text: '' }, gridLineColor: '" + chartGridLineHex + "', labels: { style: { color: '" + chartTextSecondaryHex + "', fontSize: '12px' }, formatter: function() { var v = this.value; if (v >= 1000000000) return (v / 1000000000).toFixed(0).replace('.0','') + 'B'; if (v >= 1000000) return (v / 1000000).toFixed(0).replace('.0','') + 'M'; if (v >= 1000) return (v / 1000).toFixed(0).replace('.0','') + 'k'; return v; } } }," +
+                "yAxis: { type: 'linear', min: 0, " + maxAttr + " allowDecimals: true, title: { text: '' }, gridLineColor: '" + chartGridLineHex + "', labels: { style: { color: '" + chartTextSecondaryHex + "', fontSize: '12px' }, formatter: function() { var v = this.value; if (v >= 1000000000) return (v / 1000000000).toFixed(1).replace('.0','') + 'B'; if (v >= 1000000) return (v / 1000000).toFixed(1).replace('.0','') + 'M'; if (v >= 1000) return (v / 1000).toFixed(1).replace('.0','') + 'k'; return v; } } }," +
                 "tooltip: { enabled: true, shared: true, useHTML: true, followTouchMove: true, backgroundColor: '" + chartTooltipBackgroundHex + "', borderColor: '" + chartAccentHex + "', style: { color: '" + chartTooltipTextHex + "', fontSize: '13px' }, " +
                 "formatter: function() { var val = this.points[0].y; return 'Progress: <b>' + val + '</b> ' + String(this.points[0].key).toLowerCase(); } }," +
                 "plotOptions: { column: { depth: 30, borderWidth: 0, borderRadius: 5, pointPadding: 0.14, groupPadding: 0.2, maxPointWidth: 56, stickyTracking: false, dataLabels: { enabled: true, color: '" + (chartTextPrimaryHex.equals("#000000") ? "#000000" : "#FFFFFF") + "', inside: false, style: { textOutline: 'none', fontSize: '11px' }, formatter: function() { return this.y; } } } }," +
-                "series: [{ name: 'Progress', data: [" + pagesVal + ", " + hoursVal + ", " + episodesVal + "], color: '" + chartAccentHex + "' }]," +
+                "series: [{ name: 'Progress', data: [" + pages + ", " + roundedHours + ", " + episodes + "], color: '" + chartAccentHex + "' }]," +
                 "responsive: { rules: [{ condition: { maxWidth: 360 }, chartOptions: { chart: { marginLeft: 40, marginBottom: 42 }, xAxis: { labels: { style: { fontSize: '11px' } } }, yAxis: { labels: { style: { fontSize: '11px' } } } } }] }" +
                 "}";
         
         load3DChart(webviewMonthlyActivity, chartConfig);
     }
 
-    private void setupVaultCompositionChart() {
-        Map<String, Integer> genreCounts = dbHelper.getGenreCounts();
+    private void renderCompositionChart(Map<String, Integer> genreCounts) {
         int totalItems = 0;
         for (int count : genreCounts.values()) totalItems += count;
 
@@ -246,93 +355,45 @@ public class MetricsFragment extends Fragment {
         load3DChart(webviewVaultComposition, chartConfig);
     }
 
-    private void load3DChart(WebView webView, String chartConfig) {
-        String html = "<html>" +
-                "<head>" +
-                "<meta charset='UTF-8'>" +
-                "<meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no'>" +
-                "<style>" +
-                "html, body, #container { width:100%; height:100%; margin:0; padding:0; background:transparent; overflow:hidden; touch-action: manipulation; }" +
-                "body { display:flex; align-items:center; justify-content:center; -webkit-tap-highlight-color: transparent; }" +
-                "#fallback { display:none; color:" + chartTextSecondaryHex + "; font-size:14px; text-align:center; padding:16px; }" +
-                "</style>" +
+    private void load3DChart(WebView webView, String config) {
+        String html = "<!DOCTYPE html><html><head>" +
+                "<meta name='viewport' content='width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no'>" +
                 "<script src='https://code.highcharts.com/highcharts.js'></script>" +
                 "<script src='https://code.highcharts.com/highcharts-3d.js'></script>" +
-                "</head>" +
-                "<body>" +
-                "<div id='container'></div>" +
-                "<div id='fallback'>Unable to render chart on this device.</div>" +
-                "<script>" +
-                "try {" +
-                "Highcharts.setOptions({ lang: { thousandsSep: ',' } });" +
-                "var chart = Highcharts.chart('container', " + chartConfig + ");" +
-                "if (!chart) { throw new Error('Chart creation returned null'); }" +
-                "window.addEventListener('resize', function() { if (chart) { chart.reflow(); } });" +
-                "} catch(e) { console.error('Chart error:', e); }" +
-                "if (!document.querySelector('#container svg')) { document.getElementById('container').style.display='none'; document.getElementById('fallback').style.display='block'; }" +
-                "</script>" +
-                "</body>" +
-                "</html>";
-        
-        webView.loadDataWithBaseURL(null, html, "text/html", "UTF-8", null);
+                "<style>body { margin: 0; padding: 0; background: transparent; overflow: hidden; } #container { width: 100vw; height: 100vh; }</style>" +
+                "</head><body><div id='container'></div>" +
+                "<script>Highcharts.chart('container', " + config + ");</script>" +
+                "</body></html>";
+        webView.loadDataWithBaseURL("https://highcharts.com", html, "text/html", "UTF-8", null);
     }
 
-    private String escapeForJs(String value) {
-        return value.replace("\\", "\\\\").replace("'", "\\'");
-    }
-
-    private int resolveThemeColor(int attrResId) {
-        TypedValue typedValue = new TypedValue();
-        requireContext().getTheme().resolveAttribute(attrResId, typedValue, true);
-        return typedValue.data;
+    private String escapeForJs(String input) {
+        if (input == null) return "";
+        return input.replace("'", "\\'");
     }
 
     private void setupChartThemePalette() {
-        int textPrimary = resolveThemeColor(R.attr.colorTextPrimary);
-        int accent = ContextCompat.getColor(requireContext(), R.color.vault_red_primary);
+        int currentNightMode = getResources().getConfiguration().uiMode & android.content.res.Configuration.UI_MODE_NIGHT_MASK;
+        boolean isDark = currentNightMode == android.content.res.Configuration.UI_MODE_NIGHT_YES;
 
-        boolean isLightMode = ColorUtils.calculateLuminance(textPrimary) < 0.5d;
-
-        if (isLightMode) {
-            chartTextPrimaryHex = "#1A1A1D"; // Dark Charcoal
-            chartTextSecondaryHex = "#4A4A4A"; // Darker Grey
+        if (isDark) {
+            chartTextPrimaryHex = "#FFFFFF";
+            chartTextSecondaryHex = "#A0A0A0";
+            chartGridLineHex = "rgba(255,255,255,0.12)";
+            chartTooltipBackgroundHex = "rgba(20,20,20,0.9)";
             chartTooltipTextHex = "#FFFFFF";
-            chartTooltipBackgroundHex = "rgba(26,26,29,0.95)"; // Dark tooltip
-            chartGridLineHex = "rgba(0,0,0,0.12)";
+            chartAccentHex = "#BC4B51";
         } else {
-            chartTextPrimaryHex = "#E0E0E0"; // Off-white
-            chartTextSecondaryHex = "#B0B0B0"; // Light Grey
-            chartTooltipTextHex = "#E0E0E0";
-            chartTooltipBackgroundHex = "rgba(20,20,20,0.92)"; // Dark tooltip
-            chartGridLineHex = "rgba(255,255,255,0.15)";
+            chartTextPrimaryHex = "#1E293B";
+            chartTextSecondaryHex = "#64748B";
+            chartGridLineHex = "rgba(0,0,0,0.08)";
+            chartTooltipBackgroundHex = "rgba(255,255,255,0.95)";
+            chartTooltipTextHex = "#1E293B";
+            chartAccentHex = "#BC4B51";
         }
-
-        chartAccentHex = colorToHex(accent);
     }
 
-    private String colorToHex(int color) {
-        return String.format(Locale.US, "#%02X%02X%02X", Color.red(color), Color.green(color), Color.blue(color));
-    }
-    
-    private void setupBacklogHealth() {
-        int completed = dbHelper.getStatusCount("Completed");
-        int planning = dbHelper.getStatusCount("Planning");
-        int ongoing = dbHelper.getStatusCount("Ongoing");
-        int total = completed + planning + ongoing;
-        
-        int progress = (total > 0) ? (completed * 100 / total) : 0;
-        progressBacklogHealth.setProgress(progress);
-        txtBacklogPercentage.setText(String.format(Locale.getDefault(), "%d%% Completed", progress));
-        
-        if (progress >= 70) {
-            txtBacklogStatus.setText("Excellent");
-            txtBacklogStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.accent_green));
-        } else if (progress >= 40) {
-            txtBacklogStatus.setText("Healthy");
-            txtBacklogStatus.setTextColor(ContextCompat.getColor(requireContext(), R.id.img_logo != 0 ? R.color.vault_red_primary : android.R.color.holo_blue_light));
-        } else {
-            txtBacklogStatus.setText("Overwhelming");
-            txtBacklogStatus.setTextColor(ContextCompat.getColor(requireContext(), R.color.vault_red_dark));
-        }
+    private void setupHabitProgressChart(int position) {
+        refreshData();
     }
 }

@@ -21,7 +21,7 @@
         <item name="android:textSize">@dimen/screen_title_size</item>
         <item name="android:textStyle">normal</item>
         <item name="android:textColor">?attr/colorTextPrimary</item>
-        <item name="android:fontFamily">sans-serif-black</item>
+        <item name="android:fontFamily">@font/sf_pro_heavy</item>
         <item name="android:textAlignment">center</item>
     </style>
 
@@ -61,7 +61,7 @@
         <item name="android:textSize">18sp</item>
         <item name="android:textStyle">normal</item>
         <item name="android:textColor">?attr/colorTextPrimary</item>
-        <item name="android:fontFamily">sans-serif-black</item>
+        <item name="android:fontFamily">@font/sf_pro_bold</item>
     </style>
 
     <style name="Widget.MediaVault.BottomNavigationView" parent="Widget.MaterialComponents.BottomNavigationView">
@@ -80,5 +80,14 @@
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:background">@android:color/transparent</item>
         <item name="android:windowNoTitle">true</item>
+    </style>
+    
+    <style name="Theme.MediaVault.Dialog.Transparent" parent="Theme.MaterialComponents.DayNight.Dialog">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:background">@android:color/transparent</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:windowAnimationStyle">@android:style/Animation.Dialog</item>
     </style>
 </resources>

@@ -25,7 +25,6 @@ import android.widget.RatingBar;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
-
 import com.example.mediavault.widget.ToastUtils;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -35,17 +34,22 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-
 import com.example.mediavault.api.GoogleBooksApiService;
 import com.example.mediavault.api.GoogleBooksResponse;
 import com.example.mediavault.api.JikanApiService;
 import com.example.mediavault.api.JikanResponse;
+import com.example.mediavault.api.MediaMetadataProfile;
 import com.example.mediavault.api.MediaSearchAdapter;
 import com.example.mediavault.api.MediaSearchResult;
 import com.example.mediavault.api.MovieDetailResponse;
+import com.example.mediavault.api.OpenLibraryResponse;
+import com.example.mediavault.api.OpenLibraryApiService;
 import com.example.mediavault.api.TmdbApiService;
 import com.example.mediavault.api.TmdbResponse;
 import com.example.mediavault.api.TvDetailResponse;
+import com.example.mediavault.api.search.model.AniListSearchResponse;
+import com.example.mediavault.api.search.service.AniListSearchApiService;
+import com.google.gson.Gson;
 import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.card.MaterialCardView;
@@ -55,22 +59,31 @@ import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
-
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
-
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
+import java.util.Locale;
 
 public class AddMediaActivity extends AppCompatActivity implements MediaSearchAdapter.OnItemClickListener {
 
     private static final String TAG = "AddMediaDB_Error";
     private static final String TMDB_API_KEY = "b839069f4d8893e2d87c422727980edc";
+    private static final String ANILIST_LIGHT_NOVEL_QUERY =
+            "query ($search: String) { " +
+                    "Page(page: 1, perPage: 10) { " +
+                    "media(search: $search, type: MANGA, format_in: [NOVEL, ONE_SHOT]) { " +
+                    "id title { romaji english native } description(asHtml: false) coverImage { large } startDate { year } " +
+                    "} } }";
 
     private View layoutSearchApi, layoutManualEntry, coordinatorLayout;
     private MaterialButtonToggleGroup toggleGroup;
@@ -102,8 +115,23 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
 
     private DatabaseHelper dbHelper;
     private NetworkReceiver networkReceiver;
-    private Retrofit jikanRetrofit, googleBooksRetrofit, tmdbRetrofit;
+    private Retrofit jikanRetrofit, googleBooksRetrofit, tmdbRetrofit, openLibraryRetrofit, aniListRetrofit;
+    private final Gson gson = new Gson();
     private boolean isNetworkReceiverRegistered = false;
+    private String selectedSourceUrl;
+    private String selectedContentType;
+    private String selectedTmdbId;
+    private int selectedReleaseYear;
+    private String selectedResultTitle;
+    private MediaMetadataProfile selectedMetadataProfile;
+    private boolean launchedFromTracker;
+    private String trackerDetectedPackage;
+    private float trackerDetectedProgress;
+    private String trackerDetectedAuthor;
+    private int trackerDetectedTotalCount;
+    private String trackerDetectedDescription;
+    private boolean trackerForceManual;
+    private String trackerPrefillSourceUrl;
 
     private final ActivityResultLauncher<Intent> imagePickerLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -123,7 +151,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_add_media);
 
-        dbHelper = new DatabaseHelper(this);
+        dbHelper = DatabaseHelper.getInstance(this);
         networkReceiver = new NetworkReceiver();
 
         initRetrofit();
@@ -132,6 +160,79 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         setupSearch();
         setupManualEntry();
         setupOnBackPressed();
+        
+        // Handle intent from external tracker
+        handleTrackerIntent();
+    }
+    
+    private void handleTrackerIntent() {
+        Intent intent = getIntent();
+        boolean webNovelTracker = false;
+        if (intent != null) {
+            launchedFromTracker = intent.getBooleanExtra("FROM_TRACKER", false);
+            trackerDetectedPackage = intent.getStringExtra("TRACKER_PACKAGE");
+            trackerDetectedProgress = intent.getFloatExtra("PREFILL_PROGRESS", 0f);
+            trackerDetectedAuthor = intent.getStringExtra("PREFILL_AUTHOR");
+            trackerDetectedTotalCount = intent.getIntExtra("PREFILL_TOTAL_COUNT", 0);
+            trackerDetectedDescription = intent.getStringExtra("PREFILL_DESCRIPTION");
+            trackerPrefillSourceUrl = intent.getStringExtra("PREFILL_SOURCE_URL");
+            String prefillTypeHint = intent.getStringExtra("PREFILL_TYPE_HINT");
+            String inferredTrackerType = !TextUtils.isEmpty(prefillTypeHint)
+                    ? prefillTypeHint
+                    : inferTrackerMediaType(trackerDetectedPackage);
+            if (launchedFromTracker && !TextUtils.isEmpty(inferredTrackerType)) {
+                applyTrackerTypeDefaults(inferredTrackerType);
+            }
+            if (!TextUtils.isEmpty(trackerDetectedAuthor) && TextUtils.isEmpty(etManualAuthor.getText())) {
+                etManualAuthor.setText(trackerDetectedAuthor.trim());
+            }
+            if (trackerDetectedTotalCount > 0 && TextUtils.isEmpty(etManualTotal.getText())) {
+                etManualTotal.setText(String.valueOf(trackerDetectedTotalCount));
+            }
+            if (trackerDetectedProgress > 0f && TextUtils.isEmpty(etManualProgress.getText())) {
+                etManualProgress.setText(trimmedProgressText(trackerDetectedProgress));
+            }
+            webNovelTracker = launchedFromTracker && isWebNovelPackage(trackerDetectedPackage);
+            trackerForceManual = intent.getBooleanExtra("PREFILL_FORCE_MANUAL", false) || webNovelTracker;
+            if (webNovelTracker) {
+                setSpinnerToContains(spinnerApiTarget, "Light/Web");
+                setSpinnerToContains(spinnerManualType, "Book");
+                setSpinnerToContains(spinnerTotalUnit, "Chapter");
+                setSpinnerToContains(spinnerManualStatus, "Progress");
+            }
+            if (!TextUtils.isEmpty(trackerDetectedDescription) && TextUtils.isEmpty(etManualDescription.getText())) {
+                etManualDescription.setText(trackerDetectedDescription.trim());
+            }
+        }
+        if (intent != null && intent.hasExtra("PREFILL_TITLE")) {
+            String prefillTitle = intent.getStringExtra("PREFILL_TITLE");
+            float prefillProgress = intent.getFloatExtra("PREFILL_PROGRESS", 0f);
+             
+            if (prefillTitle != null && !prefillTitle.isEmpty()) {
+                etApiSearch.setText(prefillTitle);
+                etManualTitle.setText(prefillTitle);
+
+                if (trackerForceManual) {
+                    toggleGroup.check(R.id.btn_mode_manual);
+                    selectedSourceUrl = !TextUtils.isEmpty(trackerPrefillSourceUrl)
+                            ? trackerPrefillSourceUrl.trim()
+                            : buildTrackerSourceUrl(prefillTitle, webNovelTracker);
+                    selectedContentType = "web-reader";
+                } else {
+                    etApiSearch.post(this::performApiSearch);
+                }
+                if (prefillProgress > 0f) {
+                    etManualProgress.setText(trimmedProgressText(prefillProgress));
+                }
+                Toast.makeText(
+                        this,
+                        trackerForceManual
+                                ? "Detected: " + prefillTitle + " (manual add pre-filled)"
+                                : "Detected: " + prefillTitle + " (Ch. " + (int) prefillProgress + ")",
+                        Toast.LENGTH_LONG
+                ).show();
+            }
+        }
     }
 
     private void initRetrofit() {
@@ -158,6 +259,18 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                 .client(okHttpClient)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
+
+        openLibraryRetrofit = new Retrofit.Builder()
+                .baseUrl("https://openlibrary.org/")
+                .client(okHttpClient)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        aniListRetrofit = new Retrofit.Builder()
+                .baseUrl("https://graphql.anilist.co/")
+                .client(okHttpClient)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
     }
 
     private void initViews() {
@@ -179,6 +292,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         spinnerManualType = findViewById(R.id.spinner_manual_type);
         spinnerManualStatus = findViewById(R.id.spinner_manual_status);
         etManualProgress = findViewById(R.id.et_manual_progress);
+        etManualProgress.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
         etManualTotal = findViewById(R.id.et_manual_total);
         spinnerTotalUnit = findViewById(R.id.spinner_total_unit);
         spinnerManualGenre = findViewById(R.id.spinner_manual_genre);
@@ -277,6 +391,12 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         if (TextUtils.isEmpty(query)) return;
 
         String target = spinnerApiTarget.getSelectedItem().toString();
+        selectedSourceUrl = null;
+        selectedContentType = null;
+        selectedTmdbId = null;
+        selectedReleaseYear = 0;
+        selectedResultTitle = null;
+        selectedMetadataProfile = null;
         
         pbSearchLoading.setVisibility(View.VISIBLE);
         rvApiResults.setVisibility(View.GONE);
@@ -288,6 +408,8 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
             searchAnime(query);
         } else if (target.contains("Manga")) {
             searchManga(query);
+        } else if (target.contains("Light/Web") || target.contains("Novel")) {
+            searchLightNovels(query);
         } else if (target.contains("Books")) {
             searchBooks(query);
         } else if (target.contains("Movie")) {
@@ -299,7 +421,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
             rvApiResults.setVisibility(View.VISIBLE);
             btnApiSearchSubmit.setEnabled(true);
             tvNoResults.setVisibility(View.VISIBLE);
-            tvNoResults.setText("Unsupported target");
+            tvNoResults.setText(com.example.mediavault.R.string.auto_unsupported_target);
         }
     }
 
@@ -308,12 +430,13 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         service.getAnime(query, 10).enqueue(new Callback<JikanResponse>() {
             @Override
             public void onResponse(@NonNull Call<JikanResponse> call, @NonNull Response<JikanResponse> response) {
-                handleJikanResponse(response, "Anime");
+                handleJikanResponse(response, "Anime", query);
             }
 
             @Override
             public void onFailure(@NonNull Call<JikanResponse> call, @NonNull Throwable t) {
                 handleSearchError("Network timeout or error");
+                showProviderCoverageFallback(query, "Anime");
             }
         });
     }
@@ -323,17 +446,307 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         service.getManga(query, 10).enqueue(new Callback<JikanResponse>() {
             @Override
             public void onResponse(@NonNull Call<JikanResponse> call, @NonNull Response<JikanResponse> response) {
-                handleJikanResponse(response, "Manga");
+                handleJikanResponse(response, "Manga", query);
             }
 
             @Override
             public void onFailure(@NonNull Call<JikanResponse> call, @NonNull Throwable t) {
                 handleSearchError("Network timeout or error");
+                showProviderCoverageFallback(query, "Manga");
             }
         });
     }
 
-    private void handleJikanResponse(Response<JikanResponse> response, String type) {
+    private void searchLightNovels(String query) {
+        List<MediaSearchResult> aggregatedResults = new ArrayList<>();
+        Set<String> dedupeKeys = new HashSet<>();
+        final int[] pendingSources = {4};
+
+        Runnable onSourceComplete = () -> {
+            pendingSources[0]--;
+            if (pendingSources[0] == 0) {
+                pbSearchLoading.setVisibility(View.GONE);
+                btnApiSearchSubmit.setEnabled(true);
+                rvApiResults.setVisibility(View.VISIBLE);
+                if (aggregatedResults.isEmpty()) {
+                    showProviderCoverageFallback(query, "Book");
+                    return;
+                }
+                List<MediaSearchResult> mergedResults = mergeApiAndProviderResults(aggregatedResults, query, "Book");
+                searchAdapter.setResults(mergedResults);
+                showSuccessSnackbar(buildCoverageMessage(aggregatedResults.size(), mergedResults.size() - aggregatedResults.size()));
+            }
+        };
+
+        searchAniListLightNovels(query, aggregatedResults, dedupeKeys, onSourceComplete);
+        searchJikanLightNovels(query, aggregatedResults, dedupeKeys, onSourceComplete);
+        searchGoogleBooksLightNovels(query, aggregatedResults, dedupeKeys, onSourceComplete);
+        searchOpenLibraryLightNovels(query, aggregatedResults, dedupeKeys, onSourceComplete);
+    }
+
+    private void searchAniListLightNovels(
+            String query,
+            List<MediaSearchResult> out,
+            Set<String> dedupeKeys,
+            Runnable onComplete
+    ) {
+        AniListSearchApiService service = aniListRetrofit.create(AniListSearchApiService.class);
+        Map<String, String> variables = new HashMap<>();
+        variables.put("search", query);
+        String variablesJson = gson.toJson(variables);
+        service.searchAnime(ANILIST_LIGHT_NOVEL_QUERY, variablesJson).enqueue(new Callback<AniListSearchResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<AniListSearchResponse> call, @NonNull Response<AniListSearchResponse> response) {
+                if (response.isSuccessful() && response.body() != null
+                        && response.body().data != null
+                        && response.body().data.page != null
+                        && response.body().data.page.media != null) {
+                    for (AniListSearchResponse.Media media : response.body().data.page.media) {
+                        if (media == null || media.title == null) {
+                            continue;
+                        }
+                        String title = firstNonBlank(media.title.english, media.title.romaji, media.title.nativeTitle);
+                        if (TextUtils.isEmpty(title)) {
+                            continue;
+                        }
+                        String sourceUrl = "https://anilist.co/manga/" + media.id;
+                        MediaSearchResult result = new MediaSearchResult(
+                                title,
+                                "Book",
+                                "Light Novel",
+                                "AniList",
+                                sanitizeDescription(media.description),
+                                media.coverImage != null ? media.coverImage.large : null,
+                                null,
+                                "Chapters",
+                                sourceUrl,
+                                "search",
+                                null,
+                                media.startDate != null ? media.startDate.year : 0
+                        );
+                        result.setMetadataProfile(buildAniListLightNovelMetadataProfile(media, sourceUrl));
+                        addUniqueSearchResult(out, dedupeKeys, result);
+                    }
+                }
+                onComplete.run();
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<AniListSearchResponse> call, @NonNull Throwable t) {
+                onComplete.run();
+            }
+        });
+    }
+
+    private void searchJikanLightNovels(
+            String query,
+            List<MediaSearchResult> out,
+            Set<String> dedupeKeys,
+            Runnable onComplete
+    ) {
+        JikanApiService service = jikanRetrofit.create(JikanApiService.class);
+        service.getMangaByType(query, "lightnovel", 10).enqueue(new Callback<JikanResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<JikanResponse> call, @NonNull Response<JikanResponse> response) {
+                if (response.isSuccessful() && response.body() != null
+                        && response.body().getData() != null
+                        && !response.body().getData().isEmpty()) {
+                    for (JikanResponse.MediaData data : response.body().getData()) {
+                        if (data == null || TextUtils.isEmpty(data.getTitle())) {
+                            continue;
+                        }
+                        String imageUrl = null;
+                        if (data.getImages() != null && data.getImages().getJpg() != null) {
+                            imageUrl = data.getImages().getJpg().getImageUrl();
+                        }
+                        String sourceUrl = data.getMalId() != null
+                                ? "https://myanimelist.net/manga/" + data.getMalId()
+                                : "https://myanimelist.net/manga.php?q=" + Uri.encode(data.getTitle());
+                        MediaSearchResult result = new MediaSearchResult(
+                                data.getTitle(),
+                                "Book",
+                                data.getDisplayGenres(),
+                                data.getCreator(),
+                                data.getSynopsis(),
+                                imageUrl,
+                                data.getChapters(),
+                                "Chapters",
+                                sourceUrl,
+                                "search",
+                                null,
+                                data.getYear() != null ? data.getYear() : 0
+                        );
+                        result.setMetadataProfile(buildJikanLightNovelMetadataProfile(data, sourceUrl));
+                        addUniqueSearchResult(out, dedupeKeys, result);
+                    }
+                }
+                onComplete.run();
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<JikanResponse> call, @NonNull Throwable t) {
+                onComplete.run();
+            }
+        });
+    }
+
+    private void searchGoogleBooksLightNovels(
+            String query,
+            List<MediaSearchResult> out,
+            Set<String> dedupeKeys,
+            Runnable onComplete
+    ) {
+        GoogleBooksApiService service = googleBooksRetrofit.create(GoogleBooksApiService.class);
+        service.getBooks(query + " light novel").enqueue(new Callback<GoogleBooksResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<GoogleBooksResponse> call, @NonNull Response<GoogleBooksResponse> response) {
+                if (response.isSuccessful() && response.body() != null
+                        && response.body().getItems() != null
+                        && !response.body().getItems().isEmpty()) {
+                    for (GoogleBooksResponse.BookItem item : response.body().getItems()) {
+                        GoogleBooksResponse.VolumeInfo info = item.getVolumeInfo();
+                        if (info == null || TextUtils.isEmpty(info.getTitle())) {
+                            continue;
+                        }
+                        String imageUrl = null;
+                        if (info.getImageLinks() != null) {
+                            imageUrl = info.getImageLinks().getThumbnail();
+                            if (imageUrl != null && imageUrl.startsWith("http://")) {
+                                imageUrl = imageUrl.replace("http://", "https://");
+                            }
+                        }
+                        String authors = "";
+                        if (info.getAuthors() != null) {
+                            authors = String.join(", ", info.getAuthors());
+                        }
+                        String genres = "";
+                        if (info.getCategories() != null) {
+                            genres = String.join(", ", info.getCategories());
+                        }
+                        String sourceUrl = buildBookSourceUrl(info.getTitle());
+                        MediaSearchResult result = new MediaSearchResult(
+                                info.getTitle(),
+                                "Book",
+                                genres,
+                                authors,
+                                info.getDescription(),
+                                imageUrl,
+                                info.getPageCount(),
+                                "Pages",
+                                sourceUrl,
+                                "reader",
+                                null,
+                                parseReleaseYear(info.getPublishedDate())
+                        );
+                        result.setMetadataProfile(buildGoogleBooksMetadataProfile(info, sourceUrl));
+                        addUniqueSearchResult(out, dedupeKeys, result);
+                    }
+                }
+                onComplete.run();
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<GoogleBooksResponse> call, @NonNull Throwable t) {
+                onComplete.run();
+            }
+        });
+    }
+
+    private void searchOpenLibraryLightNovels(
+            String query,
+            List<MediaSearchResult> out,
+            Set<String> dedupeKeys,
+            Runnable onComplete
+    ) {
+        OpenLibraryApiService service = openLibraryRetrofit.create(OpenLibraryApiService.class);
+        service.searchBooks(query, 10).enqueue(new Callback<OpenLibraryResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<OpenLibraryResponse> call, @NonNull Response<OpenLibraryResponse> response) {
+                if (response.isSuccessful() && response.body() != null
+                        && response.body().getDocs() != null
+                        && !response.body().getDocs().isEmpty()) {
+                    for (OpenLibraryResponse.Doc doc : response.body().getDocs()) {
+                        if (doc == null || TextUtils.isEmpty(doc.getTitle())) {
+                            continue;
+                        }
+                        String authors = "";
+                        if (doc.getAuthorName() != null && !doc.getAuthorName().isEmpty()) {
+                            authors = String.join(", ", doc.getAuthorName());
+                        }
+                        String genres = "";
+                        if (doc.getSubject() != null && !doc.getSubject().isEmpty()) {
+                            genres = String.join(", ", doc.getSubject().subList(0, Math.min(3, doc.getSubject().size())));
+                        }
+                        String sourceUrl = !TextUtils.isEmpty(doc.getWorkUrl())
+                                ? doc.getWorkUrl()
+                                : "https://openlibrary.org/search?title=" + Uri.encode(doc.getTitle());
+                        MediaSearchResult result = new MediaSearchResult(
+                                doc.getTitle(),
+                                "Book",
+                                genres,
+                                authors,
+                                "OpenLibrary metadata result",
+                                doc.getCoverUrl(),
+                                null,
+                                "Pages",
+                                sourceUrl,
+                                "reader",
+                                null,
+                                doc.getFirstPublishYear() != null ? doc.getFirstPublishYear() : 0
+                        );
+                        result.setMetadataProfile(buildOpenLibraryMetadataProfile(doc, sourceUrl, authors));
+                        addUniqueSearchResult(out, dedupeKeys, result);
+                    }
+                }
+                onComplete.run();
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<OpenLibraryResponse> call, @NonNull Throwable t) {
+                onComplete.run();
+            }
+        });
+    }
+
+    private void addUniqueSearchResult(List<MediaSearchResult> out, Set<String> dedupeKeys, MediaSearchResult result) {
+        if (result == null || TextUtils.isEmpty(result.getTitle())) {
+            return;
+        }
+        String dedupeKey = buildResultDedupKey(result.getTitle(), result.getAuthor());
+        if (dedupeKeys.add(dedupeKey)) {
+            out.add(result);
+        }
+    }
+
+    private String buildResultDedupKey(String title, String author) {
+        String normalizedTitle = MediaMetadataProfile.normalizeTitle(title);
+        String normalizedAuthor = author == null ? "" : author.trim().toLowerCase(Locale.ROOT);
+        return normalizedTitle + "|" + normalizedAuthor;
+    }
+
+    private String sanitizeDescription(String input) {
+        if (input == null) {
+            return null;
+        }
+        return input.replaceAll("<[^>]+>", " ")
+                .replace("&nbsp;", " ")
+                .replace("&#39;", "'")
+                .trim();
+    }
+
+    private String firstNonBlank(String... values) {
+        if (values == null) {
+            return null;
+        }
+        for (String value : values) {
+            if (!TextUtils.isEmpty(value) && !value.trim().isEmpty()) {
+                return value.trim();
+            }
+        }
+        return null;
+    }
+
+    private void handleJikanResponse(Response<JikanResponse> response, String type, String query) {
         pbSearchLoading.setVisibility(View.GONE);
         btnApiSearchSubmit.setEnabled(true);
         rvApiResults.setVisibility(View.VISIBLE);
@@ -347,7 +760,10 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                         imageUrl = data.getImages().getJpg().getImageUrl();
                     }
 
-                    results.add(new MediaSearchResult(
+                    String sourceUrl = type.equals("Anime")
+                            ? "https://animekai.to/search?keyword=" + Uri.encode(data.getTitle())
+                            : "https://comix.to/filter?keyword=" + Uri.encode(data.getTitle());
+                    MediaSearchResult result = new MediaSearchResult(
                             data.getTitle(),
                             type,
                             data.getDisplayGenres(), 
@@ -355,16 +771,24 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                             data.getSynopsis(),
                             imageUrl,
                             type.equals("Anime") ? data.getEpisodes() : data.getChapters(),
-                            type.equals("Anime") ? "Episodes" : "Chapters"
-                    ));
+                            type.equals("Anime") ? "Episodes" : "Chapters",
+                            sourceUrl,
+                            "search",
+                            null,
+                            0
+                    );
+                    result.setMetadataProfile(buildJikanMetadataProfile(data, type, sourceUrl));
+                    results.add(result);
                 }
-                searchAdapter.setResults(results);
-                showSuccessSnackbar("Found " + results.size() + " results.");
+                List<MediaSearchResult> mergedResults = mergeApiAndProviderResults(results, query, type);
+                searchAdapter.setResults(mergedResults);
+                showSuccessSnackbar(buildCoverageMessage(results.size(), mergedResults.size() - results.size()));
             } else {
-                tvNoResults.setVisibility(View.VISIBLE);
+                showProviderCoverageFallback(query, type);
             }
         } else {
             handleSearchError("API Error: " + response.code());
+            showProviderCoverageFallback(query, type);
         }
     }
 
@@ -400,7 +824,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                                 genres = String.join(", ", info.getCategories());
                             }
 
-                            results.add(new MediaSearchResult(
+                            MediaSearchResult result = new MediaSearchResult(
                                     info.getTitle(),
                                     "Book",
                                     genres,
@@ -408,22 +832,31 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                                     info.getDescription(),
                                     imageUrl,
                                     info.getPageCount(),
-                                    "Pages"
-                            ));
+                                    "Pages",
+                                    buildBookSourceUrl(info.getTitle()),
+                                    "reader",
+                                    null,
+                                    0
+                            );
+                            result.setMetadataProfile(buildGoogleBooksMetadataProfile(info, result.getSourceUrl()));
+                            results.add(result);
                         }
-                        searchAdapter.setResults(results);
-                        showSuccessSnackbar("Found " + results.size() + " results.");
+                        List<MediaSearchResult> mergedResults = mergeApiAndProviderResults(results, query, "Book");
+                        searchAdapter.setResults(mergedResults);
+                        showSuccessSnackbar(buildCoverageMessage(results.size(), mergedResults.size() - results.size()));
                     } else {
-                        tvNoResults.setVisibility(View.VISIBLE);
+                        showProviderCoverageFallback(query, "Book");
                     }
                 } else {
                     handleSearchError("API Error: " + response.code());
+                    showProviderCoverageFallback(query, "Book");
                 }
             }
 
             @Override
             public void onFailure(@NonNull Call<GoogleBooksResponse> call, @NonNull Throwable t) {
                 handleSearchError("Network timeout or error");
+                showProviderCoverageFallback(query, "Book");
             }
         });
     }
@@ -452,8 +885,10 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                                     pbSearchLoading.setVisibility(View.GONE);
                                     btnApiSearchSubmit.setEnabled(true);
                                     rvApiResults.setVisibility(View.VISIBLE);
-                                    searchAdapter.setResults(results);
-                                    showSuccessSnackbar("Found " + results.size() + " results.");
+                                    String mediaType = "Movie".equals(type) ? "Movie" : "Series";
+                                    List<MediaSearchResult> mergedResults = mergeApiAndProviderResults(results, query, mediaType);
+                                    searchAdapter.setResults(mergedResults);
+                                    showSuccessSnackbar(buildCoverageMessage(results.size(), mergedResults.size() - results.size()));
                                 }
                             });
                         }
@@ -461,16 +896,18 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                         pbSearchLoading.setVisibility(View.GONE);
                         btnApiSearchSubmit.setEnabled(true);
                         rvApiResults.setVisibility(View.VISIBLE);
-                        tvNoResults.setVisibility(View.VISIBLE);
+                        showProviderCoverageFallback(query, type.equals("Movie") ? "Movie" : "Series");
                     }
                 } else {
                     handleSearchError("API Error: " + response.code());
+                    showProviderCoverageFallback(query, type.equals("Movie") ? "Movie" : "Series");
                 }
             }
 
             @Override
             public void onFailure(@NonNull Call<TmdbResponse> call, @NonNull Throwable t) {
                 handleSearchError("Network timeout or error");
+                showProviderCoverageFallback(query, type.equals("Movie") ? "Movie" : "Series");
             }
         });
     }
@@ -532,7 +969,12 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         if (item.getPosterPath() != null) {
             imageUrl = "https://image.tmdb.org/t/p/w500" + item.getPosterPath();
         }
-        results.add(new MediaSearchResult(
+        String tmdbId = String.valueOf(item.getId());
+        int releaseYear = parseReleaseYear(item.getReleaseDate());
+        String sourceUrl = "Movie".equals(type)
+                ? "https://vidsrc.to/embed/movie/" + tmdbId
+                : "https://vidsrc.to/embed/tv/" + tmdbId + "/1/1";
+        MediaSearchResult result = new MediaSearchResult(
                 item.getTitle(),
                 type.equals("Movie") ? "Movie" : "Series",
                 genres,
@@ -540,8 +982,14 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                 item.getOverview(),
                 imageUrl,
                 capacity,
-                unit
-        ));
+                unit,
+                sourceUrl,
+                "embed",
+                tmdbId,
+                releaseYear
+        );
+        result.setMetadataProfile(buildTmdbMetadataProfile(item, type, genres, capacity, unit, sourceUrl, tmdbId, releaseYear));
+        results.add(result);
     }
 
     private void handleSearchError(String message) {
@@ -558,18 +1006,190 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         Snackbar.make(coordinatorLayout, message, Snackbar.LENGTH_SHORT).show();
     }
 
+    private void showProviderCoverageFallback(String query, String mediaType) {
+        String safeQuery = query == null ? "" : query.trim();
+        if (safeQuery.isEmpty()) {
+            tvNoResults.setVisibility(View.VISIBLE);
+            tvNoResults.setText(com.example.mediavault.R.string.no_results_found);
+            return;
+        }
+
+        List<MediaSearchResult> fallbackResults = buildProviderFallbackResults(safeQuery, mediaType);
+        if (fallbackResults.isEmpty()) {
+            tvNoResults.setVisibility(View.VISIBLE);
+            tvNoResults.setText(com.example.mediavault.R.string.no_results_found);
+            return;
+        }
+
+        pbSearchLoading.setVisibility(View.GONE);
+        btnApiSearchSubmit.setEnabled(true);
+        rvApiResults.setVisibility(View.VISIBLE);
+        tvNoResults.setVisibility(View.GONE);
+        searchAdapter.setResults(fallbackResults);
+        Snackbar.make(
+                coordinatorLayout,
+                "API had limited coverage. Using provider fallback links.",
+                Snackbar.LENGTH_LONG
+        ).show();
+    }
+
+    private List<MediaSearchResult> mergeApiAndProviderResults(List<MediaSearchResult> apiResults, String query, String mediaType) {
+        List<MediaSearchResult> merged = new ArrayList<>();
+        if (apiResults != null) {
+            merged.addAll(apiResults);
+        }
+
+        String safeQuery = query == null ? "" : query.trim();
+        if (safeQuery.isEmpty()) {
+            return merged;
+        }
+
+        List<MediaSearchResult> providerResults = buildProviderFallbackResults(safeQuery, mediaType);
+        if (providerResults.isEmpty()) {
+            return merged;
+        }
+
+        Set<String> seenProviderKeys = new HashSet<>();
+        for (MediaSearchResult result : merged) {
+            String providerKey = extractProviderKey(result);
+            if (!providerKey.isEmpty()) {
+                seenProviderKeys.add(providerKey);
+            }
+        }
+
+        for (MediaSearchResult providerResult : providerResults) {
+            String providerKey = extractProviderKey(providerResult);
+            if (providerKey.isEmpty() || seenProviderKeys.add(providerKey)) {
+                merged.add(providerResult);
+            }
+        }
+        return merged;
+    }
+
+    private String extractProviderKey(MediaSearchResult result) {
+        if (result == null || TextUtils.isEmpty(result.getSourceUrl())) {
+            return "";
+        }
+        String slug = MediaMetadataProfile.detectProviderSlugFromUrl(result.getSourceUrl());
+        if (!TextUtils.isEmpty(slug)) {
+            return slug.toLowerCase(Locale.ROOT);
+        }
+        String host = Uri.parse(result.getSourceUrl()).getHost();
+        if (TextUtils.isEmpty(host)) {
+            return "";
+        }
+        String normalizedHost = host.toLowerCase(Locale.ROOT);
+        if (normalizedHost.startsWith("www.")) {
+            normalizedHost = normalizedHost.substring(4);
+        }
+        return normalizedHost;
+    }
+
+    private String buildCoverageMessage(int apiCount, int providerCount) {
+        if (providerCount > 0) {
+            return "Found " + apiCount + " API results + " + providerCount + " provider links.";
+        }
+        return "Found " + apiCount + " results.";
+    }
+
+    private List<MediaSearchResult> buildProviderFallbackResults(String query, String mediaType) {
+        List<MediaSearchResult> results = new ArrayList<>();
+        String type = mediaType == null ? "" : mediaType.trim();
+
+        if ("Anime".equalsIgnoreCase(type)) {
+            addProviderFallbackResult(results, query, "Anime", "AnimeKai", "https://animekai.to/search?keyword=%s", "Episodes");
+            addProviderFallbackResult(results, query, "Anime", "AniwatchTV", "https://aniwatchtv.to/search?keyword=%s", "Episodes");
+            addProviderFallbackResult(results, query, "Anime", "AnimePahe", "https://animepahe.pw/anime?q=%s", "Episodes");
+            addProviderFallbackResult(results, query, "Anime", "BiliBili", "https://www.bilibili.tv/en/search-result?q=%s", "Episodes");
+            return results;
+        }
+        if ("Manga".equalsIgnoreCase(type)) {
+            addProviderFallbackResult(results, query, "Manga", "Comix", "https://comix.to/filter?keyword=%s", "Chapters");
+            addProviderFallbackResult(results, query, "Manga", "MangaFire", "https://mangafire.to/filter?keyword=%s", "Chapters");
+            addProviderFallbackResult(results, query, "Manga", "WeebCentral", "https://weebcentral.com/search?q=%s", "Chapters");
+            return results;
+        }
+        if ("Movie".equalsIgnoreCase(type)) {
+            addProviderFallbackResult(results, query, "Movie", "Nepu", "https://nepu.to/search?q=%s", "Minutes");
+            addProviderFallbackResult(results, query, "Movie", "Xprime", "https://xprime.su/search?q=%s", "Minutes");
+            addProviderFallbackResult(results, query, "Movie", "Cineby", "https://www.cineby.sc/search?q=%s", "Minutes");
+            return results;
+        }
+        if ("Series".equalsIgnoreCase(type) || "TV Show".equalsIgnoreCase(type)) {
+            addProviderFallbackResult(results, query, "Series", "Nepu", "https://nepu.to/search?q=%s", "Episodes");
+            addProviderFallbackResult(results, query, "Series", "Xprime", "https://xprime.su/search?q=%s+episode+1", "Episodes");
+            addProviderFallbackResult(results, query, "Series", "Cineby", "https://www.cineby.sc/search?q=%s", "Episodes");
+            return results;
+        }
+        if ("Book".equalsIgnoreCase(type) || "Novel".equalsIgnoreCase(type)) {
+            addProviderFallbackResult(results, query, "Book", "OpenChapter", "https://openchapter.io/?s=%s", "Chapters");
+            addProviderFallbackResult(results, query, "Book", "NovelFire", "https://novelfire.net/search?keyword=%s", "Chapters");
+            addProviderFallbackResult(results, query, "Book", "WTR-LAB", "https://wtr-lab.com/en?search=%s", "Chapters");
+            return results;
+        }
+        return results;
+    }
+
+    private void addProviderFallbackResult(
+            List<MediaSearchResult> out,
+            String query,
+            String type,
+            String providerLabel,
+            String urlTemplate,
+            String unit
+    ) {
+        String sourceUrl = String.format(urlTemplate, Uri.encode(query));
+        String description = "Provider fallback link (" + providerLabel + "). API metadata was unavailable for this title.";
+        MediaSearchResult result = new MediaSearchResult(
+                query,
+                type,
+                "Unknown",
+                providerLabel,
+                description,
+                null,
+                null,
+                unit,
+                sourceUrl,
+                "search",
+                null,
+                0
+        );
+        result.setMetadataProfile(buildManualMetadataProfile(
+                query,
+                type,
+                "Unknown",
+                providerLabel,
+                0,
+                unit,
+                sourceUrl,
+                null,
+                0,
+                "provider_fallback"
+        ));
+        out.add(result);
+    }
+
     @Override
     public void onItemClick(MediaSearchResult result) {
         etManualTitle.setText(result.getTitle());
+        selectedSourceUrl = result.getSourceUrl();
+        selectedContentType = result.getContentType();
+        selectedTmdbId = result.getTmdbId();
+        selectedReleaseYear = result.getReleaseYear();
+        selectedResultTitle = result.getTitle();
+        selectedMetadataProfile = result.getMetadataProfile();
         setSpinnerToValue(spinnerManualType, result.getType());
-        spinnerManualType.setEnabled(result.getType() == null || result.getType().isEmpty());
+        spinnerManualType.setEnabled(launchedFromTracker || result.getType() == null || result.getType().isEmpty());
         updateManualCapacityUI();
 
         etManualTotal.setText(result.getCapacity() != null ? String.valueOf(result.getCapacity()) : "");
         etManualTotal.setEnabled(result.getCapacity() == null);
 
         setSpinnerToValue(spinnerTotalUnit, result.getUnit());
-        spinnerTotalUnit.setEnabled(result.getUnit() == null || result.getUnit().isEmpty() || result.getUnit().equals("Unknown"));
+        spinnerTotalUnit.setEnabled(launchedFromTracker
+                || result.getUnit() == null
+                || result.getUnit().isEmpty()
+                || result.getUnit().equals("Unknown"));
 
         etManualImage.setText(result.getImageUrl());
         if (tilManualImage != null) {
@@ -599,6 +1219,108 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                 break;
             }
         }
+    }
+
+    private void setSpinnerToContains(Spinner spinner, String token) {
+        if (spinner == null || token == null) return;
+        String needle = token.trim().toLowerCase(Locale.ROOT);
+        if (needle.isEmpty()) return;
+        for (int i = 0; i < spinner.getCount(); i++) {
+            String item = spinner.getItemAtPosition(i).toString();
+            if (item != null && item.toLowerCase(Locale.ROOT).contains(needle)) {
+                spinner.setSelection(i);
+                return;
+            }
+        }
+    }
+
+    private String trimmedProgressText(float progress) {
+        if (progress <= 0f) {
+            return "";
+        }
+        if (Math.abs(progress - Math.round(progress)) < 0.0001f) {
+            return String.valueOf(Math.round(progress));
+        }
+        return String.valueOf(progress);
+    }
+
+    private boolean isWebNovelPackage(String packageName) {
+        if (packageName == null) {
+            return false;
+        }
+        String normalized = packageName.trim().toLowerCase(Locale.ROOT);
+        return normalized.contains("webnovel")
+                || normalized.contains("qidian")
+                || normalized.contains("novel");
+    }
+
+    private boolean isMangaTrackerPackage(String packageName) {
+        if (packageName == null) {
+            return false;
+        }
+        String normalized = packageName.trim().toLowerCase(Locale.ROOT);
+        return normalized.contains("kotatsu")
+                || normalized.contains("mihon")
+                || normalized.contains("tachiyomi")
+                || normalized.contains("mangaplus")
+                || normalized.contains("webtoon")
+                || normalized.contains("manga")
+                || normalized.contains("manhwa")
+                || normalized.contains("manhua");
+    }
+
+    private boolean isAnimeTrackerPackage(String packageName) {
+        if (packageName == null) {
+            return false;
+        }
+        String normalized = packageName.trim().toLowerCase(Locale.ROOT);
+        return normalized.contains("crunchyroll")
+                || normalized.contains("aniwatch")
+                || normalized.contains("anime")
+                || normalized.contains("bilibili");
+    }
+
+    private String inferTrackerMediaType(String packageName) {
+        if (isWebNovelPackage(packageName)) {
+            return "Book";
+        }
+        if (isMangaTrackerPackage(packageName)) {
+            return "Manga";
+        }
+        if (isAnimeTrackerPackage(packageName)) {
+            return "Anime";
+        }
+        return "";
+    }
+
+    private void applyTrackerTypeDefaults(String inferredType) {
+        if ("Manga".equalsIgnoreCase(inferredType)) {
+            setSpinnerToContains(spinnerApiTarget, "Manga");
+            setSpinnerToContains(spinnerManualType, "Manga");
+            setSpinnerToContains(spinnerTotalUnit, "Chapter");
+            setSpinnerToContains(spinnerManualStatus, "Progress");
+            return;
+        }
+        if ("Anime".equalsIgnoreCase(inferredType)) {
+            setSpinnerToContains(spinnerApiTarget, "Anime");
+            setSpinnerToContains(spinnerManualType, "Anime");
+            setSpinnerToContains(spinnerTotalUnit, "Episode");
+            setSpinnerToContains(spinnerManualStatus, "Progress");
+            return;
+        }
+        if ("Book".equalsIgnoreCase(inferredType)) {
+            setSpinnerToContains(spinnerApiTarget, "Light/Web");
+            setSpinnerToContains(spinnerManualType, "Book");
+            setSpinnerToContains(spinnerTotalUnit, "Chapter");
+            setSpinnerToContains(spinnerManualStatus, "Progress");
+        }
+    }
+
+    private String buildTrackerSourceUrl(String title, boolean webNovelTracker) {
+        if (webNovelTracker) {
+            return "https://www.webnovel.com/search?keywords=" + Uri.encode(title == null ? "" : title.trim());
+        }
+        return buildBookSourceUrl(title);
     }
 
     private void setupManualEntry() {
@@ -645,8 +1367,8 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         if ("Book".equalsIgnoreCase(type)) {
             layoutDurationSlider.setVisibility(View.GONE);
             setSpinnerToValue(spinnerTotalUnit, "Pages");
-            tvLabelProgress.setText("Pages Read");
-            tvLabelTotal.setText("Total Pages");
+            tvLabelProgress.setText(com.example.mediavault.R.string.pages_read);
+            tvLabelTotal.setText(com.example.mediavault.R.string.auto_total_pages);
             if (cardManualEntry != null) {
                 cardManualEntry.setStrokeColor(ContextCompat.getColor(this, R.color.bookly_blue));
             }
@@ -655,8 +1377,8 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         } else if ("Movie".equalsIgnoreCase(type)) {
             layoutDurationSlider.setVisibility(View.VISIBLE);
             setSpinnerToValue(spinnerTotalUnit, "Minutes");
-            tvLabelProgress.setText("Watched");
-            tvLabelTotal.setText("Duration");
+            tvLabelProgress.setText(com.example.mediavault.R.string.auto_watched);
+            tvLabelTotal.setText(com.example.mediavault.R.string.auto_duration);
             if (cardManualEntry != null) {
                 cardManualEntry.setStrokeColor(ContextCompat.getColor(this, R.color.netflix_red));
             }
@@ -668,8 +1390,8 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         } else if ("Anime".equalsIgnoreCase(type) || "Series".equalsIgnoreCase(type)) {
             layoutDurationSlider.setVisibility(View.GONE);
             setSpinnerToValue(spinnerTotalUnit, "Episodes");
-            tvLabelProgress.setText("Progress");
-            tvLabelTotal.setText("Episodes");
+            tvLabelProgress.setText(com.example.mediavault.R.string.progress);
+            tvLabelTotal.setText(com.example.mediavault.R.string.auto_episodes);
             if (cardManualEntry != null) {
                 int accent = "Series".equalsIgnoreCase(type)
                         ? ContextCompat.getColor(this, R.color.netflix_red)
@@ -681,8 +1403,8 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         } else if ("Manga".equalsIgnoreCase(type)) {
             layoutDurationSlider.setVisibility(View.GONE);
             setSpinnerToValue(spinnerTotalUnit, "Chapters");
-            tvLabelProgress.setText("Progress");
-            tvLabelTotal.setText("Chapters");
+            tvLabelProgress.setText(com.example.mediavault.R.string.progress);
+            tvLabelTotal.setText(com.example.mediavault.R.string.auto_chapters);
             if (cardManualEntry != null) {
                 cardManualEntry.setStrokeColor(ContextCompat.getColor(this, R.color.crunchy_orange));
             }
@@ -690,8 +1412,8 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
             etManualTotal.setInputType(InputType.TYPE_CLASS_NUMBER);
         } else {
             layoutDurationSlider.setVisibility(View.GONE);
-            tvLabelProgress.setText("Progress");
-            tvLabelTotal.setText("Total");
+            tvLabelProgress.setText(com.example.mediavault.R.string.progress);
+            tvLabelTotal.setText(com.example.mediavault.R.string.total);
             if (cardManualEntry != null) {
                 cardManualEntry.setStrokeColor(ContextCompat.getColor(this, R.color.glass_border));
             }
@@ -709,7 +1431,10 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         String capacityStr = etManualTotal.getText().toString().trim();
         String unit = spinnerTotalUnit.getSelectedItem().toString();
         String imageUrl = Objects.requireNonNull(etManualImage.getText()).toString().trim();
-        String description = Objects.requireNonNull(etManualDescription.getText()).toString().trim();
+        String descriptionInput = Objects.requireNonNull(etManualDescription.getText()).toString().trim();
+        if (TextUtils.isEmpty(descriptionInput) && !TextUtils.isEmpty(trackerDetectedDescription)) {
+            descriptionInput = trackerDetectedDescription.trim();
+        }
         String review = Objects.requireNonNull(etManualReview.getText()).toString().trim();
         String journal = Objects.requireNonNull(etManualJournal.getText()).toString().trim();
         String mood = getSelectedManualMood();
@@ -719,16 +1444,27 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         boolean isFavorite = switchManualFavorite.isChecked();
         float rating = rbManualRating.getRating();
 
-        if (TextUtils.isEmpty(title) || TextUtils.isEmpty(capacityStr)) {
+        etManualTitle.setError(null);
+        etManualTotal.setError(null);
+        boolean hasRequiredFieldError = false;
+        if (TextUtils.isEmpty(title)) {
             etManualTitle.setError("Required field");
+            hasRequiredFieldError = true;
+        }
+        if (TextUtils.isEmpty(capacityStr)) {
+            etManualTotal.setError("Required field");
+            hasRequiredFieldError = true;
+        }
+        if (hasRequiredFieldError) {
+            ToastUtils.showCustomToast(this, "Please enter required fields before adding.");
             return;
         }
 
-        int progress = 0;
+        float progress = 0;
         int total;
         try {
             if (!TextUtils.isEmpty(progressStr)) {
-                progress = Integer.parseInt(progressStr);
+                progress = Float.parseFloat(progressStr);
             }
             total = Integer.parseInt(capacityStr);
         } catch (NumberFormatException e) {
@@ -740,16 +1476,16 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
             etManualTotal.setError("Total must be greater than 0");
             return;
         }
-        if (progress > total) {
+        if (progress > (float) total) {
             Snackbar.make(coordinatorLayout, "Progress cannot exceed Total Capacity", Snackbar.LENGTH_LONG).show();
             return;
         }
 
-        if (progress == total) {
+        if (progress >= (float) total) {
             status = "Completed";
         }
 
-        final int finalProgress = progress;
+        final float finalProgress = progress;
         final String finalStatus = status;
         final float finalRating = rating;
         final String finalReview = review;
@@ -757,45 +1493,130 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         final String finalMood = mood;
         final String finalPriority = priority;
         final boolean finalIsFavorite = isFavorite;
+        final String finalDescription = descriptionInput;
+        final String selectedUrlAtSave = selectedSourceUrl;
+        final String selectedContentTypeAtSave = selectedContentType;
+        final String selectedTmdbAtSave = selectedTmdbId;
+        final int selectedYearAtSave = selectedReleaseYear;
+        final String selectedTitleAtSave = selectedResultTitle;
+        final MediaMetadataProfile selectedMetadataAtSave = selectedMetadataProfile;
 
         btnManualDone.setEnabled(false);
 
-        new Thread(() -> {
-            String finalImageUrl = ImageUtils.downloadAndSaveImage(AddMediaActivity.this, imageUrl);
-            runOnUiThread(() -> {
-                try {
-                    long result = dbHelper.addMedia(title, type, genre, creator, total, unit, null, finalImageUrl, description);
-                    
-                    if (result != -1) {
-                        dbHelper.updateProgress((int) result, finalProgress, finalStatus, finalRating);
-                        dbHelper.updateMediaMetadata((int) result, finalReview, finalJournal, finalMood, finalPriority, finalIsFavorite);
-                        
-                        Snackbar snackbar = Snackbar.make(coordinatorLayout, "Successfully added to MediaVault!", Snackbar.LENGTH_SHORT);
-                        snackbar.getView().setBackgroundColor(ContextCompat.getColor(AddMediaActivity.this, android.R.color.holo_green_dark));
-                        snackbar.addCallback(new Snackbar.Callback() {
-                            @Override
-                            public void onDismissed(Snackbar transientBottomBar, int event) {
-                                finish();
-                            }
-                        });
-                        snackbar.show();
-                        
+        AppExecutor.getInstance().diskIO().execute(() -> {
+            try {
+                String finalImageUrl = ImageUtils.downloadAndSaveImage(getApplicationContext(), imageUrl);
+                String sourceUrl = (selectedTitleAtSave != null && selectedTitleAtSave.equalsIgnoreCase(title))
+                        ? selectedUrlAtSave
+                        : null;
+                String contentType = (selectedTitleAtSave != null && selectedTitleAtSave.equalsIgnoreCase(title))
+                        ? selectedContentTypeAtSave
+                        : null;
+                String tmdbForSave = (selectedTitleAtSave != null && selectedTitleAtSave.equalsIgnoreCase(title))
+                        ? selectedTmdbAtSave
+                        : null;
+                int yearForSave = (selectedTitleAtSave != null && selectedTitleAtSave.equalsIgnoreCase(title))
+                        ? selectedYearAtSave
+                        : 0;
+                if (sourceUrl == null || sourceUrl.trim().isEmpty()) {
+                    sourceUrl = buildFallbackSourceUrl(title, type, tmdbForSave, yearForSave);
+                }
+                if (contentType == null || contentType.trim().isEmpty()) {
+                    contentType = "search";
+                }
+
+                long result = dbHelper.addMedia(title, type, genre, creator, total, unit, null, finalImageUrl, finalDescription, sourceUrl, contentType);
+
+                if (result != -1) {
+                    dbHelper.updateProgress((int) result, finalProgress, finalStatus, finalRating);
+                    if ("Series".equalsIgnoreCase(type) || "TV Show".equalsIgnoreCase(type)) {
+                        dbHelper.updateSeriesProgress((int) result, 1, Math.max(1, (int) finalProgress), finalStatus, finalRating);
+                    }
+                    dbHelper.updateMediaMetadata((int) result, finalReview, finalJournal, finalMood, finalPriority, finalIsFavorite);
+                    MediaMetadataProfile metadataProfile = null;
+                    if (selectedMetadataAtSave != null
+                            && selectedTitleAtSave != null
+                            && selectedTitleAtSave.equalsIgnoreCase(title)) {
+                        metadataProfile = selectedMetadataAtSave.stampNow();
                     } else {
+                        metadataProfile = buildManualMetadataProfile(
+                                title,
+                                type,
+                                genre,
+                                creator,
+                                total,
+                                unit,
+                                sourceUrl,
+                                selectedTmdbAtSave,
+                                yearForSave,
+                                launchedFromTracker ? "accessibility" : "manual_input"
+                        );
+                    }
+                    if (metadataProfile != null) {
+                        if (launchedFromTracker) {
+                            metadataProfile.addTag("tracker:accessibility");
+                            if (trackerDetectedPackage != null && !trackerDetectedPackage.trim().isEmpty()) {
+                                metadataProfile.addTag("package:" + trackerDetectedPackage.trim().toLowerCase(Locale.ROOT));
+                                if ((metadataProfile.getProviderId() == null || metadataProfile.getProviderId().trim().isEmpty())
+                                        && isWebNovelPackage(trackerDetectedPackage)) {
+                                    metadataProfile.withProviderId(trackerDetectedPackage.trim().toLowerCase(Locale.ROOT));
+                                }
+                            }
+                            if (!TextUtils.isEmpty(trackerDetectedAuthor)) {
+                                metadataProfile.addTag("author:" + trackerDetectedAuthor.trim());
+                            }
+                            if (trackerDetectedTotalCount > 0
+                                    && (metadataProfile.getTotalCount() == null || metadataProfile.getTotalCount() <= 0)) {
+                                metadataProfile.withTotalCount(trackerDetectedTotalCount);
+                                if (metadataProfile.getUnit() == null || metadataProfile.getUnit().trim().isEmpty()) {
+                                    metadataProfile.withUnit("Chapters");
+                                }
+                            }
+                            if (isWebNovelPackage(trackerDetectedPackage)) {
+                                if (metadataProfile.getProviderSlug() == null || metadataProfile.getProviderSlug().trim().isEmpty()) {
+                                    metadataProfile.withProviderSlug("webnovel");
+                                }
+                                metadataProfile.addTag("source:webnovel");
+                            }
+                            if (metadataProfile.getMetadataSource() == null || metadataProfile.getMetadataSource().trim().isEmpty()) {
+                                metadataProfile.withMetadataSource("accessibility");
+                            }
+                            metadataProfile.withMetadataConfidence(
+                                    metadataProfile.getMetadataConfidence() != null
+                                            ? Math.max(0.35f, metadataProfile.getMetadataConfidence())
+                                            : 0.35f
+                            );
+                        }
+                        dbHelper.mergeAndUpsertMetadata((int) result, metadataProfile, metadataProfile.getMetadataSource());
+                    }
+
+                    AppExecutor.getInstance().mainThread().execute(() -> {
+                        // Successfully added - redirect immediately
+                        Toast.makeText(AddMediaActivity.this, "✓ Successfully added to MediaVault!", Toast.LENGTH_SHORT).show();
+                        setResult(RESULT_OK);
+                        finish();
+                    });
+                } else {
+                    AppExecutor.getInstance().mainThread().execute(() -> {
                         btnManualDone.setEnabled(true);
                         Log.e(TAG, "Insertion failed (likely duplicate) for title: " + title);
                         showDuplicateEntryDialog();
-                    }
-                } catch (SQLiteConstraintException e) {
+                    });
+                }
+            } catch (SQLiteConstraintException e) {
+                AppExecutor.getInstance().mainThread().execute(() -> {
                     btnManualDone.setEnabled(true);
                     Log.e(TAG, "Constraint violation: " + e.getMessage());
                     showDuplicateEntryDialog();
-                } catch (Exception e) {
+                });
+            } catch (Exception e) {
+                AppExecutor.getInstance().mainThread().execute(() -> {
                     btnManualDone.setEnabled(true);
                     Log.e(TAG, "Unexpected DB error: " + e.getMessage());
                     ToastUtils.showCustomToast(AddMediaActivity.this, "A database error occurred.");
-                }
-            });
-        }).start();
+                });
+            }
+        });
     }
 
     private void showDuplicateEntryDialog() {
@@ -814,6 +1635,290 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         if (checkedId == R.id.chip_manual_mood_sad) return "Sad";
         if (checkedId == R.id.chip_manual_mood_mindblown) return "Mind-blown";
         return "";
+    }
+
+    private MediaMetadataProfile buildAniListLightNovelMetadataProfile(AniListSearchResponse.Media data, String canonicalUrl) {
+        if (data == null || data.title == null) return null;
+        String canonicalTitle = firstNonBlank(data.title.english, data.title.romaji, data.title.nativeTitle);
+        MediaMetadataProfile profile = MediaMetadataProfile.create()
+                .withCanonicalTitle(canonicalTitle)
+                .withNormalizedTitle(MediaMetadataProfile.normalizeTitle(canonicalTitle))
+                .addAltTitle(data.title.romaji)
+                .addAltTitle(data.title.english)
+                .addAltTitle(data.title.nativeTitle)
+                .withProviderId("anilist")
+                .withProviderSlug("anilist")
+                .withCanonicalUrl(canonicalUrl)
+                .withMetadataSource("anilist_lightnovel")
+                .withMediaType("Book")
+                .withSubType("Light Novel")
+                .withReleaseYear(MediaMetadataProfile.safeYear(data.startDate != null ? data.startDate.year : 0))
+                .withUnit("Chapters")
+                .withMetadataConfidence(0.86f)
+                .withMetadataPriority(88)
+                .stampNow();
+        if (data.id > 0) {
+            profile.addExternalId("anilistId", String.valueOf(data.id));
+        }
+        profile.addTag("source:anilist");
+        profile.addTag("provider:" + MediaMetadataProfile.detectProviderSlugFromUrl(canonicalUrl));
+        return profile;
+    }
+
+    private MediaMetadataProfile buildJikanLightNovelMetadataProfile(JikanResponse.MediaData data, String canonicalUrl) {
+        if (data == null) return null;
+        MediaMetadataProfile profile = MediaMetadataProfile.create()
+                .withCanonicalTitle(data.getTitle())
+                .withNormalizedTitle(MediaMetadataProfile.normalizeTitle(data.getTitle()))
+                .addAltTitle(data.getTitleEnglish())
+                .addAltTitle(data.getTitleJapanese())
+                .withProviderId("jikan")
+                .withProviderSlug("jikan")
+                .withCanonicalUrl(canonicalUrl)
+                .withMetadataSource("jikan_lightnovel")
+                .withMediaType("Book")
+                .withSubType("Light Novel")
+                .withStatus(data.getStatus())
+                .withReleaseYear(data.getYear())
+                .withTotalCount(data.getChapters())
+                .withUnit("Chapters")
+                .addGenres(MediaMetadataProfile.splitCsv(data.getDisplayGenres()))
+                .withRating(data.getScore())
+                .withPopularity(data.getPopularity() == null ? null : data.getPopularity().floatValue())
+                .withMetadataConfidence(0.8f)
+                .withMetadataPriority(78)
+                .stampNow();
+        if (data.getMalId() != null) {
+            profile.addExternalId("malId", String.valueOf(data.getMalId()));
+        }
+        profile.addTag("source:jikan");
+        profile.addTag("provider:" + MediaMetadataProfile.detectProviderSlugFromUrl(canonicalUrl));
+        return profile;
+    }
+
+    private MediaMetadataProfile buildOpenLibraryMetadataProfile(OpenLibraryResponse.Doc doc, String canonicalUrl, String author) {
+        if (doc == null) return null;
+        MediaMetadataProfile profile = MediaMetadataProfile.create()
+                .withCanonicalTitle(doc.getTitle())
+                .withNormalizedTitle(MediaMetadataProfile.normalizeTitle(doc.getTitle()))
+                .withProviderId("openlibrary")
+                .withProviderSlug("openlibrary")
+                .withCanonicalUrl(canonicalUrl)
+                .withMetadataSource("openlibrary")
+                .withMediaType("Book")
+                .withReleaseYear(MediaMetadataProfile.safeYear(doc.getFirstPublishYear() != null ? doc.getFirstPublishYear() : 0))
+                .withUnit("Pages")
+                .withMetadataConfidence(0.72f)
+                .withMetadataPriority(70)
+                .stampNow();
+        if (!TextUtils.isEmpty(author)) {
+            profile.addTag(author);
+        }
+        if (doc.getSubject() != null) {
+            profile.addGenres(doc.getSubject());
+        }
+        if (!TextUtils.isEmpty(doc.getKey())) {
+            profile.addExternalId("openlibraryKey", doc.getKey());
+        }
+        profile.addTag("source:openlibrary");
+        profile.addTag("provider:" + MediaMetadataProfile.detectProviderSlugFromUrl(canonicalUrl));
+        return profile;
+    }
+
+    private MediaMetadataProfile buildJikanMetadataProfile(JikanResponse.MediaData data, String type, String canonicalUrl) {
+        if (data == null) return null;
+        MediaMetadataProfile profile = MediaMetadataProfile.create()
+                .withCanonicalTitle(data.getTitle())
+                .withNormalizedTitle(MediaMetadataProfile.normalizeTitle(data.getTitle()))
+                .addAltTitle(data.getTitleEnglish())
+                .addAltTitle(data.getTitleJapanese())
+                .withProviderId("jikan")
+                .withProviderSlug("jikan")
+                .withCanonicalUrl(canonicalUrl)
+                .withMetadataSource("jikan")
+                .withMediaType(type)
+                .withStatus(data.getStatus())
+                .withReleaseYear(data.getYear())
+                .withTotalCount("Anime".equalsIgnoreCase(type) ? data.getEpisodes() : data.getChapters())
+                .withUnit("Anime".equalsIgnoreCase(type) ? "Episodes" : "Chapters")
+                .withProviderFeaturesJson("Anime".equalsIgnoreCase(type)
+                        ? "{\"subDubAvailability\":\"unknown\",\"episodeListAvailable\":true}"
+                        : "{\"scanlatorGroup\":\"unknown\",\"chapterListAvailable\":true}")
+                .addGenres(MediaMetadataProfile.splitCsv(data.getDisplayGenres()))
+                .withRating(data.getScore())
+                .withPopularity(data.getPopularity() == null ? null : data.getPopularity().floatValue())
+                .withMetadataConfidence(0.82f)
+                .withMetadataPriority(80)
+                .stampNow();
+        if (data.getMalId() != null) {
+            profile.addExternalId("malId", String.valueOf(data.getMalId()));
+        }
+        profile.addTag("source:jikan");
+        profile.addTag("provider:" + MediaMetadataProfile.detectProviderSlugFromUrl(canonicalUrl));
+        return profile;
+    }
+
+    private MediaMetadataProfile buildGoogleBooksMetadataProfile(GoogleBooksResponse.VolumeInfo info, String canonicalUrl) {
+        if (info == null) return null;
+        MediaMetadataProfile profile = MediaMetadataProfile.create()
+                .withCanonicalTitle(info.getTitle())
+                .withNormalizedTitle(MediaMetadataProfile.normalizeTitle(info.getTitle()))
+                .withProviderId("google-books")
+                .withProviderSlug("google-books")
+                .withCanonicalUrl(canonicalUrl)
+                .withMetadataSource("google_books")
+                .withMediaType("Book")
+                .withLanguage(info.getLanguage())
+                .withReleaseYear(MediaMetadataProfile.safeYear(parseReleaseYear(info.getPublishedDate())))
+                .withTotalCount(info.getPageCount())
+                .withUnit("Pages")
+                .withProviderFeaturesJson("{\"translationStatus\":\"unknown\",\"updateFrequency\":\"unknown\"}")
+                .addGenres(info.getCategories())
+                .withMetadataConfidence(0.9f)
+                .withMetadataPriority(90)
+                .stampNow();
+        if (info.getAuthors() != null) {
+            profile.addTags(info.getAuthors());
+        }
+        if (info.getIndustryIdentifiers() != null) {
+            for (GoogleBooksResponse.IndustryIdentifier identifier : info.getIndustryIdentifiers()) {
+                if (identifier != null && identifier.getType() != null && identifier.getIdentifier() != null) {
+                    profile.addExternalId(identifier.getType(), identifier.getIdentifier());
+                }
+            }
+        }
+        if (info.getCanonicalVolumeLink() != null) {
+            profile.withCanonicalUrl(info.getCanonicalVolumeLink());
+        } else if (info.getInfoLink() != null) {
+            profile.withCanonicalUrl(info.getInfoLink());
+        }
+        profile.addTag("provider:" + MediaMetadataProfile.detectProviderSlugFromUrl(canonicalUrl));
+        return profile;
+    }
+
+    private MediaMetadataProfile buildTmdbMetadataProfile(
+            TmdbResponse.TmdbItem item,
+            String type,
+            String genres,
+            Integer totalCount,
+            String unit,
+            String canonicalUrl,
+            String tmdbId,
+            int releaseYear
+    ) {
+        if (item == null) return null;
+        MediaMetadataProfile profile = MediaMetadataProfile.create()
+                .withCanonicalTitle(item.getTitle())
+                .withNormalizedTitle(MediaMetadataProfile.normalizeTitle(item.getTitle()))
+                .withProviderId("tmdb")
+                .withProviderSlug("tmdb")
+                .withCanonicalUrl(canonicalUrl)
+                .withMetadataSource("tmdb")
+                .withMediaType(type.equals("Movie") ? "Movie" : "Series")
+                .withLanguage(item.getOriginalLanguage())
+                .withReleaseYear(MediaMetadataProfile.safeYear(releaseYear))
+                .withTotalCount(totalCount)
+                .withUnit(unit)
+                .withProviderFeaturesJson(type.equals("Movie")
+                        ? "{\"runtime\":\"unknown\",\"contentRating\":\"unknown\"}"
+                        : "{\"seasonStructure\":\"s1e1_default\",\"contentRating\":\"unknown\"}")
+                .addGenres(MediaMetadataProfile.splitCsv(genres))
+                .withRating(item.getVoteAverage())
+                .withPopularity(item.getPopularity())
+                .withMetadataConfidence(0.95f)
+                .withMetadataPriority(100)
+                .stampNow();
+        if (tmdbId != null && !tmdbId.trim().isEmpty()) {
+            profile.addExternalId("tmdbId", tmdbId);
+        }
+        profile.addTag("provider:" + MediaMetadataProfile.detectProviderSlugFromUrl(canonicalUrl));
+        return profile;
+    }
+
+    private MediaMetadataProfile buildManualMetadataProfile(
+            String title,
+            String type,
+            String genre,
+            String creator,
+            int totalCount,
+            String unit,
+            String sourceUrl,
+            String tmdbId,
+            int releaseYear,
+            String metadataSource
+    ) {
+        MediaMetadataProfile profile = MediaMetadataProfile.create()
+                .withCanonicalTitle(title)
+                .withNormalizedTitle(MediaMetadataProfile.normalizeTitle(title))
+                .withProviderSlug(MediaMetadataProfile.detectProviderSlugFromUrl(sourceUrl))
+                .withCanonicalUrl(sourceUrl)
+                .withMetadataSource(metadataSource)
+                .withMediaType(type)
+                .withReleaseYear(MediaMetadataProfile.safeYear(releaseYear))
+                .withTotalCount(totalCount > 0 ? totalCount : null)
+                .withUnit(unit)
+                .addGenres(MediaMetadataProfile.splitCsv(genre))
+                .addTag(creator)
+                .withMetadataConfidence(0.6f)
+                .withMetadataPriority(40)
+                .stampNow();
+        if (tmdbId != null && !tmdbId.trim().isEmpty()) {
+            profile.addExternalId("tmdbId", tmdbId);
+        }
+        if (sourceUrl != null) {
+            profile.addTag("provider:" + MediaMetadataProfile.detectProviderSlugFromUrl(sourceUrl));
+        }
+        return profile;
+    }
+
+    private int parseReleaseYear(String releaseDate) {
+        if (releaseDate == null || releaseDate.length() < 4) {
+            return 0;
+        }
+        try {
+            return Integer.parseInt(releaseDate.substring(0, 4));
+        } catch (NumberFormatException ignored) {
+            return 0;
+        }
+    }
+
+    private String buildFallbackSourceUrl(String title, String type, String tmdbId, int year) {
+        String safeTitle = Uri.encode(title == null ? "" : title.trim());
+        if ("Movie".equalsIgnoreCase(type)) {
+            if (tmdbId != null && !tmdbId.trim().isEmpty()) {
+                return "https://vidsrc.to/embed/movie/" + tmdbId.trim();
+            }
+            return "https://nepu.to/search?q=" + safeTitle + (year > 0 ? "+" + year : "");
+        }
+        if ("Series".equalsIgnoreCase(type) || "TV Show".equalsIgnoreCase(type)) {
+            if (tmdbId != null && !tmdbId.trim().isEmpty()) {
+                return "https://vidsrc.to/embed/tv/" + tmdbId.trim() + "/1/1";
+            }
+            return "https://xprime.su/search?q=" + safeTitle + "+episode+1";
+        }
+        if ("Anime".equalsIgnoreCase(type)) {
+            return "https://animekai.to/search?keyword=" + safeTitle;
+        }
+        if ("Manga".equalsIgnoreCase(type)) {
+            return "https://comix.to/filter?keyword=" + safeTitle;
+        }
+        if ("Book".equalsIgnoreCase(type)) {
+            return buildBookSourceUrl(title);
+        }
+        return "https://www.google.com/search?q=" + safeTitle;
+    }
+
+    private String buildBookSourceUrl(String title) {
+        String normalized = title == null ? "" : title.trim();
+        String safeTitle = Uri.encode(normalized);
+        int sourceIndex = (normalized.hashCode() & Integer.MAX_VALUE) % 3;
+        if (sourceIndex == 0) {
+            return "https://openchapter.io/?s=" + safeTitle;
+        }
+        if (sourceIndex == 1) {
+            return "https://novelfire.net/search?keyword=" + safeTitle;
+        }
+        return "https://wtr-lab.com/en?search=" + safeTitle;
     }
 
     @Override

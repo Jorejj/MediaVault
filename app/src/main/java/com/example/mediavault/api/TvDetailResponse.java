@@ -5,14 +5,23 @@ import java.util.List;
 
 public class TvDetailResponse {
 
+    @SerializedName("overview")
+    private String overview;
+
     @SerializedName("created_by")
     private List<Creator> createdBy;
 
     @SerializedName("number_of_episodes")
     private Integer numberOfEpisodes;
 
+    @SerializedName("number_of_seasons")
+    private Integer numberOfSeasons;
+
     @SerializedName("genres")
     private List<Genre> genres;
+
+    @SerializedName("status")
+    private String status;
 
     public List<Creator> getCreatedBy() {
         return createdBy;
@@ -22,8 +31,20 @@ public class TvDetailResponse {
         return numberOfEpisodes;
     }
 
+    public Integer getNumberOfSeasons() {
+        return numberOfSeasons;
+    }
+
+    public String getOverview() {
+        return overview;
+    }
+
     public List<Genre> getGenres() {
         return genres;
+    }
+
+    public String getStatus() {
+        return status;
     }
 
     public static class Creator {
@@ -61,5 +82,23 @@ public class TvDetailResponse {
             }
         }
         return sb.toString();
+    }
+
+    public String getGenresAsString() {
+        if (genres == null || genres.isEmpty()) {
+            return "Unknown Genre";
+        }
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < genres.size(); i++) {
+            sb.append(genres.get(i).getName());
+            if (i < genres.size() - 1) {
+                sb.append(", ");
+            }
+        }
+        return sb.toString();
+    }
+
+    public String getCreator() {
+        return getDisplayCreators();
     }
 }

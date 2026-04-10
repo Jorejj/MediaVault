@@ -1,58 +1,72 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
-    android:padding="24dp">
+    android:padding="24dp"
+    android:background="@drawable/card_cyber_bg"
+    android:fitsSystemWindows="true">
 
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Set your daily consumption targets. Leave empty or 0 to disable a goal."
+        android:text="@string/auto_set_your_daily_consumption_targets_leave_empty_o"
         android:textSize="14sp"
-        android:textColor="?android:attr/textColorSecondary"
-        android:layout_marginBottom="16dp"/>
+        android:textColor="?attr/colorTextSecondary"
+        android:layout_marginBottom="16dp"
+        android:fontFamily="@font/sf_pro_regular" />
 
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Pages per day"
+        android:hint="@string/auto_pages_per_day"
         android:layout_marginBottom="12dp"
+        app:hintTextColor="?attr/colorTextSecondary"
+        app:placeholderTextColor="?attr/colorTextSecondary"
         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/et_goal_pages"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="number" />
+            android:inputType="number"
+            android:textColor="?attr/colorTextPrimary"
+            android:fontFamily="@font/sf_pro_medium" />
     </com.google.android.material.textfield.TextInputLayout>
 
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Episodes per day"
+        android:hint="@string/auto_episodes_per_day"
         android:layout_marginBottom="12dp"
+        app:hintTextColor="?attr/colorTextSecondary"
         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/et_goal_episodes"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="number" />
+            android:inputType="number"
+            android:textColor="?attr/colorTextPrimary"
+            android:fontFamily="@font/sf_pro_medium" />
     </com.google.android.material.textfield.TextInputLayout>
 
     <com.google.android.material.textfield.TextInputLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:hint="Minutes per day"
+        android:hint="@string/auto_minutes_per_day"
         android:layout_marginBottom="16dp"
+        app:hintTextColor="?attr/colorTextSecondary"
         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/et_goal_minutes"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="number" />
+            android:inputType="number"
+            android:textColor="?attr/colorTextPrimary"
+            android:fontFamily="@font/sf_pro_medium" />
     </com.google.android.material.textfield.TextInputLayout>
 
     <LinearLayout
@@ -65,36 +79,48 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Daily Reminder"
-            android:textStyle="bold"
-            android:textColor="?android:attr/textColorPrimary"
-            android:layout_marginBottom="12dp"/>
+            android:text="@string/auto_daily_reminder"
+            android:textColor="?attr/colorTextPrimary"
+            android:layout_marginBottom="12dp"
+            android:fontFamily="@font/sf_pro_bold" />
 
         <com.google.android.material.switchmaterial.SwitchMaterial
             android:id="@+id/switch_reminder"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Enable Notification"
+            android:text="@string/auto_enable_notification"
+            android:textColor="?attr/colorTextPrimary"
             android:layout_marginBottom="12dp"
-            android:minHeight="48dp"/>
+            android:minHeight="48dp"
+            android:fontFamily="@font/sf_pro_medium" />
             
         <TextView
             android:id="@+id/tv_reminder_time"
             android:layout_width="match_parent"
             android:layout_height="56dp"
-            android:text="8:00 PM"
+            android:text="@string/auto_s_8_00_pm"
             android:paddingStart="16dp"
             android:paddingEnd="16dp"
             android:gravity="center_vertical"
             android:background="@drawable/glass_input_bg"
             android:drawableEnd="@drawable/ic_clock"
             android:drawablePadding="8dp"
-            android:drawableTint="?android:attr/textColorSecondary"
-            android:textColor="?android:attr/textColorPrimary"
+            android:textColor="?attr/colorTextPrimary"
             android:textSize="16sp"
             android:clickable="true"
-            android:focusable="true"/>
-            
+            android:focusable="true"
+            android:fontFamily="@font/sf_pro_bold" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_test_reminder_now"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/auto_test_reminder_now"
+            android:textAllCaps="false"
+            android:textColor="@color/accent_blue" />
+             
     </LinearLayout>
 
 </LinearLayout>

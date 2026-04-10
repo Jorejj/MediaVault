@@ -39,7 +39,7 @@
             android:layout_toStartOf="@+id/tv_timestamp"
             android:ellipsize="end"
             android:maxLines="1"
-            android:text="Title of the Movie . Anime"
+            android:text="@string/recent_title_sample"
             android:textColor="?attr/colorTextPrimary"
             android:textStyle="bold"
             android:textSize="14sp" />
@@ -53,7 +53,7 @@
             android:layout_toStartOf="@+id/tv_timestamp"
             android:ellipsize="end"
             android:maxLines="1"
-            android:text="Anime - Episode 12 / 25"
+            android:text="@string/recent_subtitle_sample"
             android:textColor="@color/netflix_red"
             android:textSize="12sp" />
 
@@ -63,7 +63,7 @@
             android:layout_height="wrap_content"
             android:layout_alignParentEnd="true"
             android:layout_alignTop="@id/tv_title"
-            android:text="2h ago"
+            android:text="@string/time_ago_sample"
             android:textColor="@color/grey_600"
             android:textSize="11sp" />
 
@@ -91,7 +91,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
                 android:gravity="end"
-                android:text="48%"
+                android:text="@string/progress_percent_sample"
                 android:textColor="@color/grey_600"
                 android:textSize="11sp" />
         </LinearLayout>
@@ -106,7 +106,7 @@
             android:background="@drawable/rating_pill_bg"
             android:paddingHorizontal="8dp"
             android:paddingVertical="2dp"
-            android:text="Ongoing"
+            android:text="@string/auto_ongoing"
             android:textSize="10sp"
             android:textColor="@color/netflix_red"
             android:visibility="gone"/>

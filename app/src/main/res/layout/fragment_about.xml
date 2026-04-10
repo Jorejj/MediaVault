@@ -30,14 +30,14 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 style="@style/TextScreenTitle"
-                android:text="MediaVault"
+                android:text="@string/app_name"
                 android:textSize="24sp" />
 
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 style="@style/TextBody"
-                android:text="About"
+                android:text="@string/auto_about"
                 android:textSize="14sp" />
         </LinearLayout>
     </LinearLayout>
@@ -60,7 +60,7 @@
             android:textSize="16sp"
             android:lineSpacingExtra="6dp"
             android:textColor="@color/text_secondary"
-            android:text="MediaVault is your ultimate companion for tracking and managing your media consumption across books, movies, anime, and manga.\n\nBuilt with a focus on modern aesthetics and user productivity, MediaVault allows you to effortlessly search for new titles using integrated APIs or manually record your collection. Our mission is to help users organize their entertainment journey with precision and style.\n\nKey Features:\n\n- Cross-Platform Media Tracking: Manage everything from high-octane anime to classic literature in one unified vault.\n\n- Real-time Analytics: Visualize your progress with detailed metrics, including total watch time, pages read, and genre distribution.\n\n- Intelligent API Integration: Quickly add items using Jikan API for Anime/Manga and Google Books API for literature.\n\n- Adaptive Design: Enjoy a seamless experience on any device with layouts optimized for various screen sizes and orientations.\n\n- Local Data Control: All your data stays on your device using encrypted SQLite storage for maximum privacy and performance.\n\nDeveloped as part of the Android Development Mastery course, MediaVault demonstrates advanced UI techniques, broadcast receivers for system-level synchronization, and efficient data handling patterns.\n\nThank you for choosing MediaVault to store your digital memories!" />
+            android:text="@string/auto_mediavault_is_your_ultimate_companion_for_tracki" />
     </ScrollView>
 
     <Button
@@ -69,6 +69,6 @@
         android:layout_width="match_parent"
         android:layout_height="56dp"
         android:layout_marginTop="16dp"
-        android:text="Back to Settings" />
+        android:text="@string/auto_back_to_settings" />
 
 </LinearLayout>

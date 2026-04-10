@@ -65,13 +65,11 @@
             android:orientation="vertical"
             android:padding="@dimen/screen_padding_horizontal">
 
-            <com.google.android.material.card.MaterialCardView
+            <FrameLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="@drawable/glass_card_bg"
-                app:cardBackgroundColor="@android:color/transparent"
-                app:cardCornerRadius="24dp"
-                app:cardElevation="0dp">
+                android:padding="1dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -82,7 +80,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Basic Information"
+                        android:text="@string/auto_basic_information"
                         android:textSize="16sp"
                         android:textStyle="bold"
                         android:textColor="?attr/colorTextPrimary"
@@ -92,7 +90,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="16dp"
-                        android:hint="Title"
+                        android:hint="@string/title"
                         app:boxBackgroundMode="none">
 
                         <com.google.android.material.textfield.TextInputEditText
@@ -102,6 +100,40 @@
                             android:background="@drawable/glass_input_bg"
                             android:padding="12dp"
                             android:inputType="textCapWords" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:hint="@string/auto_creator_author"
+                        app:boxBackgroundMode="none">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_edit_creator"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/glass_input_bg"
+                            android:padding="12dp"
+                            android:inputType="textPersonName" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:hint="@string/auto_description_synopsis"
+                        app:boxBackgroundMode="none">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/et_edit_description"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:background="@drawable/glass_input_bg"
+                            android:padding="12dp"
+                            android:gravity="top"
+                            android:minLines="3"
+                            android:inputType="textMultiLine" />
                     </com.google.android.material.textfield.TextInputLayout>
 
                     <LinearLayout
@@ -116,7 +148,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:layout_marginEnd="8dp"
-                            android:hint="Type"
+                            android:hint="@string/auto_type"
                             app:boxCornerRadiusBottomEnd="12dp"
                             app:boxCornerRadiusBottomStart="12dp"
                             app:boxCornerRadiusTopEnd="12dp"
@@ -136,7 +168,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:layout_marginStart="8dp"
-                            android:hint="Status"
+                            android:hint="@string/status"
                             app:boxCornerRadiusBottomEnd="12dp"
                             app:boxCornerRadiusBottomStart="12dp"
                             app:boxCornerRadiusTopEnd="12dp"
@@ -154,7 +186,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Progress"
+                        android:text="@string/progress"
                         android:textSize="14sp"
                         android:textStyle="bold"
                         android:textColor="?attr/colorTextPrimary"
@@ -172,7 +204,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:hint="Current"
+                            android:hint="@string/auto_current"
                             app:boxCornerRadiusBottomEnd="12dp"
                             app:boxCornerRadiusBottomStart="12dp"
                             app:boxCornerRadiusTopEnd="12dp"
@@ -188,7 +220,7 @@
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="/"
+                            android:text="@string/auto_text"
                             android:layout_marginHorizontal="12dp"
                             android:textSize="18sp"
                             android:textColor="@color/grey_600"/>
@@ -198,7 +230,7 @@
                             android:layout_width="0dp"
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:hint="Total"
+                            android:hint="@string/total"
                             app:boxCornerRadiusBottomEnd="12dp"
                             app:boxCornerRadiusBottomStart="12dp"
                             app:boxCornerRadiusTopEnd="12dp"
@@ -217,7 +249,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:hint="Unit"
+                        android:hint="@string/auto_unit"
                         app:boxCornerRadiusBottomEnd="12dp"
                         app:boxCornerRadiusBottomStart="12dp"
                         app:boxCornerRadiusTopEnd="12dp"
@@ -234,7 +266,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Personal Review"
+                        android:text="@string/auto_personal_review"
                         android:textSize="14sp"
                         android:textStyle="bold"
                         android:textColor="?attr/colorTextPrimary"
@@ -262,7 +294,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:hint="Comment"
+                        android:hint="@string/auto_comment"
                         app:boxCornerRadiusBottomEnd="12dp"
                         app:boxCornerRadiusBottomStart="12dp"
                         app:boxCornerRadiusTopEnd="12dp"
@@ -280,7 +312,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Memory Journal"
+                        android:text="@string/auto_memory_journal"
                         android:textSize="14sp"
                         android:textStyle="bold"
                         android:textColor="?attr/colorTextPrimary"
@@ -291,7 +323,7 @@
                         style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="What did this title mean to you?"
+                        android:hint="@string/auto_what_did_this_title_mean_to_you"
                         app:boxCornerRadiusBottomEnd="12dp"
                         app:boxCornerRadiusBottomStart="12dp"
                         app:boxCornerRadiusTopEnd="12dp"
@@ -309,7 +341,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Finish Mood"
+                        android:text="@string/auto_finish_mood"
                         android:textSize="14sp"
                         android:textStyle="bold"
                         android:textColor="?attr/colorTextPrimary"
@@ -329,35 +361,35 @@
                             style="@style/Widget.MaterialComponents.Chip.Choice"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="\uD83D\uDE0D Excited" />
+                            android:text="@string/auto_ud83d_ude0d_excited" />
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_mood_happy"
                             style="@style/Widget.MaterialComponents.Chip.Choice"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="\uD83D\uDE0A Happy" />
+                            android:text="@string/auto_ud83d_ude0a_happy" />
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_mood_neutral"
                             style="@style/Widget.MaterialComponents.Chip.Choice"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="\uD83D\uDE10 Neutral" />
+                            android:text="@string/auto_ud83d_ude10_neutral" />
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_mood_sad"
                             style="@style/Widget.MaterialComponents.Chip.Choice"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="\uD83D\uDE22 Sad" />
+                            android:text="@string/auto_ud83d_ude22_sad" />
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_mood_mindblown"
                             style="@style/Widget.MaterialComponents.Chip.Choice"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="\uD83E\uDD2F Mind-blown" />
+                            android:text="@string/auto_ud83e_udd2f_mind_blown" />
                     </com.google.android.material.chip.ChipGroup>
 
                     <com.google.android.material.textfield.TextInputLayout
@@ -365,7 +397,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:hint="Priority Level"
+                        android:hint="@string/auto_priority_level"
                         app:boxCornerRadiusBottomEnd="12dp"
                         app:boxCornerRadiusBottomStart="12dp"
                         app:boxCornerRadiusTopEnd="12dp"
@@ -384,7 +416,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:text="Mark as Favorite"
+                        android:text="@string/auto_mark_as_favorite"
                         android:textColor="?attr/colorTextPrimary" />
 
                     <com.google.android.material.textfield.TextInputLayout
@@ -392,7 +424,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:hint="Genre"
+                        android:hint="@string/auto_genre"
                         app:boxCornerRadiusBottomEnd="12dp"
                         app:boxCornerRadiusBottomStart="12dp"
                         app:boxCornerRadiusTopEnd="12dp"
@@ -412,7 +444,7 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:hint="Cover Image URL / Path"
+                        android:hint="@string/auto_cover_image_url_path"
                         app:endIconMode="custom"
                         app:endIconDrawable="@android:drawable/ic_menu_gallery"
                         app:boxCornerRadiusBottomEnd="12dp"
@@ -431,13 +463,13 @@
                         android:layout_width="match_parent"
                         android:layout_height="56dp"
                         android:layout_marginTop="24dp"
-                        android:text="Save Changes"
+                        android:text="@string/auto_save_changes"
                         android:textAllCaps="false"
                         android:textSize="16sp"
                         app:cornerRadius="16dp" />
 
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+            </FrameLayout>
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 

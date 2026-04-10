@@ -25,6 +25,7 @@
         <item name="colorTextPrimary">@color/text_primary</item>
         <item name="colorTextSecondary">@color/text_secondary</item>
         <item name="colorIconTint">@color/text_primary</item>
+        <item name="colorOnSurfaceVariant">@color/text_secondary</item>
         
         <!-- Typography Defaults -->
         <item name="android:textColorPrimary">@color/text_primary</item>

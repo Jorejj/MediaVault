@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/notification_pill"
+    android:layout_width="320dp"
+    android:layout_height="wrap_content"
+    android:minHeight="52dp"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingStart="14dp"
+    android:paddingTop="10dp"
+    android:paddingEnd="10dp"
+    android:paddingBottom="10dp"
+    android:background="@drawable/glass_card_bg"
+    android:alpha="0"
+    android:translationY="-12dp">
+
+    <TextView
+        android:id="@+id/text_notification_content"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:text="@string/auto_updated_one_piece"
+        android:textColor="@color/text_primary"
+        android:textSize="14sp"
+        android:maxLines="2"
+        android:ellipsize="end" />
+
+    <ImageButton
+        android:id="@+id/btn_notification_action"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_marginStart="8dp"
+        android:src="@drawable/ic_delete"
+        android:background="@drawable/glass_pill_bg"
+        app:tint="@color/text_primary"
+        android:contentDescription="@string/auto_delete_notification" />
+
+</LinearLayout>

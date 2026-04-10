@@ -37,7 +37,15 @@
         <action
             android:id="@+id/action_settings_to_about"
             app:destination="@id/aboutFragment" />
+        <action
+            android:id="@+id/action_settings_to_monitored_apps"
+            app:destination="@id/nav_monitored_apps" />
     </fragment>
+    <fragment
+        android:id="@+id/nav_monitored_apps"
+        android:name="com.example.mediavault.ui.settings.MonitoredAppsFragment"
+        android:label="Monitored Apps"
+        tools:layout="@layout/fragment_monitored_apps" />
     <fragment
         android:id="@+id/aboutFragment"
         android:name="com.example.mediavault.AboutFragment"

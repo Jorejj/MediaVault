@@ -5,23 +5,41 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import java.util.Calendar;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
+
+import com.example.mediavault.utils.ProgressValueUtils;
+import com.example.mediavault.api.MediaMetadataProfile;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
 
     // Database Information
     private static final String DATABASE_NAME = "MediaVault.db";
-    private static final int DATABASE_VERSION = 12;
+    private static final int DATABASE_VERSION = 18; // Provider metadata normalization table
     public static final String TABLE_MEDIA = "media_library";
     public static final String TABLE_PROGRESS_LOG = "progress_log";
+    public static final String TABLE_DAILY_METRICS = "daily_metrics";
+    public static final String TABLE_MEDIA_METADATA = "media_metadata";
+
+    // Column Constants for daily_metrics
+    public static final String COL_DAILY_ID = "id";
+    public static final String COL_DAILY_DATE = "date"; // ISO-8601
+    public static final String COL_DAILY_CHAPTERS = "chapters_read";
+    public static final String COL_DAILY_EPISODES = "episodes_watched";
+    public static final String COL_DAILY_MINUTES = "minutes_watched";
+    public static final String COL_DAILY_GOAL_MET = "goal_met";
 
     // Column Constants for media_library
     public static final String COL_ID = "id";
@@ -33,6 +51,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public static final String COL_GENRE = "genre";
     public static final String COL_IMAGE_PATH = "image_path";
     public static final String COL_CURRENT_PROGRESS = "current_progress";
+    public static final String COL_PREVIOUS_PROGRESS = "previous_progress";
     public static final String COL_TOTAL_COUNT = "total_count";
     public static final String COL_UNIT = "capacity_unit";
     public static final String COL_RUNTIME = "runtime";
@@ -45,6 +64,35 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public static final String COL_DATE_ADDED = "date_added";
     public static final String COL_LAST_UPDATED = "last_updated";
     public static final String COL_IS_FAVORITE = "is_favorite";
+    public static final String COL_SOURCE_URL = "source_url";
+    public static final String COL_CONTENT_TYPE = "content_type";
+    public static final String COL_CURRENT_SEASON = "current_season";
+    public static final String COL_CURRENT_EPISODE = "current_episode";
+    public static final String COL_METADATA_MEDIA_ID = "media_id";
+    public static final String COL_METADATA_CANONICAL_TITLE = "canonical_title";
+    public static final String COL_METADATA_NORMALIZED_TITLE = "normalized_title";
+    public static final String COL_METADATA_ALT_TITLES_JSON = "alt_titles_json";
+    public static final String COL_METADATA_PROVIDER_ID = "provider_id";
+    public static final String COL_METADATA_PROVIDER_SLUG = "provider_slug";
+    public static final String COL_METADATA_CANONICAL_URL = "canonical_url";
+    public static final String COL_METADATA_SOURCE = "metadata_source";
+    public static final String COL_METADATA_MEDIA_TYPE = "metadata_media_type";
+    public static final String COL_METADATA_SUB_TYPE = "metadata_sub_type";
+    public static final String COL_METADATA_LANGUAGE = "metadata_language";
+    public static final String COL_METADATA_REGION = "metadata_region";
+    public static final String COL_METADATA_STATUS = "metadata_status";
+    public static final String COL_METADATA_RELEASE_YEAR = "metadata_release_year";
+    public static final String COL_METADATA_TOTAL_COUNT = "metadata_total_count";
+    public static final String COL_METADATA_UNIT = "metadata_unit";
+    public static final String COL_METADATA_GENRES_JSON = "genres_json";
+    public static final String COL_METADATA_TAGS_JSON = "tags_json";
+    public static final String COL_METADATA_EXTERNAL_IDS_JSON = "external_ids_json";
+    public static final String COL_METADATA_RATING = "metadata_rating";
+    public static final String COL_METADATA_POPULARITY = "metadata_popularity";
+    public static final String COL_METADATA_PROVIDER_FEATURES_JSON = "provider_features_json";
+    public static final String COL_METADATA_CONFIDENCE = "metadata_confidence";
+    public static final String COL_METADATA_PRIORITY = "metadata_priority";
+    public static final String COL_METADATA_UPDATED_AT = "metadata_updated_at";
 
     // Column Constants for progress_log
     public static final String COL_LOG_ID = "log_id";
@@ -52,8 +100,23 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public static final String COL_PROGRESS_ADDED = "progress_added";
     public static final String COL_LOG_DATE = "log_date";
 
-    public DatabaseHelper(Context context) {
+    private static DatabaseHelper instance;
+    private final Context context;
+
+    public static synchronized DatabaseHelper getInstance(Context context) {
+        if (instance == null) {
+            instance = new DatabaseHelper(context.getApplicationContext());
+        }
+        return instance;
+    }
+
+    private DatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
+        this.context = context;
+    }
+
+    public Context getContext() {
+        return context;
     }
 
     @Override
@@ -74,7 +137,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 COL_MEDIA_TYPE + " TEXT NOT NULL, " +
                 COL_GENRE + " TEXT, " +
                 COL_IMAGE_PATH + " TEXT, " +
-                COL_CURRENT_PROGRESS + " INTEGER DEFAULT 0, " +
+                COL_CURRENT_PROGRESS + " REAL DEFAULT 0.0, " +
+                COL_PREVIOUS_PROGRESS + " REAL DEFAULT 0.0, " +
                 COL_TOTAL_COUNT + " INTEGER NOT NULL, " +
                 COL_UNIT + " TEXT NOT NULL, " +
                 COL_RUNTIME + " TEXT, " +
@@ -87,13 +151,19 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 COL_DATE_ADDED + " DATETIME DEFAULT CURRENT_TIMESTAMP, " +
                 COL_LAST_UPDATED + " DATETIME DEFAULT CURRENT_TIMESTAMP, " +
                 COL_IS_FAVORITE + " INTEGER DEFAULT 0, " +
-                "CONSTRAINT unique_title UNIQUE (" + COL_TITLE + " COLLATE NOCASE), " +
+                COL_SOURCE_URL + " TEXT, " +
+                COL_CONTENT_TYPE + " TEXT, " +
+                COL_CURRENT_SEASON + " INTEGER DEFAULT 1, " +
+                COL_CURRENT_EPISODE + " INTEGER DEFAULT 1, " +
+                "CONSTRAINT unique_title_type UNIQUE (" + COL_TITLE + " COLLATE NOCASE, " + COL_MEDIA_TYPE + "), " +
                 "CONSTRAINT check_status CHECK (" + COL_STATUS + " IN ('Ongoing', 'Completed', 'Planning', 'Dropped', 'Recently Deleted')), " +
                 "CONSTRAINT check_capacity_unit CHECK (" + COL_UNIT + " IN ('Pages', 'Episodes', 'Minutes', 'Chapters')), " +
                 "CONSTRAINT check_user_rating CHECK (" + COL_RATING + " >= 0.0 AND " + COL_RATING + " <= 5.0), " +
                 "CONSTRAINT check_priority_level CHECK (" + COL_PRIORITY + " IN ('High', 'Medium', 'Low')), " +
                 "CONSTRAINT check_total_capacity CHECK (" + COL_TOTAL_COUNT + " > 0), " +
-                "CONSTRAINT check_current_progress CHECK (" + COL_CURRENT_PROGRESS + " >= 0 AND " + COL_CURRENT_PROGRESS + " <= " + COL_TOTAL_COUNT + "), " +
+                "CONSTRAINT check_current_progress CHECK ((" + COL_MEDIA_TYPE + " = 'Series' AND " + COL_CURRENT_PROGRESS + " >= 0) OR (" + COL_MEDIA_TYPE + " != 'Series' AND " + COL_CURRENT_PROGRESS + " >= 0 AND " + COL_CURRENT_PROGRESS + " <= " + COL_TOTAL_COUNT + ")), " +
+                "CONSTRAINT check_series_season CHECK (" + COL_CURRENT_SEASON + " >= 1), " +
+                "CONSTRAINT check_series_episode CHECK (" + COL_CURRENT_EPISODE + " >= 1), " +
                 "CONSTRAINT check_image_path CHECK (" + COL_IMAGE_PATH + " IS NULL OR " + COL_IMAGE_PATH + " != ''))";
         
         db.execSQL(createMediaTable);
@@ -102,11 +172,49 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         String createLogTable = "CREATE TABLE " + TABLE_PROGRESS_LOG + " (" +
                 COL_LOG_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 COL_LOG_MEDIA_ID + " INTEGER NOT NULL, " +
-                COL_PROGRESS_ADDED + " INTEGER NOT NULL, " +
+                COL_PROGRESS_ADDED + " REAL NOT NULL, " +
                 COL_LOG_DATE + " DATE DEFAULT (date('now', 'localtime')), " +
                 "FOREIGN KEY (" + COL_LOG_MEDIA_ID + ") REFERENCES " + TABLE_MEDIA + "(" + COL_ID + ") ON DELETE CASCADE)";
         
         db.execSQL(createLogTable);
+
+        // Create daily_metrics table for streaks
+        String createDailyTable = "CREATE TABLE " + TABLE_DAILY_METRICS + " (" +
+                COL_DAILY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                COL_DAILY_DATE + " TEXT NOT NULL UNIQUE, " +
+                COL_DAILY_CHAPTERS + " INTEGER DEFAULT 0, " +
+                COL_DAILY_EPISODES + " INTEGER DEFAULT 0, " +
+                COL_DAILY_GOAL_MET + " INTEGER DEFAULT 0)";
+        db.execSQL(createDailyTable);
+
+        String createMediaMetadataTable = "CREATE TABLE " + TABLE_MEDIA_METADATA + " (" +
+                COL_METADATA_MEDIA_ID + " INTEGER PRIMARY KEY, " +
+                COL_METADATA_CANONICAL_TITLE + " TEXT, " +
+                COL_METADATA_NORMALIZED_TITLE + " TEXT, " +
+                COL_METADATA_ALT_TITLES_JSON + " TEXT, " +
+                COL_METADATA_PROVIDER_ID + " TEXT, " +
+                COL_METADATA_PROVIDER_SLUG + " TEXT, " +
+                COL_METADATA_CANONICAL_URL + " TEXT, " +
+                COL_METADATA_SOURCE + " TEXT, " +
+                COL_METADATA_MEDIA_TYPE + " TEXT, " +
+                COL_METADATA_SUB_TYPE + " TEXT, " +
+                COL_METADATA_LANGUAGE + " TEXT, " +
+                COL_METADATA_REGION + " TEXT, " +
+                COL_METADATA_STATUS + " TEXT, " +
+                COL_METADATA_RELEASE_YEAR + " INTEGER, " +
+                COL_METADATA_TOTAL_COUNT + " INTEGER, " +
+                COL_METADATA_UNIT + " TEXT, " +
+                COL_METADATA_GENRES_JSON + " TEXT, " +
+                COL_METADATA_TAGS_JSON + " TEXT, " +
+                COL_METADATA_EXTERNAL_IDS_JSON + " TEXT, " +
+                COL_METADATA_RATING + " REAL, " +
+                COL_METADATA_POPULARITY + " REAL, " +
+                COL_METADATA_PROVIDER_FEATURES_JSON + " TEXT, " +
+                COL_METADATA_CONFIDENCE + " REAL DEFAULT 0.0, " +
+                COL_METADATA_PRIORITY + " INTEGER DEFAULT 0, " +
+                COL_METADATA_UPDATED_AT + " DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+                "FOREIGN KEY (" + COL_METADATA_MEDIA_ID + ") REFERENCES " + TABLE_MEDIA + "(" + COL_ID + ") ON DELETE CASCADE)";
+        db.execSQL(createMediaMetadataTable);
 
         createTrigger(db);
     }
@@ -156,13 +264,11 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             }
         }
         if (oldVersion < 10) {
-            // Fix the progress_log table schema - the DEFAULT date function had incorrect syntax
-            // Recreate the table with the corrected DEFAULT clause
             db.execSQL("DROP TABLE IF EXISTS " + TABLE_PROGRESS_LOG);
             String createLogTable = "CREATE TABLE " + TABLE_PROGRESS_LOG + " (" +
                     COL_LOG_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
                     COL_LOG_MEDIA_ID + " INTEGER NOT NULL, " +
-                    COL_PROGRESS_ADDED + " INTEGER NOT NULL, " +
+                    COL_PROGRESS_ADDED + " REAL NOT NULL, " +
                     COL_LOG_DATE + " DATE DEFAULT (date('now', 'localtime')), " +
                     "FOREIGN KEY (" + COL_LOG_MEDIA_ID + ") REFERENCES " + TABLE_MEDIA + "(" + COL_ID + ") ON DELETE CASCADE)";
             db.execSQL(createLogTable);
@@ -175,6 +281,186 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             if (!columns.contains(COL_DESCRIPTION)) {
                 db.execSQL("ALTER TABLE " + TABLE_MEDIA + " ADD COLUMN " + COL_DESCRIPTION + " TEXT");
             }
+        }
+        if (oldVersion < 13) {
+            db.execSQL("ALTER TABLE " + TABLE_MEDIA + " RENAME TO temp_media");
+            onCreate(db);
+            
+            db.execSQL("INSERT INTO " + TABLE_MEDIA + " (" +
+                    COL_ID + ", " + COL_API_ID + ", " + COL_TITLE + ", " + COL_DESCRIPTION + ", " +
+                    COL_CREATOR + ", " + COL_MEDIA_TYPE + ", " + COL_GENRE + ", " + COL_IMAGE_PATH + ", " +
+                    COL_CURRENT_PROGRESS + ", " + COL_TOTAL_COUNT + ", " + COL_UNIT + ", " + COL_RUNTIME + ", " +
+                    COL_STATUS + ", " + COL_RATING + ", " + COL_REVIEW + ", " + COL_JOURNAL + ", " +
+                    COL_MOOD + ", " + COL_PRIORITY + ", " + COL_DATE_ADDED + ", " + COL_LAST_UPDATED + ", " +
+                    COL_IS_FAVORITE + ") " +
+                    "SELECT " +
+                    COL_ID + ", " + COL_API_ID + ", " + COL_TITLE + ", " + COL_DESCRIPTION + ", " +
+                    COL_CREATOR + ", " + COL_MEDIA_TYPE + ", " + COL_GENRE + ", " + COL_IMAGE_PATH + ", " +
+                    "CAST(" + COL_CURRENT_PROGRESS + " AS REAL), " +
+                    COL_TOTAL_COUNT + ", " + COL_UNIT + ", " + COL_RUNTIME + ", " +
+                    COL_STATUS + ", " + COL_RATING + ", " + COL_REVIEW + ", " + COL_JOURNAL + ", " +
+                    COL_MOOD + ", " + COL_PRIORITY + ", " + COL_DATE_ADDED + ", " + COL_LAST_UPDATED + ", " +
+                    COL_IS_FAVORITE + " FROM temp_media");
+            
+            db.execSQL("DROP TABLE temp_media");
+        }
+        if (oldVersion < 14) {
+            // Safe 4-step migration for Version 14
+            db.execSQL("ALTER TABLE " + TABLE_MEDIA + " RENAME TO temp_media");
+            
+            // Re-create tables as defined in current onCreate with ALL constraints
+            db.execSQL("CREATE TABLE " + TABLE_MEDIA + " (" +
+                    COL_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    COL_API_ID + " TEXT, " +
+                    COL_TITLE + " TEXT NOT NULL COLLATE NOCASE, " +
+                    COL_DESCRIPTION + " TEXT, " +
+                    COL_CREATOR + " TEXT, " +
+                    COL_MEDIA_TYPE + " TEXT NOT NULL, " +
+                    COL_GENRE + " TEXT, " +
+                    COL_IMAGE_PATH + " TEXT, " +
+                    COL_CURRENT_PROGRESS + " REAL DEFAULT 0.0, " +
+                    COL_PREVIOUS_PROGRESS + " REAL DEFAULT 0.0, " +
+                    COL_TOTAL_COUNT + " INTEGER NOT NULL, " +
+                    COL_UNIT + " TEXT NOT NULL, " +
+                    COL_RUNTIME + " TEXT, " +
+                    COL_STATUS + " TEXT DEFAULT 'Planning', " +
+                    COL_RATING + " REAL DEFAULT 0.0, " +
+                    COL_REVIEW + " TEXT, " +
+                    COL_JOURNAL + " TEXT, " +
+                    COL_MOOD + " TEXT, " +
+                    COL_PRIORITY + " TEXT DEFAULT 'Medium', " +
+                    COL_DATE_ADDED + " DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+                    COL_LAST_UPDATED + " DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+                    COL_IS_FAVORITE + " INTEGER DEFAULT 0, " +
+                    COL_SOURCE_URL + " TEXT, " +
+                    COL_CONTENT_TYPE + " TEXT, " +
+                    "CONSTRAINT unique_title UNIQUE (" + COL_TITLE + " COLLATE NOCASE), " +
+                    "CONSTRAINT check_status CHECK (" + COL_STATUS + " IN ('Ongoing', 'Completed', 'Planning', 'Dropped', 'Recently Deleted')), " +
+                    "CONSTRAINT check_capacity_unit CHECK (" + COL_UNIT + " IN ('Pages', 'Episodes', 'Minutes', 'Chapters')), " +
+                    "CONSTRAINT check_user_rating CHECK (" + COL_RATING + " >= 0.0 AND " + COL_RATING + " <= 5.0), " +
+                    "CONSTRAINT check_priority_level CHECK (" + COL_PRIORITY + " IN ('High', 'Medium', 'Low')), " +
+                    "CONSTRAINT check_total_capacity CHECK (" + COL_TOTAL_COUNT + " > 0), " +
+                    "CONSTRAINT check_current_progress CHECK (" + COL_CURRENT_PROGRESS + " >= 0 AND " + COL_CURRENT_PROGRESS + " <= 99999))"); // ISSUE #2 FIX: Allow encoded TV progress (season*1000+episode)
+
+            // Migration logic: v13 does not have source_url or content_type
+            db.execSQL("INSERT INTO " + TABLE_MEDIA + " (" +
+                    COL_ID + ", " + COL_API_ID + ", " + COL_TITLE + ", " + COL_DESCRIPTION + ", " +
+                    COL_CREATOR + ", " + COL_MEDIA_TYPE + ", " + COL_GENRE + ", " + COL_IMAGE_PATH + ", " +
+                    COL_CURRENT_PROGRESS + ", " + COL_PREVIOUS_PROGRESS + ", " + COL_TOTAL_COUNT + ", " + COL_UNIT + ", " +
+                    COL_RUNTIME + ", " + COL_STATUS + ", " + COL_RATING + ", " + COL_REVIEW + ", " +
+                    COL_JOURNAL + ", " + COL_MOOD + ", " + COL_PRIORITY + ", " + COL_DATE_ADDED + ", " +
+                    COL_LAST_UPDATED + ", " + COL_IS_FAVORITE + ", " + COL_SOURCE_URL + ", " + COL_CONTENT_TYPE + ") " +
+                    "SELECT " +
+                    COL_ID + ", " + COL_API_ID + ", " + COL_TITLE + ", " + COL_DESCRIPTION + ", " +
+                    COL_CREATOR + ", " + COL_MEDIA_TYPE + ", " + COL_GENRE + ", " + COL_IMAGE_PATH + ", " +
+                    COL_CURRENT_PROGRESS + ", " + COL_CURRENT_PROGRESS + ", " + COL_TOTAL_COUNT + ", " + COL_UNIT + ", " +
+                    COL_RUNTIME + ", " + COL_STATUS + ", " + COL_RATING + ", " + COL_REVIEW + ", " +
+                    COL_JOURNAL + ", " + COL_MOOD + ", " + COL_PRIORITY + ", " + COL_DATE_ADDED + ", " +
+                    COL_LAST_UPDATED + ", " + COL_IS_FAVORITE + ", NULL, NULL FROM temp_media");
+
+            db.execSQL("DROP TABLE temp_media");
+        }
+        
+        if (oldVersion < 15) {
+            // Explicitly create daily_metrics if it doesn't exist (Safe for all paths)
+            db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_DAILY_METRICS + " (" +
+                    COL_DAILY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    COL_DAILY_DATE + " TEXT NOT NULL UNIQUE, " +
+                    COL_DAILY_CHAPTERS + " INTEGER DEFAULT 0, " +
+                    COL_DAILY_EPISODES + " INTEGER DEFAULT 0, " +
+                    COL_DAILY_GOAL_MET + " INTEGER DEFAULT 0)");
+        }
+        if (oldVersion < 17) {
+            db.execSQL("ALTER TABLE " + TABLE_MEDIA + " RENAME TO temp_media_v17");
+            db.execSQL("CREATE TABLE " + TABLE_MEDIA + " (" +
+                    COL_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                    COL_API_ID + " TEXT, " +
+                    COL_TITLE + " TEXT NOT NULL COLLATE NOCASE, " +
+                    COL_DESCRIPTION + " TEXT, " +
+                    COL_CREATOR + " TEXT, " +
+                    COL_MEDIA_TYPE + " TEXT NOT NULL, " +
+                    COL_GENRE + " TEXT, " +
+                    COL_IMAGE_PATH + " TEXT, " +
+                    COL_CURRENT_PROGRESS + " REAL DEFAULT 0.0, " +
+                    COL_PREVIOUS_PROGRESS + " REAL DEFAULT 0.0, " +
+                    COL_TOTAL_COUNT + " INTEGER NOT NULL, " +
+                    COL_UNIT + " TEXT NOT NULL, " +
+                    COL_RUNTIME + " TEXT, " +
+                    COL_STATUS + " TEXT DEFAULT 'Planning', " +
+                    COL_RATING + " REAL DEFAULT 0.0, " +
+                    COL_REVIEW + " TEXT, " +
+                    COL_JOURNAL + " TEXT, " +
+                    COL_MOOD + " TEXT, " +
+                    COL_PRIORITY + " TEXT DEFAULT 'Medium', " +
+                    COL_DATE_ADDED + " DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+                    COL_LAST_UPDATED + " DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+                    COL_IS_FAVORITE + " INTEGER DEFAULT 0, " +
+                    COL_SOURCE_URL + " TEXT, " +
+                    COL_CONTENT_TYPE + " TEXT, " +
+                    COL_CURRENT_SEASON + " INTEGER DEFAULT 1, " +
+                    COL_CURRENT_EPISODE + " INTEGER DEFAULT 1, " +
+                    "CONSTRAINT unique_title_type UNIQUE (" + COL_TITLE + " COLLATE NOCASE, " + COL_MEDIA_TYPE + "), " +
+                    "CONSTRAINT check_status CHECK (" + COL_STATUS + " IN ('Ongoing', 'Completed', 'Planning', 'Dropped', 'Recently Deleted')), " +
+                    "CONSTRAINT check_capacity_unit CHECK (" + COL_UNIT + " IN ('Pages', 'Episodes', 'Minutes', 'Chapters')), " +
+                    "CONSTRAINT check_user_rating CHECK (" + COL_RATING + " >= 0.0 AND " + COL_RATING + " <= 5.0), " +
+                    "CONSTRAINT check_priority_level CHECK (" + COL_PRIORITY + " IN ('High', 'Medium', 'Low')), " +
+                    "CONSTRAINT check_total_capacity CHECK (" + COL_TOTAL_COUNT + " > 0), " +
+                    "CONSTRAINT check_current_progress CHECK ((" + COL_MEDIA_TYPE + " = 'Series' AND " + COL_CURRENT_PROGRESS + " >= 0) OR (" + COL_MEDIA_TYPE + " != 'Series' AND " + COL_CURRENT_PROGRESS + " >= 0 AND " + COL_CURRENT_PROGRESS + " <= " + COL_TOTAL_COUNT + ")), " +
+                    "CONSTRAINT check_series_season CHECK (" + COL_CURRENT_SEASON + " >= 1), " +
+                    "CONSTRAINT check_series_episode CHECK (" + COL_CURRENT_EPISODE + " >= 1), " +
+                    "CONSTRAINT check_image_path CHECK (" + COL_IMAGE_PATH + " IS NULL OR " + COL_IMAGE_PATH + " != ''))");
+
+            db.execSQL("INSERT INTO " + TABLE_MEDIA + " (" +
+                    COL_ID + ", " + COL_API_ID + ", " + COL_TITLE + ", " + COL_DESCRIPTION + ", " +
+                    COL_CREATOR + ", " + COL_MEDIA_TYPE + ", " + COL_GENRE + ", " + COL_IMAGE_PATH + ", " +
+                    COL_CURRENT_PROGRESS + ", " + COL_PREVIOUS_PROGRESS + ", " + COL_TOTAL_COUNT + ", " + COL_UNIT + ", " +
+                    COL_RUNTIME + ", " + COL_STATUS + ", " + COL_RATING + ", " + COL_REVIEW + ", " +
+                    COL_JOURNAL + ", " + COL_MOOD + ", " + COL_PRIORITY + ", " + COL_DATE_ADDED + ", " +
+                    COL_LAST_UPDATED + ", " + COL_IS_FAVORITE + ", " + COL_SOURCE_URL + ", " + COL_CONTENT_TYPE + ", " +
+                    COL_CURRENT_SEASON + ", " + COL_CURRENT_EPISODE + ") " +
+                    "SELECT " +
+                    COL_ID + ", " + COL_API_ID + ", " + COL_TITLE + ", " + COL_DESCRIPTION + ", " +
+                    COL_CREATOR + ", " + COL_MEDIA_TYPE + ", " + COL_GENRE + ", " + COL_IMAGE_PATH + ", " +
+                    "CASE WHEN " + COL_MEDIA_TYPE + " = 'Series' AND " + COL_CURRENT_PROGRESS + " >= 1000 THEN CAST(CAST(" + COL_CURRENT_PROGRESS + " AS INTEGER) % 1000 AS REAL) ELSE " + COL_CURRENT_PROGRESS + " END, " +
+                    "CASE WHEN " + COL_MEDIA_TYPE + " = 'Series' AND " + COL_PREVIOUS_PROGRESS + " >= 1000 THEN CAST(CAST(" + COL_PREVIOUS_PROGRESS + " AS INTEGER) % 1000 AS REAL) ELSE " + COL_PREVIOUS_PROGRESS + " END, " +
+                    COL_TOTAL_COUNT + ", " + COL_UNIT + ", " +
+                    COL_RUNTIME + ", " + COL_STATUS + ", " + COL_RATING + ", " + COL_REVIEW + ", " +
+                    COL_JOURNAL + ", " + COL_MOOD + ", " + COL_PRIORITY + ", " + COL_DATE_ADDED + ", " +
+                    COL_LAST_UPDATED + ", " + COL_IS_FAVORITE + ", " + COL_SOURCE_URL + ", " + COL_CONTENT_TYPE + ", " +
+                    "CASE WHEN " + COL_MEDIA_TYPE + " = 'Series' AND " + COL_CURRENT_PROGRESS + " >= 1000 THEN CAST(" + COL_CURRENT_PROGRESS + " / 1000 AS INTEGER) WHEN " + COL_MEDIA_TYPE + " = 'Series' THEN 1 ELSE 1 END, " +
+                    "CASE WHEN " + COL_MEDIA_TYPE + " = 'Series' AND " + COL_CURRENT_PROGRESS + " >= 1000 THEN CAST(CAST(" + COL_CURRENT_PROGRESS + " AS INTEGER) % 1000 AS INTEGER) WHEN " + COL_MEDIA_TYPE + " = 'Series' AND " + COL_CURRENT_PROGRESS + " >= 1 THEN CAST(" + COL_CURRENT_PROGRESS + " AS INTEGER) ELSE 1 END " +
+                    "FROM temp_media_v17");
+
+            db.execSQL("DROP TABLE temp_media_v17");
+        }
+        if (oldVersion < 18) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_MEDIA_METADATA + " (" +
+                    COL_METADATA_MEDIA_ID + " INTEGER PRIMARY KEY, " +
+                    COL_METADATA_CANONICAL_TITLE + " TEXT, " +
+                    COL_METADATA_NORMALIZED_TITLE + " TEXT, " +
+                    COL_METADATA_ALT_TITLES_JSON + " TEXT, " +
+                    COL_METADATA_PROVIDER_ID + " TEXT, " +
+                    COL_METADATA_PROVIDER_SLUG + " TEXT, " +
+                    COL_METADATA_CANONICAL_URL + " TEXT, " +
+                    COL_METADATA_SOURCE + " TEXT, " +
+                    COL_METADATA_MEDIA_TYPE + " TEXT, " +
+                    COL_METADATA_SUB_TYPE + " TEXT, " +
+                    COL_METADATA_LANGUAGE + " TEXT, " +
+                    COL_METADATA_REGION + " TEXT, " +
+                    COL_METADATA_STATUS + " TEXT, " +
+                    COL_METADATA_RELEASE_YEAR + " INTEGER, " +
+                    COL_METADATA_TOTAL_COUNT + " INTEGER, " +
+                    COL_METADATA_UNIT + " TEXT, " +
+                    COL_METADATA_GENRES_JSON + " TEXT, " +
+                    COL_METADATA_TAGS_JSON + " TEXT, " +
+                    COL_METADATA_EXTERNAL_IDS_JSON + " TEXT, " +
+                    COL_METADATA_RATING + " REAL, " +
+                    COL_METADATA_POPULARITY + " REAL, " +
+                    COL_METADATA_PROVIDER_FEATURES_JSON + " TEXT, " +
+                    COL_METADATA_CONFIDENCE + " REAL DEFAULT 0.0, " +
+                    COL_METADATA_PRIORITY + " INTEGER DEFAULT 0, " +
+                    COL_METADATA_UPDATED_AT + " DATETIME DEFAULT CURRENT_TIMESTAMP, " +
+                    "FOREIGN KEY (" + COL_METADATA_MEDIA_ID + ") REFERENCES " + TABLE_MEDIA + "(" + COL_ID + ") ON DELETE CASCADE)");
         }
     }
 
@@ -192,6 +478,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     // --- CRUD OPERATIONS ---
     public long addMedia(String title, String type, String genre, String creator, int totalCount, String unit, String runtime, String imagePath, String description) {
+        return addMedia(title, type, genre, creator, totalCount, unit, runtime, imagePath, description, null, null);
+    }
+
+    public long addMedia(String title, String type, String genre, String creator, int totalCount, String unit, String runtime, String imagePath, String description, String sourceUrl, String contentType) {
         if (imagePath != null && imagePath.trim().isEmpty()) {
             imagePath = null;
         }
@@ -206,6 +496,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COL_RUNTIME, runtime);
         values.put(COL_IMAGE_PATH, imagePath);
         values.put(COL_DESCRIPTION, description);
+        values.put(COL_SOURCE_URL, sourceUrl);
+        values.put(COL_CONTENT_TYPE, contentType);
+        values.put(COL_CURRENT_SEASON, 1);
+        values.put(COL_CURRENT_EPISODE, 1);
         long result = db.insertWithOnConflict(TABLE_MEDIA, null, values, SQLiteDatabase.CONFLICT_IGNORE);
         db.close();
         return result;
@@ -214,6 +508,20 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public Cursor getAllMedia() {
         SQLiteDatabase db = this.getReadableDatabase();
         return db.rawQuery("SELECT * FROM " + TABLE_MEDIA + " WHERE " + COL_STATUS + " != 'Recently Deleted' ORDER BY " + COL_LAST_UPDATED + " DESC", null);
+    }
+
+    public Cursor getAllMediaWithMetadata() {
+        SQLiteDatabase db = this.getReadableDatabase();
+        String query = "SELECT m.*, " +
+                "mm." + COL_METADATA_CANONICAL_TITLE + " AS metadata_canonical_title, " +
+                "mm." + COL_METADATA_NORMALIZED_TITLE + " AS metadata_normalized_title, " +
+                "mm." + COL_METADATA_ALT_TITLES_JSON + " AS metadata_alt_titles_json, " +
+                "mm." + COL_METADATA_EXTERNAL_IDS_JSON + " AS metadata_external_ids_json " +
+                "FROM " + TABLE_MEDIA + " m " +
+                "LEFT JOIN " + TABLE_MEDIA_METADATA + " mm ON m." + COL_ID + " = mm." + COL_METADATA_MEDIA_ID + " " +
+                "WHERE m." + COL_STATUS + " != 'Recently Deleted' " +
+                "ORDER BY m." + COL_LAST_UPDATED + " DESC";
+        return db.rawQuery(query, null);
     }
 
     public Cursor getAllMediaIncludingTrash() {
@@ -226,37 +534,85 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return db.rawQuery("SELECT * FROM " + TABLE_MEDIA + " WHERE " + COL_ID + " = ?", new String[]{String.valueOf(id)});
     }
 
-    public boolean updateMedia(int id, String title, String type, String genre, String status, int progress, int total, String unit, String imagePath, float rating, String review) {
+    public Cursor getMediaByTitle(String title) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        return db.rawQuery("SELECT * FROM " + TABLE_MEDIA + " WHERE " + COL_TITLE + " = ? COLLATE NOCASE", new String[]{title});
+    }
+
+    public List<com.example.mediavault.ui.library.MediaItem> getContentForSeries(int seriesId) {
+        List<com.example.mediavault.ui.library.MediaItem> items = new ArrayList<>();
+        try (Cursor cursor = getMediaById(seriesId)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                items.add(new com.example.mediavault.ui.library.MediaItem(
+                    cursor.getInt(cursor.getColumnIndexOrThrow(COL_ID)),
+                    cursor.getString(cursor.getColumnIndexOrThrow(COL_TITLE)),
+                    cursor.getString(cursor.getColumnIndexOrThrow(COL_MEDIA_TYPE)),
+                    cursor.getString(cursor.getColumnIndexOrThrow(COL_GENRE)),
+                    cursor.getString(cursor.getColumnIndexOrThrow(COL_STATUS)),
+                    cursor.getFloat(cursor.getColumnIndexOrThrow(COL_CURRENT_PROGRESS)),
+                    cursor.getInt(cursor.getColumnIndexOrThrow(COL_TOTAL_COUNT)),
+                    cursor.getString(cursor.getColumnIndexOrThrow(COL_UNIT)),
+                    cursor.getString(cursor.getColumnIndexOrThrow(COL_IMAGE_PATH)),
+                    cursor.getFloat(cursor.getColumnIndexOrThrow(COL_RATING))
+                ));
+            }
+        }
+        return items;
+    }
+
+    public float getMediaRating(int id) {
+        float rating = 0f;
+        try (Cursor cursor = getMediaById(id)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                rating = cursor.getFloat(cursor.getColumnIndexOrThrow(COL_RATING));
+            }
+        }
+        return rating;
+    }
+
+    public boolean updateMedia(int id, String title, String type, String genre, String status, float progress, int total, String unit, String imagePath, float rating, String review, String description, String creator) {
         SQLiteDatabase db = this.getWritableDatabase();
-        int oldProgress = getCurrentProgress(db, id);
+        float oldProgress = getCurrentProgress(db, id);
+        float normalizedProgress = ProgressValueUtils.normalizeForUnit(progress, unit);
+        if (total > 0) {
+            normalizedProgress = Math.min(normalizedProgress, total);
+        }
         ContentValues values = new ContentValues();
         values.put(COL_TITLE, title);
         values.put(COL_MEDIA_TYPE, type);
         values.put(COL_GENRE, genre);
         values.put(COL_STATUS, status);
-        values.put(COL_CURRENT_PROGRESS, progress);
+        values.put(COL_PREVIOUS_PROGRESS, oldProgress);
+        values.put(COL_CURRENT_PROGRESS, normalizedProgress);
         values.put(COL_TOTAL_COUNT, total);
         values.put(COL_UNIT, unit);
         values.put(COL_IMAGE_PATH, imagePath);
         values.put(COL_RATING, rating);
         values.put(COL_REVIEW, review);
-        if (progress > oldProgress) {
-            logProgressDelta(db, id, progress - oldProgress);
+        values.put(COL_DESCRIPTION, description);
+        values.put(COL_CREATOR, creator);
+        if (normalizedProgress > oldProgress) {
+            logProgressDelta(db, id, normalizedProgress - oldProgress);
         }
         int result = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(id)});
         db.close();
         return result > 0;
     }
 
-    public boolean updateMedia(int id, String title, String type, String genre, String status, int progress, int total, String unit, String imagePath, float rating, String review, String journal, String mood, String priority, boolean isFavorite) {
+    public boolean updateMedia(int id, String title, String type, String genre, String status, float progress, int total, String unit, String imagePath, float rating, String review, String journal, String mood, String priority, boolean isFavorite, String description, String creator) {
         SQLiteDatabase db = this.getWritableDatabase();
-        int oldProgress = getCurrentProgress(db, id);
+        float oldProgress = getCurrentProgress(db, id);
+        float normalizedProgress = ProgressValueUtils.normalizeForUnit(progress, unit);
+        if (total > 0) {
+            normalizedProgress = Math.min(normalizedProgress, total);
+        }
         ContentValues values = new ContentValues();
         values.put(COL_TITLE, title);
         values.put(COL_MEDIA_TYPE, type);
         values.put(COL_GENRE, genre);
         values.put(COL_STATUS, status);
-        values.put(COL_CURRENT_PROGRESS, progress);
+        values.put(COL_PREVIOUS_PROGRESS, oldProgress);
+        values.put(COL_CURRENT_PROGRESS, normalizedProgress);
         values.put(COL_TOTAL_COUNT, total);
         values.put(COL_UNIT, unit);
         values.put(COL_IMAGE_PATH, imagePath);
@@ -266,40 +622,168 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COL_MOOD, mood);
         values.put(COL_PRIORITY, priority == null || priority.isEmpty() ? "Medium" : priority);
         values.put(COL_IS_FAVORITE, isFavorite ? 1 : 0);
-        if (progress > oldProgress) {
-            logProgressDelta(db, id, progress - oldProgress);
+        values.put(COL_DESCRIPTION, description);
+        values.put(COL_CREATOR, creator);
+        if (normalizedProgress > oldProgress) {
+            logProgressDelta(db, id, normalizedProgress - oldProgress);
         }
         int result = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(id)});
         db.close();
         return result > 0;
     }
 
-    public boolean updateProgress(int id, int newProgress, String newStatus, float newRating) {
+    public boolean updateProgress(int id, float newProgress, String newStatus, float newRating) {
         SQLiteDatabase db = this.getWritableDatabase();
         
-        int oldProgress = 0;
-        Cursor cursor = db.query(TABLE_MEDIA, new String[]{COL_CURRENT_PROGRESS}, 
+        // ISSUE #13 FIX: Preserve existing values when null/0 passed
+        float oldProgress = 0;
+        String currentStatus = null;
+        float currentRating = 0;
+        String currentUnit = null;
+        int totalCount = 0;
+        
+        Cursor cursor = db.query(TABLE_MEDIA, 
+                new String[]{COL_CURRENT_PROGRESS, COL_STATUS, COL_RATING, COL_UNIT, COL_TOTAL_COUNT}, 
                 COL_ID + "=?", new String[]{String.valueOf(id)}, null, null, null);
         if (cursor != null) {
             if (cursor.moveToFirst()) {
-                oldProgress = cursor.getInt(0);
+                oldProgress = cursor.getFloat(0);
+                currentStatus = cursor.getString(1);
+                currentRating = cursor.getFloat(2);
+                currentUnit = cursor.getString(3);
+                totalCount = cursor.getInt(4);
             }
             cursor.close();
         }
 
-        int progressAdded = newProgress - oldProgress;
+        float normalizedProgress = ProgressValueUtils.normalizeForUnit(newProgress, currentUnit);
+        if (totalCount > 0) {
+            normalizedProgress = Math.min(normalizedProgress, totalCount);
+        }
+
+        float progressAdded = normalizedProgress - oldProgress;
 
         if (progressAdded > 0) {
             logProgressDelta(db, id, progressAdded);
         }
 
         ContentValues values = new ContentValues();
-        values.put(COL_CURRENT_PROGRESS, newProgress);
-        values.put(COL_STATUS, newStatus);
-        values.put(COL_RATING, newRating);
+        values.put(COL_PREVIOUS_PROGRESS, oldProgress);
+        values.put(COL_CURRENT_PROGRESS, normalizedProgress);
+        // Preserve existing values if null/0 passed
+        values.put(COL_STATUS, newStatus != null ? newStatus : currentStatus);
+        values.put(COL_RATING, newRating > 0 ? newRating : currentRating);
         values.put(COL_LAST_UPDATED, getDateTime());
         int result = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(id)});
         
+        db.close();
+        return result > 0;
+    }
+
+    public boolean updateSourceAndContent(int id, String sourceUrl, String contentType) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COL_SOURCE_URL, sourceUrl);
+        values.put(COL_CONTENT_TYPE, contentType);
+        values.put(COL_LAST_UPDATED, getDateTime());
+        int result = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(id)});
+        db.close();
+        return result > 0;
+    }
+
+    public boolean updateSeriesProgress(int id, int season, int episode, String newStatus, float newRating) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        float oldProgress = 0f;
+        String currentStatus = null;
+        float currentRating = 0f;
+        int totalCount = Integer.MAX_VALUE;
+
+        Cursor cursor = db.query(
+                TABLE_MEDIA,
+                new String[]{COL_CURRENT_PROGRESS, COL_STATUS, COL_RATING, COL_TOTAL_COUNT},
+                COL_ID + "=?",
+                new String[]{String.valueOf(id)},
+                null,
+                null,
+                null
+        );
+        if (cursor != null) {
+            if (cursor.moveToFirst()) {
+                oldProgress = cursor.getFloat(0);
+                currentStatus = cursor.getString(1);
+                currentRating = cursor.getFloat(2);
+                totalCount = cursor.getInt(3);
+            }
+            cursor.close();
+        }
+
+        int safeSeason = Math.max(1, season);
+        int safeEpisode = Math.max(1, episode);
+        float normalizedProgress = Math.max(oldProgress, (float) safeEpisode);
+        if (totalCount > 0) {
+            normalizedProgress = Math.min(normalizedProgress, totalCount);
+        }
+        float progressAdded = normalizedProgress - oldProgress;
+        if (progressAdded > 0f) {
+            logProgressDelta(db, id, progressAdded);
+        }
+        String resolvedStatus = newStatus;
+        if (resolvedStatus == null) {
+            resolvedStatus = currentStatus;
+        }
+        if (totalCount > 0 && normalizedProgress >= totalCount) {
+            resolvedStatus = "Completed";
+        }
+
+        ContentValues values = new ContentValues();
+        values.put(COL_PREVIOUS_PROGRESS, oldProgress);
+        values.put(COL_CURRENT_PROGRESS, normalizedProgress);
+        values.put(COL_CURRENT_SEASON, safeSeason);
+        values.put(COL_CURRENT_EPISODE, safeEpisode);
+        values.put(COL_STATUS, resolvedStatus);
+        values.put(COL_RATING, newRating > 0 ? newRating : currentRating);
+        values.put(COL_LAST_UPDATED, getDateTime());
+        int result = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(id)});
+        db.close();
+        return result > 0;
+    }
+
+    public boolean updateProgressStatusMood(int id, float newProgress, String newStatus, float newRating, String mood) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        float oldProgress = 0;
+        String currentUnit = null;
+        int totalCount = 0;
+        Cursor cursor = db.query(TABLE_MEDIA, new String[]{COL_CURRENT_PROGRESS, COL_UNIT, COL_TOTAL_COUNT},
+                COL_ID + "=?", new String[]{String.valueOf(id)}, null, null, null);
+        if (cursor != null) {
+            if (cursor.moveToFirst()) {
+                oldProgress = cursor.getFloat(0);
+                currentUnit = cursor.getString(1);
+                totalCount = cursor.getInt(2);
+            }
+            cursor.close();
+        }
+
+        float normalizedProgress = ProgressValueUtils.normalizeForUnit(newProgress, currentUnit);
+        if (totalCount > 0) {
+            normalizedProgress = Math.min(normalizedProgress, totalCount);
+        }
+
+        float progressAdded = normalizedProgress - oldProgress;
+        if (progressAdded > 0) {
+            logProgressDelta(db, id, progressAdded);
+        }
+
+        ContentValues values = new ContentValues();
+        values.put(COL_PREVIOUS_PROGRESS, oldProgress);
+        values.put(COL_CURRENT_PROGRESS, normalizedProgress);
+        values.put(COL_STATUS, newStatus);
+        values.put(COL_RATING, newRating);
+        values.put(COL_MOOD, mood);
+        values.put(COL_LAST_UPDATED, getDateTime());
+        int result = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(id)});
+
         db.close();
         return result > 0;
     }
@@ -322,43 +806,43 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     // --- DASHBOARD METRICS QUERIES ---
 
-    public int getDailyPages() {
+    public float getDailyPages() {
         return getProgressSumWithFallback(new String[]{"Pages", "Chapters"}, "date('now', 'localtime')");
     }
 
-    public int getWeeklyPages() {
+    public float getWeeklyPages() {
         return getProgressSumWithFallback(new String[]{"Pages", "Chapters"}, "date('now', 'localtime', '-7 days')");
     }
 
-    public int getMonthlyPages() {
+    public float getMonthlyPages() {
         return getProgressSumWithFallback(new String[]{"Pages", "Chapters"}, "date('now', 'localtime', '-30 days')");
     }
 
-    public int getDailyMinutes() {
+    public float getDailyMinutes() {
         return getProgressSumWithFallback(new String[]{"Minutes"}, "date('now', 'localtime')");
     }
 
-    public int getWeeklyMinutes() {
+    public float getWeeklyMinutes() {
         return getProgressSumWithFallback(new String[]{"Minutes"}, "date('now', 'localtime', '-7 days')");
     }
 
-    public int getDailyEpisodes() {
+    public float getDailyEpisodes() {
         return getProgressSumWithFallback(new String[]{"Episodes"}, "date('now', 'localtime')");
     }
 
-    public int getWeeklyEpisodes() {
+    public float getWeeklyEpisodes() {
         return getProgressSumWithFallback(new String[]{"Episodes"}, "date('now', 'localtime', '-7 days')");
     }
 
-    public int getMonthlyMinutes() {
+    public float getMonthlyMinutes() {
         return getProgressSumWithFallback(new String[]{"Minutes"}, "date('now', 'localtime', '-30 days')");
     }
 
-    public int getMonthlyEpisodes() {
+    public float getMonthlyEpisodes() {
         return getProgressSumWithFallback(new String[]{"Episodes"}, "date('now', 'localtime', '-30 days')");
     }
 
-    private int getProgressSumWithFallback(String[] units, String dateFilter) {
+    private float getProgressSumWithFallback(String[] units, String dateFilter) {
         SQLiteDatabase db = this.getReadableDatabase();
         String inClause = buildInClause(units.length);
         String logQuery = "SELECT COALESCE(SUM(l." + COL_PROGRESS_ADDED + "), 0) FROM " + TABLE_PROGRESS_LOG + " l " +
@@ -368,9 +852,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "AND m." + COL_STATUS + " != 'Recently Deleted'";
 
         Cursor logCursor = db.rawQuery(logQuery, units);
-        int totalFromLog = 0;
+        float totalFromLog = 0;
         if (logCursor.moveToFirst()) {
-            totalFromLog = logCursor.getInt(0);
+            totalFromLog = logCursor.getFloat(0);
         }
         logCursor.close();
         if (totalFromLog > 0) {
@@ -382,15 +866,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "AND " + COL_STATUS + " != 'Recently Deleted' " +
                 "AND date(" + COL_LAST_UPDATED + ") >= " + dateFilter;
         Cursor fallbackCursor = db.rawQuery(fallbackQuery, units);
-        int totalFallback = 0;
+        float totalFallback = 0;
         if (fallbackCursor.moveToFirst()) {
-            totalFallback = fallbackCursor.getInt(0);
+            totalFallback = fallbackCursor.getFloat(0);
         }
         fallbackCursor.close();
         return totalFallback;
     }
 
-    public int getTotalMinutesWatched() {
+    public float getTotalMinutesWatched() {
         SQLiteDatabase db = this.getReadableDatabase();
         String query = "SELECT " +
                 "SUM(CASE " +
@@ -400,27 +884,27 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "  ELSE 0 END) " +
                 "FROM " + TABLE_MEDIA + " WHERE " + COL_STATUS + " != 'Recently Deleted'";
         
-        int total = 0;
+        float total = 0;
         try (Cursor cursor = db.rawQuery(query, null);) {
-            if (cursor != null && cursor.moveToFirst()) total = cursor.getInt(0);
+            if (cursor != null && cursor.moveToFirst()) total = cursor.getFloat(0);
         }
         return total;
     }
 
-    public int getTotalPagesRead() {
+    public float getTotalPagesRead() {
         SQLiteDatabase db = this.getReadableDatabase();
-        int total = 0;
+        float total = 0;
         try (Cursor cursor = db.rawQuery("SELECT SUM(" + COL_CURRENT_PROGRESS + ") FROM " + TABLE_MEDIA + " WHERE " + COL_UNIT + " IN ('Pages', 'Chapters') AND " + COL_STATUS + " != 'Recently Deleted'", null);) {
-            if (cursor != null && cursor.moveToFirst()) total = cursor.getInt(0);
+            if (cursor != null && cursor.moveToFirst()) total = cursor.getFloat(0);
         }
         return total;
     }
 
-    public int getTotalEpisodesWatched() {
+    public float getTotalEpisodesWatched() {
         SQLiteDatabase db = this.getReadableDatabase();
-        int total = 0;
+        float total = 0;
         try (Cursor cursor = db.rawQuery("SELECT SUM(" + COL_CURRENT_PROGRESS + ") FROM " + TABLE_MEDIA + " WHERE " + COL_UNIT + " = 'Episodes' AND " + COL_STATUS + " != 'Recently Deleted'", null);) {
-            if (cursor != null && cursor.moveToFirst()) total = cursor.getInt(0);
+            if (cursor != null && cursor.moveToFirst()) total = cursor.getFloat(0);
         }
         return total;
     }
@@ -681,15 +1165,16 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             return false;
         }
 
-        int current = cursor.getInt(0);
+        float current = cursor.getFloat(0);
         int total = cursor.getInt(1);
         String status = cursor.getString(2);
         float rating = cursor.getFloat(3);
         cursor.close();
 
-        int newProgress = Math.min(current + 1, total);
-        String newStatus = newProgress >= total ? "Completed" : status;
+        float newProgress = Math.min(current + 1.0f, (float) total);
+        String newStatus = newProgress >= (float) total ? "Completed" : status;
         ContentValues values = new ContentValues();
+        values.put(COL_PREVIOUS_PROGRESS, current);
         values.put(COL_CURRENT_PROGRESS, newProgress);
         values.put(COL_STATUS, newStatus);
         values.put(COL_RATING, rating);
@@ -740,19 +1225,17 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return db.rawQuery(query, null);
     }
 
-    public int getDailyProgress(String unit, String datePattern) {
+    public float getDailyProgress(String unit, String datePattern) {
         SQLiteDatabase db = this.getReadableDatabase();
-        // datePattern should be "yyyy-MM-dd"
-        // We look for log_date starting with this pattern
         String query = "SELECT SUM(p." + COL_PROGRESS_ADDED + ") FROM " + TABLE_PROGRESS_LOG + " p " +
                 "JOIN " + TABLE_MEDIA + " m ON p." + COL_LOG_MEDIA_ID + " = m." + COL_ID + " " +
                 "WHERE m." + COL_UNIT + " = ? AND p." + COL_LOG_DATE + " LIKE ?";
         
         Cursor cursor = db.rawQuery(query, new String[]{unit, datePattern + "%"});
-        int total = 0;
+        float total = 0;
         if (cursor != null) {
             if (cursor.moveToFirst()) {
-                total = cursor.getInt(0);
+                total = cursor.getFloat(0);
             }
             cursor.close();
         }
@@ -852,15 +1335,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             String desc = (String) row[6];
             
             String status = statuses[index % statuses.length];
-            int progress;
+            float progress;
             if ("Completed".equals(status)) {
-                progress = total;
+                progress = (float) total;
             } else if ("Planning".equals(status)) {
-                progress = 0;
+                progress = 0f;
             } else if ("Dropped".equals(status)) {
-                progress = Math.max(1, total / 10);
+                progress = (float) Math.max(1, total / 10);
             } else {
-                progress = Math.max(1, (int) (total * 0.45f));
+                progress = (float) Math.max(1, (int) (total * 0.45f));
             }
 
             String genre = baseGenre;
@@ -873,7 +1356,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             String mood = moods[index % moods.length];
             boolean isFavorite = index % 5 == 0;
 
-            v.put(COL_TITLE, title); // Removed (Demo) suffix for cleaner look
+            v.put(COL_TITLE, title);
             v.put(COL_MEDIA_TYPE, type);
             v.put(COL_GENRE, genre);
             v.put(COL_CREATOR, creator);
@@ -881,6 +1364,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             v.put(COL_UNIT, unit);
             v.put(COL_STATUS, status);
             v.put(COL_CURRENT_PROGRESS, progress);
+            v.put(COL_PREVIOUS_PROGRESS, progress);
             v.put(COL_RATING, 3.0f + (float)(Math.random() * 2.0f));
             v.put(COL_DESCRIPTION, desc);
             v.put(COL_PRIORITY, priority);
@@ -906,8 +1390,427 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public void clearAllMedia() {
         SQLiteDatabase db = this.getWritableDatabase();
         db.execSQL("DELETE FROM " + TABLE_PROGRESS_LOG);
+        db.execSQL("DELETE FROM " + TABLE_MEDIA_METADATA);
         db.execSQL("DELETE FROM " + TABLE_MEDIA);
         db.close();
+    }
+
+    public boolean upsertMediaMetadata(int mediaId, MediaMetadataProfile profile) {
+        return mergeAndUpsertMetadata(mediaId, profile, profile != null ? profile.getMetadataSource() : null);
+    }
+
+    public boolean mergeAndUpsertMetadata(int mediaId, MediaMetadataProfile incomingProfile, String sourceType) {
+        if (mediaId <= 0 || incomingProfile == null) {
+            return false;
+        }
+
+        SQLiteDatabase db = this.getWritableDatabase();
+        Cursor cursor = null;
+        try {
+            cursor = db.rawQuery(
+                    "SELECT * FROM " + TABLE_MEDIA_METADATA + " WHERE " + COL_METADATA_MEDIA_ID + "=?",
+                    new String[]{String.valueOf(mediaId)}
+            );
+            MediaMetadataProfile existing = null;
+            if (cursor.moveToFirst()) {
+                existing = readMetadataProfile(cursor);
+            }
+
+            String resolvedIncomingSource = normalizeMetadataSource(sourceType, incomingProfile.getMetadataSource());
+            incomingProfile.withMetadataSource(resolvedIncomingSource).stampNow();
+
+            MediaMetadataProfile merged = (existing == null)
+                    ? incomingProfile
+                    : mergeMetadataProfiles(existing, incomingProfile, resolvedIncomingSource);
+
+            ContentValues values = toMetadataContentValues(mediaId, merged);
+            long result = db.insertWithOnConflict(TABLE_MEDIA_METADATA, null, values, SQLiteDatabase.CONFLICT_REPLACE);
+            return result != -1;
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+            db.close();
+        }
+    }
+
+    public Cursor getMediaMetadataByMediaId(int mediaId) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        return db.rawQuery("SELECT * FROM " + TABLE_MEDIA_METADATA + " WHERE " + COL_METADATA_MEDIA_ID + " = ?",
+                new String[]{String.valueOf(mediaId)});
+    }
+
+    public String getPreferredDisplayTitle(int mediaId) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = null;
+        try {
+            cursor = db.rawQuery(
+                    "SELECT m." + COL_TITLE + ", mm." + COL_METADATA_CANONICAL_TITLE + " " +
+                            "FROM " + TABLE_MEDIA + " m " +
+                            "LEFT JOIN " + TABLE_MEDIA_METADATA + " mm ON m." + COL_ID + " = mm." + COL_METADATA_MEDIA_ID + " " +
+                            "WHERE m." + COL_ID + "=?",
+                    new String[]{String.valueOf(mediaId)}
+            );
+            if (cursor.moveToFirst()) {
+                String canonical = cursor.getString(1);
+                if (canonical != null && !canonical.trim().isEmpty()) {
+                    return canonical.trim();
+                }
+                return cursor.getString(0);
+            }
+            return null;
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+            db.close();
+        }
+    }
+
+    public int findMediaIdByMetadataCandidate(String detectedTitle, Map<String, String> externalIds) {
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = null;
+        try {
+            cursor = db.rawQuery(
+                    "SELECT m." + COL_ID + ", m." + COL_TITLE + ", " +
+                            "mm." + COL_METADATA_CANONICAL_TITLE + ", " +
+                            "mm." + COL_METADATA_NORMALIZED_TITLE + ", " +
+                            "mm." + COL_METADATA_ALT_TITLES_JSON + ", " +
+                            "mm." + COL_METADATA_EXTERNAL_IDS_JSON + " " +
+                            "FROM " + TABLE_MEDIA + " m " +
+                            "LEFT JOIN " + TABLE_MEDIA_METADATA + " mm ON m." + COL_ID + " = mm." + COL_METADATA_MEDIA_ID + " " +
+                            "WHERE m." + COL_STATUS + " != 'Recently Deleted'",
+                    null
+            );
+
+            String normalizedDetected = MediaMetadataProfile.normalizeTitle(detectedTitle);
+            int bestId = -1;
+            int bestScore = -1;
+
+            while (cursor.moveToNext()) {
+                int mediaId = cursor.getInt(0);
+                String dbTitle = cursor.getString(1);
+                String canonicalTitle = cursor.getString(2);
+                String normalizedTitle = cursor.getString(3);
+                String altTitlesJson = cursor.getString(4);
+                String externalIdsJson = cursor.getString(5);
+
+                int score = 0;
+
+                if (externalIds != null && !externalIds.isEmpty()) {
+                    Map<String, String> storedIds = parseJsonObject(externalIdsJson);
+                    for (Map.Entry<String, String> entry : externalIds.entrySet()) {
+                        String key = entry.getKey();
+                        String value = entry.getValue();
+                        if (key == null || value == null) {
+                            continue;
+                        }
+                        String storedValue = storedIds.get(key);
+                        if (storedValue != null && storedValue.equalsIgnoreCase(value)) {
+                            score += 1000;
+                        }
+                    }
+                }
+
+                if (normalizedDetected != null) {
+                    String normalizedDbTitle = MediaMetadataProfile.normalizeTitle(dbTitle);
+                    String normalizedCanonical = normalizedTitle != null
+                            ? normalizedTitle
+                            : MediaMetadataProfile.normalizeTitle(canonicalTitle);
+                    if (normalizedDbTitle != null && normalizedDbTitle.equals(normalizedDetected)) {
+                        score += 600;
+                    }
+                    if (normalizedCanonical != null && normalizedCanonical.equals(normalizedDetected)) {
+                        score += 700;
+                    }
+                    List<String> altTitles = parseJsonArray(altTitlesJson);
+                    for (String alt : altTitles) {
+                        String normalizedAlt = MediaMetadataProfile.normalizeTitle(alt);
+                        if (normalizedAlt != null && normalizedAlt.equals(normalizedDetected)) {
+                            score += 650;
+                            break;
+                        }
+                    }
+                    if (score == 0 && normalizedCanonical != null
+                            && (normalizedCanonical.contains(normalizedDetected) || normalizedDetected.contains(normalizedCanonical))) {
+                        score += 250;
+                    }
+                }
+
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestId = mediaId;
+                }
+            }
+
+            return bestScore > 0 ? bestId : -1;
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+            db.close();
+        }
+    }
+
+    private ContentValues toMetadataContentValues(int mediaId, MediaMetadataProfile profile) {
+        ContentValues values = new ContentValues();
+        values.put(COL_METADATA_MEDIA_ID, mediaId);
+        values.put(COL_METADATA_CANONICAL_TITLE, profile.getCanonicalTitle());
+        values.put(COL_METADATA_NORMALIZED_TITLE, profile.getNormalizedTitle());
+        values.put(COL_METADATA_ALT_TITLES_JSON, profile.getAltTitlesJson());
+        values.put(COL_METADATA_PROVIDER_ID, profile.getProviderId());
+        values.put(COL_METADATA_PROVIDER_SLUG, profile.getProviderSlug());
+        values.put(COL_METADATA_CANONICAL_URL, profile.getCanonicalUrl());
+        values.put(COL_METADATA_SOURCE, profile.getMetadataSource());
+        values.put(COL_METADATA_MEDIA_TYPE, profile.getMediaType());
+        values.put(COL_METADATA_SUB_TYPE, profile.getSubType());
+        values.put(COL_METADATA_LANGUAGE, profile.getLanguage());
+        values.put(COL_METADATA_REGION, profile.getRegion());
+        values.put(COL_METADATA_STATUS, profile.getStatus());
+        values.put(COL_METADATA_RELEASE_YEAR, profile.getReleaseYear());
+        values.put(COL_METADATA_TOTAL_COUNT, profile.getTotalCount());
+        values.put(COL_METADATA_UNIT, profile.getUnit());
+        values.put(COL_METADATA_GENRES_JSON, profile.getGenresJson());
+        values.put(COL_METADATA_TAGS_JSON, profile.getTagsJson());
+        values.put(COL_METADATA_EXTERNAL_IDS_JSON, profile.getExternalIdsJson());
+        values.put(COL_METADATA_RATING, profile.getRating());
+        values.put(COL_METADATA_POPULARITY, profile.getPopularity());
+        values.put(COL_METADATA_PROVIDER_FEATURES_JSON, profile.getProviderFeaturesJson());
+        values.put(COL_METADATA_CONFIDENCE, profile.getMetadataConfidence());
+        values.put(COL_METADATA_PRIORITY, profile.getMetadataPriority());
+        values.put(COL_METADATA_UPDATED_AT,
+                profile.getMetadataUpdatedAtIso() != null ? profile.getMetadataUpdatedAtIso() : getDateTime());
+        return values;
+    }
+
+    private MediaMetadataProfile readMetadataProfile(Cursor cursor) {
+        MediaMetadataProfile profile = MediaMetadataProfile.create()
+                .withCanonicalTitle(cursor.getString(cursor.getColumnIndexOrThrow(COL_METADATA_CANONICAL_TITLE)))
+                .withNormalizedTitle(cursor.getString(cursor.getColumnIndexOrThrow(COL_METADATA_NORMALIZED_TITLE)))
+                .withProviderId(cursor.getString(cursor.getColumnIndexOrThrow(COL_METADATA_PROVIDER_ID)))
+                .withProviderSlug(cursor.getString(cursor.getColumnIndexOrThrow(COL_METADATA_PROVIDER_SLUG)))
+                .withCanonicalUrl(cursor.getString(cursor.getColumnIndexOrThrow(COL_METADATA_CANONICAL_URL)))
+                .withMetadataSource(cursor.getString(cursor.getColumnIndexOrThrow(COL_METADATA_SOURCE)))
+                .withMediaType(cursor.getString(cursor.getColumnIndexOrThrow(COL_METADATA_MEDIA_TYPE)))
+                .withSubType(cursor.getString(cursor.getColumnIndexOrThrow(COL_METADATA_SUB_TYPE)))
+                .withLanguage(cursor.getString(cursor.getColumnIndexOrThrow(COL_METADATA_LANGUAGE)))
+                .withRegion(cursor.getString(cursor.getColumnIndexOrThrow(COL_METADATA_REGION)))
+                .withStatus(cursor.getString(cursor.getColumnIndexOrThrow(COL_METADATA_STATUS)))
+                .withReleaseYear(cursor.isNull(cursor.getColumnIndexOrThrow(COL_METADATA_RELEASE_YEAR))
+                        ? null
+                        : cursor.getInt(cursor.getColumnIndexOrThrow(COL_METADATA_RELEASE_YEAR)))
+                .withTotalCount(cursor.isNull(cursor.getColumnIndexOrThrow(COL_METADATA_TOTAL_COUNT))
+                        ? null
+                        : cursor.getInt(cursor.getColumnIndexOrThrow(COL_METADATA_TOTAL_COUNT)))
+                .withUnit(cursor.getString(cursor.getColumnIndexOrThrow(COL_METADATA_UNIT)))
+                .withRating(cursor.isNull(cursor.getColumnIndexOrThrow(COL_METADATA_RATING))
+                        ? null
+                        : cursor.getFloat(cursor.getColumnIndexOrThrow(COL_METADATA_RATING)))
+                .withPopularity(cursor.isNull(cursor.getColumnIndexOrThrow(COL_METADATA_POPULARITY))
+                        ? null
+                        : cursor.getFloat(cursor.getColumnIndexOrThrow(COL_METADATA_POPULARITY)))
+                .withProviderFeaturesJson(cursor.getString(cursor.getColumnIndexOrThrow(COL_METADATA_PROVIDER_FEATURES_JSON)))
+                .withMetadataConfidence(cursor.isNull(cursor.getColumnIndexOrThrow(COL_METADATA_CONFIDENCE))
+                        ? null
+                        : cursor.getFloat(cursor.getColumnIndexOrThrow(COL_METADATA_CONFIDENCE)))
+                .withMetadataPriority(cursor.isNull(cursor.getColumnIndexOrThrow(COL_METADATA_PRIORITY))
+                        ? null
+                        : cursor.getInt(cursor.getColumnIndexOrThrow(COL_METADATA_PRIORITY)));
+
+        for (String alt : parseJsonArray(cursor.getString(cursor.getColumnIndexOrThrow(COL_METADATA_ALT_TITLES_JSON)))) {
+            profile.addAltTitle(alt);
+        }
+        for (String genre : parseJsonArray(cursor.getString(cursor.getColumnIndexOrThrow(COL_METADATA_GENRES_JSON)))) {
+            profile.addGenre(genre);
+        }
+        for (String tag : parseJsonArray(cursor.getString(cursor.getColumnIndexOrThrow(COL_METADATA_TAGS_JSON)))) {
+            profile.addTag(tag);
+        }
+        Map<String, String> ids = parseJsonObject(cursor.getString(cursor.getColumnIndexOrThrow(COL_METADATA_EXTERNAL_IDS_JSON)));
+        for (Map.Entry<String, String> entry : ids.entrySet()) {
+            profile.addExternalId(entry.getKey(), entry.getValue());
+        }
+        return profile;
+    }
+
+    private MediaMetadataProfile mergeMetadataProfiles(MediaMetadataProfile existing, MediaMetadataProfile incoming, String sourceType) {
+        String incomingSource = normalizeMetadataSource(sourceType, incoming.getMetadataSource());
+        String existingSource = normalizeMetadataSource(existing.getMetadataSource(), existing.getMetadataSource());
+
+        float existingScore = computeMetadataScore(existingSource, existing.getMetadataPriority(), existing.getMetadataConfidence());
+        float incomingScore = computeMetadataScore(incomingSource, incoming.getMetadataPriority(), incoming.getMetadataConfidence());
+        boolean preferIncoming = incomingScore >= existingScore;
+
+        MediaMetadataProfile merged = MediaMetadataProfile.create()
+                .withCanonicalTitle(chooseString(existing.getCanonicalTitle(), incoming.getCanonicalTitle(), preferIncoming))
+                .withNormalizedTitle(chooseString(existing.getNormalizedTitle(), incoming.getNormalizedTitle(), preferIncoming))
+                .withProviderId(chooseString(existing.getProviderId(), incoming.getProviderId(), preferIncoming))
+                .withProviderSlug(chooseString(existing.getProviderSlug(), incoming.getProviderSlug(), preferIncoming))
+                .withCanonicalUrl(chooseString(existing.getCanonicalUrl(), incoming.getCanonicalUrl(), preferIncoming))
+                .withMetadataSource(preferIncoming ? incomingSource : existingSource)
+                .withMediaType(chooseString(existing.getMediaType(), incoming.getMediaType(), preferIncoming))
+                .withSubType(chooseString(existing.getSubType(), incoming.getSubType(), preferIncoming))
+                .withLanguage(chooseString(existing.getLanguage(), incoming.getLanguage(), preferIncoming))
+                .withRegion(chooseString(existing.getRegion(), incoming.getRegion(), preferIncoming))
+                .withStatus(chooseString(existing.getStatus(), incoming.getStatus(), preferIncoming))
+                .withReleaseYear(chooseInteger(existing.getReleaseYear(), incoming.getReleaseYear(), preferIncoming))
+                .withTotalCount(chooseInteger(existing.getTotalCount(), incoming.getTotalCount(), preferIncoming))
+                .withUnit(chooseString(existing.getUnit(), incoming.getUnit(), preferIncoming))
+                .withRating(chooseFloat(existing.getRating(), incoming.getRating(), preferIncoming))
+                .withPopularity(chooseFloat(existing.getPopularity(), incoming.getPopularity(), preferIncoming))
+                .withProviderFeaturesJson(mergeJsonObjects(existing.getProviderFeaturesJson(), incoming.getProviderFeaturesJson(), preferIncoming))
+                .withMetadataConfidence(preferIncoming
+                        ? chooseFloat(existing.getMetadataConfidence(), incoming.getMetadataConfidence(), true)
+                        : chooseFloat(existing.getMetadataConfidence(), incoming.getMetadataConfidence(), false))
+                .withMetadataPriority(preferIncoming
+                        ? chooseInteger(existing.getMetadataPriority(), incoming.getMetadataPriority(), true)
+                        : chooseInteger(existing.getMetadataPriority(), incoming.getMetadataPriority(), false))
+                .stampNow();
+
+        String mergedAlt = MediaMetadataProfile.mergeJsonArrays(existing.getAltTitlesJson(), incoming.getAltTitlesJson());
+        for (String alt : parseJsonArray(mergedAlt)) {
+            merged.addAltTitle(alt);
+        }
+
+        String mergedGenres = MediaMetadataProfile.mergeJsonArrays(existing.getGenresJson(), incoming.getGenresJson());
+        for (String genre : parseJsonArray(mergedGenres)) {
+            merged.addGenre(genre);
+        }
+
+        String mergedTags = MediaMetadataProfile.mergeJsonArrays(existing.getTagsJson(), incoming.getTagsJson());
+        for (String tag : parseJsonArray(mergedTags)) {
+            merged.addTag(tag);
+        }
+
+        String mergedExternalIds = mergeJsonObjects(existing.getExternalIdsJson(), incoming.getExternalIdsJson(), preferIncoming);
+        Map<String, String> externalIds = parseJsonObject(mergedExternalIds);
+        for (Map.Entry<String, String> entry : externalIds.entrySet()) {
+            merged.addExternalId(entry.getKey(), entry.getValue());
+        }
+        return merged;
+    }
+
+    private float computeMetadataScore(String source, Integer priority, Float confidence) {
+        float tier = sourceTier(source);
+        float effectivePriority = priority != null ? priority : 0f;
+        float effectiveConfidence = confidence != null ? confidence : 0f;
+        return (tier * 1000f) + (effectivePriority * 2f) + (effectiveConfidence * 100f);
+    }
+
+    private float sourceTier(String source) {
+        if (source == null) {
+            return 0f;
+        }
+        String normalized = source.trim().toLowerCase(Locale.US);
+        if (normalized.isEmpty()) {
+            return 0f;
+        }
+        if (normalized.contains("manual") || normalized.contains("user")) {
+            return 4f;
+        }
+        if (normalized.contains("jikan")
+                || normalized.contains("tmdb")
+                || normalized.contains("google")
+                || normalized.contains("openlibrary")
+                || normalized.contains("api")) {
+            return 3f;
+        }
+        if (normalized.contains("provider") || normalized.contains("enrichment")) {
+            return 2f;
+        }
+        if (normalized.contains("accessibility") || normalized.contains("tracker")) {
+            return 1f;
+        }
+        return 0.5f;
+    }
+
+    private String normalizeMetadataSource(String requestedSource, String profileSource) {
+        String first = (requestedSource != null) ? requestedSource.trim() : "";
+        if (!first.isEmpty()) {
+            return first.toLowerCase(Locale.US);
+        }
+        String fallback = (profileSource != null) ? profileSource.trim() : "";
+        if (!fallback.isEmpty()) {
+            return fallback.toLowerCase(Locale.US);
+        }
+        return "unknown";
+    }
+
+    private String chooseString(String existingValue, String incomingValue, boolean preferIncoming) {
+        String existing = (existingValue != null && !existingValue.trim().isEmpty()) ? existingValue.trim() : null;
+        String incoming = (incomingValue != null && !incomingValue.trim().isEmpty()) ? incomingValue.trim() : null;
+        if (existing == null) return incoming;
+        if (incoming == null) return existing;
+        return preferIncoming ? incoming : existing;
+    }
+
+    private Integer chooseInteger(Integer existingValue, Integer incomingValue, boolean preferIncoming) {
+        if (existingValue == null) return incomingValue;
+        if (incomingValue == null) return existingValue;
+        return preferIncoming ? incomingValue : existingValue;
+    }
+
+    private Float chooseFloat(Float existingValue, Float incomingValue, boolean preferIncoming) {
+        if (existingValue == null) return incomingValue;
+        if (incomingValue == null) return existingValue;
+        return preferIncoming ? incomingValue : existingValue;
+    }
+
+    private List<String> parseJsonArray(String json) {
+        List<String> values = new ArrayList<>();
+        if (json == null || json.trim().isEmpty()) {
+            return values;
+        }
+        try {
+            JSONArray array = new JSONArray(json);
+            for (int i = 0; i < array.length(); i++) {
+                String value = array.optString(i, null);
+                if (value != null && !value.trim().isEmpty()) {
+                    values.add(value.trim());
+                }
+            }
+        } catch (JSONException ignored) {
+        }
+        return values;
+    }
+
+    private Map<String, String> parseJsonObject(String json) {
+        Map<String, String> values = new LinkedHashMap<>();
+        if (json == null || json.trim().isEmpty()) {
+            return values;
+        }
+        try {
+            JSONObject object = new JSONObject(json);
+            JSONArray names = object.names();
+            if (names == null) {
+                return values;
+            }
+            for (int i = 0; i < names.length(); i++) {
+                String key = names.optString(i, null);
+                if (key == null || key.trim().isEmpty()) {
+                    continue;
+                }
+                String value = object.optString(key, null);
+                if (value != null && !value.trim().isEmpty()) {
+                    values.put(key.trim(), value.trim());
+                }
+            }
+        } catch (JSONException ignored) {
+        }
+        return values;
+    }
+
+    private String mergeJsonObjects(String existingJson, String incomingJson, boolean preferIncoming) {
+        Map<String, String> existing = parseJsonObject(existingJson);
+        Map<String, String> incoming = parseJsonObject(incomingJson);
+        Map<String, String> merged = new LinkedHashMap<>(existing);
+        for (Map.Entry<String, String> entry : incoming.entrySet()) {
+            String key = entry.getKey();
+            if (!merged.containsKey(key) || preferIncoming) {
+                merged.put(key, entry.getValue());
+            }
+        }
+        return new JSONObject(merged).toString();
     }
 
     private String getDateTime() {
@@ -917,20 +1820,20 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         return dateFormat.format(date);
     }
 
-    private int getCurrentProgress(SQLiteDatabase db, int id) {
-        int oldProgress = 0;
+    private float getCurrentProgress(SQLiteDatabase db, int id) {
+        float oldProgress = 0;
         Cursor cursor = db.query(TABLE_MEDIA, new String[]{COL_CURRENT_PROGRESS},
                 COL_ID + "=?", new String[]{String.valueOf(id)}, null, null, null);
         if (cursor != null) {
             if (cursor.moveToFirst()) {
-                oldProgress = cursor.getInt(0);
+                oldProgress = cursor.getFloat(0);
             }
             cursor.close();
         }
         return oldProgress;
     }
 
-    private void logProgressDelta(SQLiteDatabase db, int mediaId, int delta) {
+    private void logProgressDelta(SQLiteDatabase db, int mediaId, float delta) {
         if (delta <= 0) {
             return;
         }
@@ -940,7 +1843,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.insert(TABLE_PROGRESS_LOG, null, logValues);
     }
 
-    private void logProgressDeltaAtDate(SQLiteDatabase db, int mediaId, int delta, String date) {
+    private void logProgressDeltaAtDate(SQLiteDatabase db, int mediaId, float delta, String date) {
         if (delta <= 0) {
             return;
         }
@@ -951,27 +1854,17 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.insert(TABLE_PROGRESS_LOG, null, logValues);
     }
 
-    private void seedProgressHistory(SQLiteDatabase db, int mediaId, int progress) {
+    private void seedProgressHistory(SQLiteDatabase db, int mediaId, float progress) {
         if (progress <= 0) {
             return;
         }
 
-        int daily = Math.max(1, progress / 5);
-        int weekly = Math.max(1, progress / 3);
-        int monthly = progress - daily - weekly;
+        float daily = Math.max(0.1f, progress / 5.0f);
+        float weekly = Math.max(0.1f, progress / 3.0f);
+        float monthly = progress - daily - weekly;
 
-        if (monthly < 1) {
-            monthly = 1;
-            if (weekly > 1) {
-                weekly -= 1;
-            } else if (daily > 1) {
-                daily -= 1;
-            }
-        }
-
-        int distributed = daily + weekly + monthly;
-        if (distributed != progress) {
-            monthly += (progress - distributed);
+        if (monthly < 0.1f) {
+            monthly = 0.1f;
         }
 
         logProgressDeltaAtDate(db, mediaId, daily, getDateOffset(0));
@@ -997,7 +1890,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         if (cursor.moveToFirst()) {
             do {
                 int mediaId = cursor.getInt(0);
-                int progress = cursor.getInt(1);
+                float progress = cursor.getFloat(1);
                 logProgressDelta(db, mediaId, progress);
             } while (cursor.moveToNext());
         }
@@ -1017,11 +1910,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     public DailyProgress getDailyProgress(String datePattern) {
         SQLiteDatabase db = this.getReadableDatabase();
-        int pages = 0;
-        int episodes = 0;
-        int minutes = 0;
+        float pages = 0;
+        float episodes = 0;
+        float minutes = 0;
 
-        // Query to get sum of progress grouped by capacity_unit
         String query = "SELECT m." + COL_UNIT + ", SUM(p." + COL_PROGRESS_ADDED + ") " +
                 "FROM " + TABLE_PROGRESS_LOG + " p " +
                 "JOIN " + TABLE_MEDIA + " m ON p." + COL_LOG_MEDIA_ID + " = m." + COL_ID + " " +
@@ -1033,7 +1925,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         if (cursor != null) {
             while (cursor.moveToNext()) {
                 String unit = cursor.getString(0);
-                int progress = cursor.getInt(1);
+                float progress = cursor.getFloat(1);
 
                 if ("Pages".equalsIgnoreCase(unit)) {
                     pages += progress;
@@ -1046,5 +1938,37 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             cursor.close();
         }
         return new DailyProgress(pages, episodes, minutes);
+    }
+
+    /**
+     * Returns goal completion history for the last N days (oldest -> newest).
+     * 1 means daily goal met, 0 means not met or no row present.
+     */
+    public int[] getRecentGoalHistory(int days) {
+        if (days <= 0) {
+            return new int[0];
+        }
+
+        int[] history = new int[days];
+        SQLiteDatabase db = this.getReadableDatabase();
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault());
+        Calendar cal = Calendar.getInstance();
+
+        for (int index = days - 1; index >= 0; index--) {
+            String dateStr = sdf.format(cal.getTime());
+            try (Cursor cursor = db.rawQuery(
+                    "SELECT " + COL_DAILY_GOAL_MET + " FROM " + TABLE_DAILY_METRICS +
+                            " WHERE " + COL_DAILY_DATE + " = ?",
+                    new String[]{dateStr}
+            )) {
+                if (cursor != null && cursor.moveToFirst()) {
+                    history[index] = cursor.getInt(0) == 1 ? 1 : 0;
+                } else {
+                    history[index] = 0;
+                }
+            }
+            cal.add(Calendar.DAY_OF_YEAR, -1);
+        }
+        return history;
     }
 }

@@ -38,7 +38,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:fontFamily="@font/sf_pro_medium"
-                android:text="Currently Watching / Reading"
+                android:text="@string/auto_currently_watching_reading"
                 android:textColor="@color/white"
                 android:textSize="12sp" />
 
@@ -48,7 +48,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="6dp"
                 android:fontFamily="@font/sf_pro_heavy"
-                android:text="Backlog Spotlight"
+                android:text="@string/auto_backlog_spotlight"
                 android:textColor="@color/white"
                 android:textSize="22sp" />
 
@@ -68,7 +68,7 @@
                 android:background="@drawable/rating_pill_bg"
                 android:paddingHorizontal="10dp"
                 android:paddingVertical="4dp"
-                android:text="Ongoing"
+                android:text="@string/auto_ongoing"
                 android:textColor="@color/ongoing_red"
                 android:textSize="11sp" />
 
@@ -79,7 +79,7 @@
                 android:layout_marginTop="8dp"
                 android:maxLines="2"
                 android:ellipsize="end"
-                android:text="Alert received: Progress tracking is active."
+                android:text="@string/auto_alert_received_progress_tracking_is_active"
                 android:textColor="#D7E3FC"
                 android:textSize="11sp" />
         </LinearLayout>

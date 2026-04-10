@@ -30,7 +30,7 @@
                 android:fontFamily="@font/sf_pro_bold"
                 android:textColor="@color/text_primary"
                 android:textSize="14sp"
-                android:text="User Name" />
+                android:text="@string/auto_user_name" />
 
             <RatingBar
                 android:id="@+id/rb_review_rating"
@@ -51,7 +51,7 @@
             android:textColor="@color/text_secondary"
             android:textSize="13sp"
             android:lineSpacingExtra="2dp"
-            android:text="This is a sample review comment that might span multiple lines depending on the content length." />
+            android:text="@string/auto_this_is_a_sample_review_comment_that_might_span" />
 
     </LinearLayout>
 </com.google.android.material.card.MaterialCardView>

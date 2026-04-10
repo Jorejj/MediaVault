@@ -14,7 +14,7 @@
         android:id="@+id/blur_toast"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        app:blurOverlayColor="#BF121212">
+        app:blurOverlayColor="@color/glass_surface_color">
 
         <LinearLayout
             android:layout_width="wrap_content"

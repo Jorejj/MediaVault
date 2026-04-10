@@ -24,6 +24,12 @@ public class OpenLibraryResponse {
         @SerializedName("subject")
         private List<String> subject;
 
+        @SerializedName("key")
+        private String key;
+
+        @SerializedName("first_publish_year")
+        private Integer firstPublishYear;
+
         public String getTitle() {
             return title;
         }
@@ -40,11 +46,26 @@ public class OpenLibraryResponse {
             return subject;
         }
 
+        public String getKey() {
+            return key;
+        }
+
+        public Integer getFirstPublishYear() {
+            return firstPublishYear;
+        }
+
         public String getCoverUrl() {
             if (coverI != null) {
                 return "https://covers.openlibrary.org/b/id/" + coverI + "-L.jpg";
             }
             return null;
+        }
+
+        public String getWorkUrl() {
+            if (key == null || key.trim().isEmpty()) {
+                return null;
+            }
+            return "https://openlibrary.org" + key.trim();
         }
     }
 }

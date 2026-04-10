@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.text.Editable;
+import android.text.InputType;
 import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.widget.ArrayAdapter;
@@ -28,6 +29,7 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputLayout;
+import com.example.mediavault.utils.ProgressValueUtils;
 import java.io.File;
 import java.util.List;
 
@@ -38,7 +40,7 @@ public class EditMediaActivity extends AppCompatActivity {
     private int mediaId;
     private DatabaseHelper dbHelper;
 
-    private TextInputEditText etTitle, etReview, etImage, etJournal;
+    private TextInputEditText etTitle, etReview, etImage, etJournal, etCreator, etDescription;
     private TextInputLayout tilImage;
     private ImageView ivCover;
     private TextInputEditText etProgress, etTotal;
@@ -74,7 +76,7 @@ public class EditMediaActivity extends AppCompatActivity {
             return;
         }
 
-        dbHelper = new DatabaseHelper(this);
+        dbHelper = DatabaseHelper.getInstance(this);
         initViews();
         setupDropdowns();
         loadMediaData();
@@ -92,6 +94,8 @@ public class EditMediaActivity extends AppCompatActivity {
         collapsingToolbar = findViewById(R.id.toolbar_layout);
 
         etTitle = findViewById(R.id.et_edit_title);
+        etCreator = findViewById(R.id.et_edit_creator);
+        etDescription = findViewById(R.id.et_edit_description);
         etReview = findViewById(R.id.et_edit_review);
         etJournal = findViewById(R.id.et_edit_journal);
         etImage = findViewById(R.id.et_edit_image);
@@ -148,6 +152,8 @@ public class EditMediaActivity extends AppCompatActivity {
         String[] units = getResources().getStringArray(R.array.capacity_units);
         ArrayAdapter<String> adapterUnit = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, units);
         autoUnit.setAdapter(adapterUnit);
+        autoUnit.setOnItemClickListener((parent, view, position, id) ->
+                configureProgressInputForUnit(autoUnit.getText().toString().trim()));
 
         String[] priorities = getResources().getStringArray(R.array.priority_levels);
         ArrayAdapter<String> adapterPriority = new ArrayAdapter<>(this, android.R.layout.simple_dropdown_item_1line, priorities);
@@ -211,33 +217,54 @@ public class EditMediaActivity extends AppCompatActivity {
     }
 
     private void loadMediaData() {
-        Cursor cursor = dbHelper.getMediaById(mediaId);
-        if (cursor != null && cursor.moveToFirst()) {
-            String title = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_TITLE));
-            etTitle.setText(title);
-            collapsingToolbar.setTitle(title);
+        AppExecutor.getInstance().diskIO().execute(() -> {
+            Cursor cursor = dbHelper.getMediaById(mediaId);
+            if (cursor != null && cursor.moveToFirst()) {
+                // Extract all data on background thread
+                final String title = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_TITLE));
+                final String genre = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_GENRE));
+                final String creator = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_CREATOR));
+                final String description = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_DESCRIPTION));
+                final String review = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_REVIEW));
+                final String journal = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_JOURNAL));
+                final float progress = cursor.getFloat(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_CURRENT_PROGRESS));
+                final int total = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_TOTAL_COUNT));
+                final float rating = cursor.getFloat(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_RATING));
+                final String imagePath = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_IMAGE_PATH));
+                final String type = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_MEDIA_TYPE));
+                final String status = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_STATUS));
+                final String unit = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_UNIT));
+                final String priority = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_PRIORITY));
+                final boolean isFavorite = cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_IS_FAVORITE)) == 1;
+                final String mood = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_MOOD));
+                cursor.close();
 
-            String genre = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_GENRE));
-            autoGenre.setText(genre, false);
-            etReview.setText(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_REVIEW)));
-            etJournal.setText(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_JOURNAL)));
-            etProgress.setText(String.valueOf(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_CURRENT_PROGRESS))));
-            etTotal.setText(String.valueOf(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_TOTAL_COUNT))));
-            rbRating.setRating(cursor.getFloat(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_RATING)));
-            
-            String imagePath = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_IMAGE_PATH));
-            etImage.setText(imagePath);
-            updateImageHeader(imagePath);
-
-            autoType.setText(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_MEDIA_TYPE)), false);
-            autoStatus.setText(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_STATUS)), false);
-            autoUnit.setText(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_UNIT)), false);
-            autoPriority.setText(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_PRIORITY)), false);
-            switchFavorite.setChecked(cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_IS_FAVORITE)) == 1);
-            applyMoodToChips(cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_MOOD)));
-            
-            cursor.close();
-        }
+                // Update UI on main thread
+                runOnUiThread(() -> {
+                    etTitle.setText(title);
+                    collapsingToolbar.setTitle(title);
+                    autoGenre.setText(genre, false);
+                    etCreator.setText(creator);
+                    etDescription.setText(description);
+                    etReview.setText(review);
+                    etJournal.setText(journal);
+                    etProgress.setText(ProgressValueUtils.formatForDisplay(progress, unit));
+                    etTotal.setText(String.valueOf(total));
+                    rbRating.setRating(rating);
+                    etImage.setText(imagePath);
+                    updateImageHeader(imagePath);
+                    autoType.setText(type, false);
+                    autoStatus.setText(status, false);
+                    autoUnit.setText(unit, false);
+                    configureProgressInputForUnit(unit);
+                    autoPriority.setText(priority, false);
+                    switchFavorite.setChecked(isFavorite);
+                    applyMoodToChips(mood);
+                });
+            } else {
+                if (cursor != null) cursor.close();
+            }
+        });
     }
 
     private void saveChanges() {
@@ -252,6 +279,8 @@ public class EditMediaActivity extends AppCompatActivity {
         String unit = autoUnit.getText().toString();
         String priority = autoPriority.getText().toString();
         String mood = getSelectedMood();
+        String creator = etCreator.getText().toString().trim();
+        String description = etDescription.getText().toString().trim();
         boolean isFavorite = switchFavorite.isChecked();
         String newImage = etImage.getText().toString().trim();
         float rating = rbRating.getRating();
@@ -261,19 +290,29 @@ public class EditMediaActivity extends AppCompatActivity {
             return;
         }
 
-        new Thread(() -> {
-            String finalImage = ImageUtils.downloadAndSaveImage(EditMediaActivity.this, newImage);
-            runOnUiThread(() -> {
-                try {
-                    int progress = Integer.parseInt(progressStr);
-                    int total = Integer.parseInt(totalStr);
+        AppExecutor.getInstance().diskIO().execute(() -> {
+            try {
+                float progress = Float.parseFloat(progressStr);
+                int total = Integer.parseInt(totalStr);
+                if (!ProgressValueUtils.isMinutesUnit(unit)
+                        && Math.abs(progress - Math.floor(progress)) > 0.0001f) {
+                    AppExecutor.getInstance().mainThread().execute(() ->
+                            ToastUtils.showCustomToast(EditMediaActivity.this, "Use whole numbers for " + unit));
+                    return;
+                }
 
-                    if (progress > total) {
-                        ToastUtils.showCustomToast(EditMediaActivity.this, "Progress cannot exceed Total Capacity");
-                        return;
-                    }
+                float normalizedProgress = ProgressValueUtils.normalizeForUnit(progress, unit);
+                if (normalizedProgress > total) {
+                    AppExecutor.getInstance().mainThread().execute(() ->
+                            ToastUtils.showCustomToast(EditMediaActivity.this, "Progress cannot exceed Total Capacity"));
+                    return;
+                }
 
-                    if (dbHelper.updateMedia(mediaId, title, type, genre, status, progress, total, unit, finalImage, rating, review, journal, mood, priority, isFavorite)) {
+                String finalImage = ImageUtils.downloadAndSaveImage(getApplicationContext(), newImage);
+                boolean updated = dbHelper.updateMedia(mediaId, title, type, genre, status, normalizedProgress, total, unit, finalImage, rating, review, journal, mood, priority, isFavorite, description, creator);
+
+                AppExecutor.getInstance().mainThread().execute(() -> {
+                    if (updated) {
                         ToastUtils.showCustomToast(EditMediaActivity.this, "Changes saved");
                         Intent updateIntent = new Intent(DescriptionActivity.ACTION_MEDIA_UPDATED);
                         updateIntent.setPackage(getPackageName());
@@ -286,11 +325,23 @@ public class EditMediaActivity extends AppCompatActivity {
                                 .setPositiveButton("OK", null)
                                 .show();
                     }
-                } catch (NumberFormatException e) {
-                    ToastUtils.showCustomToast(EditMediaActivity.this, "Invalid progress or total value");
-                }
-            });
-        }).start();
+                });
+            } catch (NumberFormatException e) {
+                AppExecutor.getInstance().mainThread().execute(() ->
+                        ToastUtils.showCustomToast(EditMediaActivity.this, "Invalid progress or total value"));
+            } catch (Exception e) {
+                AppExecutor.getInstance().mainThread().execute(() ->
+                        ToastUtils.showCustomToast(EditMediaActivity.this, "Failed to save changes"));
+            }
+        });
+    }
+
+    private void configureProgressInputForUnit(String progressUnit) {
+        if (ProgressValueUtils.isMinutesUnit(progressUnit)) {
+            etProgress.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_NUMBER_FLAG_DECIMAL);
+        } else {
+            etProgress.setInputType(InputType.TYPE_CLASS_NUMBER);
+        }
     }
 
     private String getSelectedMood() {

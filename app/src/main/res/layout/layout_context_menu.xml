@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="320dp"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="@drawable/glass_card_bg"
+    android:padding="14dp"
+    android:elevation="8dp">
+
+    <!-- Detected Title -->
+    <TextView
+        android:id="@+id/context_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/auto_quick_actions"
+        android:textSize="17sp"
+        android:fontFamily="@font/sf_pro_bold"
+        android:textColor="@color/text_primary"
+        android:layout_marginBottom="4dp"
+        android:maxLines="2"
+        android:ellipsize="end" />
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/auto_control_title_detection_and_progress_updates"
+        android:textSize="13sp"
+        android:fontFamily="@font/sf_pro_regular"
+        android:textColor="@color/text_secondary"
+        android:layout_marginBottom="12dp" />
+
+    <Button
+        android:id="@+id/action_dismiss_media"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:text="@string/auto_dismiss_detected_media"
+        android:textSize="14sp"
+        android:fontFamily="@font/sf_pro_medium"
+        android:textColor="@color/text_primary"
+        android:textAllCaps="false"
+        android:background="@drawable/glass_pill_bg"
+        android:gravity="start|center_vertical"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:layout_marginBottom="8dp" />
+
+    <Button
+        android:id="@+id/action_manual_scan"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:text="@string/auto_scan_current_screen"
+        android:textSize="14sp"
+        android:fontFamily="@font/sf_pro_medium"
+        android:textColor="@color/text_primary"
+        android:textAllCaps="false"
+        android:background="@drawable/glass_pill_bg"
+        android:gravity="start|center_vertical"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:layout_marginBottom="8dp" />
+
+    <Button
+        android:id="@+id/action_toggle_title_tracking"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:text="@string/auto_automatic_title_tracking_on"
+        android:textSize="14sp"
+        android:fontFamily="@font/sf_pro_medium"
+        android:textColor="@color/text_primary"
+        android:textAllCaps="false"
+        android:background="@drawable/glass_pill_bg"
+        android:gravity="start|center_vertical"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:layout_marginBottom="8dp" />
+
+    <Button
+        android:id="@+id/action_toggle_progress_tracking"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:text="@string/auto_automatic_media_progress_on"
+        android:textSize="14sp"
+        android:fontFamily="@font/sf_pro_medium"
+        android:textColor="@color/text_primary"
+        android:textAllCaps="false"
+        android:background="@drawable/glass_pill_bg"
+        android:gravity="start|center_vertical"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
+        android:layout_marginBottom="8dp" />
+
+    <Button
+        android:id="@+id/action_exit"
+        android:layout_width="match_parent"
+        android:layout_height="44dp"
+        android:text="@string/auto_close"
+        android:textSize="14sp"
+        android:fontFamily="@font/sf_pro_regular"
+        android:background="@android:color/transparent"
+        android:textAllCaps="false"
+        android:textColor="@color/text_secondary" />
+
+</LinearLayout>

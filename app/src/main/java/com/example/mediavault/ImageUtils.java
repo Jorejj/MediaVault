@@ -11,9 +11,28 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.UUID;
+import com.bumptech.glide.Glide;
+import android.widget.ImageView;
 
 public class ImageUtils {
     private static final String TAG = "ImageUtils";
+
+    public static void loadImage(String path, ImageView imageView) {
+        if (path == null || path.isEmpty()) {
+            imageView.setImageResource(R.drawable.mediavault_logo);
+            return;
+        }
+
+        File file = new File(path);
+        Object source = file.exists() ? file : path;
+
+        Glide.with(imageView.getContext())
+                .load(source)
+                .centerCrop()
+                .placeholder(R.drawable.mediavault_logo)
+                .error(R.drawable.mediavault_logo)
+                .into(imageView);
+    }
 
     /**
      * Downloads an image from a URL and saves it to the app's internal storage.

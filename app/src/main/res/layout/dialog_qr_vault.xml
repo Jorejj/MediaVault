@@ -38,7 +38,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
-            android:text="Scan this QR to import favorites offline"
+            android:text="@string/auto_scan_this_qr_to_import_favorites_offline"
             android:textColor="?attr/colorTextSecondary"
             android:textSize="13sp" />
 

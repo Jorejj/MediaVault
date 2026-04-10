@@ -5,14 +5,14 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/transparent">
+    android:background="@drawable/ambient_mesh_bg">
 
     <ImageView
         android:id="@+id/img_logo"
-        android:layout_width="@dimen/top_logo_size"
-        android:layout_height="@dimen/top_logo_size"
-        android:layout_marginStart="@dimen/screen_padding_horizontal"
-        android:layout_marginTop="@dimen/screen_padding_vertical"
+        android:layout_width="64dp"
+        android:layout_height="64dp"
+        android:layout_marginStart="24dp"
+        android:layout_marginTop="24dp"
         android:src="@drawable/mediavault_logo"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -20,308 +20,648 @@
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="@dimen/screen_section_spacing_small"
-        android:layout_marginTop="@dimen/screen_padding_vertical"
+        android:layout_marginStart="16dp"
         android:orientation="vertical"
         app:layout_constraintBottom_toBottomOf="@+id/img_logo"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@id/img_logo"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toTopOf="@id/img_logo">
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            style="@style/TextScreenTitle"
-            android:text="Settings"
+            android:fontFamily="@font/sf_pro_bold"
+            android:text="@string/auto_settings"
+            android:textColor="?attr/colorOnSurface"
             android:textSize="24sp" />
 
         <TextView
-            android:id="@+id/tv_screen_title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            style="@style/TextBody"
-            android:text="Configure your app settings and preferences"
+            android:fontFamily="@font/sf_pro_regular"
+            android:text="@string/auto_customize_your_experience"
+            android:textColor="?attr/colorOnSurface"
+            android:alpha="0.7"
             android:textSize="14sp" />
     </LinearLayout>
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:fillViewport="true"
-        android:layout_marginTop="@dimen/screen_section_spacing"
-        app:layout_constraintTop_toBottomOf="@id/img_logo"
+        android:layout_marginTop="24dp"
+        android:paddingBottom="100dp"
+        android:clipToPadding="false"
         app:layout_constraintBottom_toBottomOf="parent"
-        android:clipToPadding="false">
+        app:layout_constraintTop_toBottomOf="@id/img_logo">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:paddingHorizontal="@dimen/screen_padding_horizontal"
-            android:paddingBottom="@dimen/screen_bottom_spacing">
+            android:padding="16dp">
 
-            <com.google.android.material.card.MaterialCardView
+            <!-- General Settings Card -->
+            <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardBackgroundColor="@color/glass_surface_color"
-                app:strokeColor="@color/glass_border_soft"
-                app:strokeWidth="1dp"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="0dp"
-                android:layout_marginBottom="20dp">
+                android:background="@drawable/glass_card_bg"
+                android:padding="16dp"
+                android:layout_marginBottom="16dp">
 
-                <LinearLayout
+                <TextView
+                    android:id="@+id/header_general"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical">
+                    android:fontFamily="@font/sf_pro_bold"
+                    android:text="@string/auto_general"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="18sp"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <RelativeLayout
+                    android:id="@+id/row_theme"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="12dp"
+                    app:layout_constraintTop_toBottomOf="@id/header_general">
 
                     <TextView
-                        android:layout_width="match_parent"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:padding="16dp"
-                        android:text="Settings"
-                        android:textStyle="bold"
-                        android:textSize="14sp"
-                        android:textColor="?attr/colorTextSecondary"/>
+                        android:layout_centerVertical="true"
+                        android:fontFamily="@font/sf_pro_medium"
+                        android:text="@string/auto_dark_mode"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="16sp" />
 
-                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#1A888888"/>
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switch_theme"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true" />
+                </RelativeLayout>
 
-                    <RelativeLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="60dp"
-                        android:paddingHorizontal="16dp">
+                <View
+                    android:id="@+id/sep1"
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:alpha="0.1"
+                    android:background="?attr/colorOnSurface"
+                    app:layout_constraintTop_toBottomOf="@id/row_theme" />
 
-                        <ImageView android:id="@+id/icon_darkmode" android:layout_width="24dp" android:layout_height="24dp"
-                            android:src="@drawable/ic_dark_mode" android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
+                <RelativeLayout
+                    android:id="@+id/row_backup"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:background="?attr/selectableItemBackground"
+                    app:layout_constraintTop_toBottomOf="@id/sep1">
 
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="Dark Mode" android:layout_toEndOf="@id/icon_darkmode" android:layout_marginStart="16dp"
-                            android:layout_centerVertical="true" android:textSize="16sp" android:textStyle="bold" android:textColor="?attr/colorTextPrimary"/>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:fontFamily="@font/sf_pro_medium"
+                        android:text="@string/auto_backup_and_restore"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="16sp" />
+                </RelativeLayout>
+            </androidx.constraintlayout.widget.ConstraintLayout>
 
-                        <androidx.appcompat.widget.SwitchCompat android:id="@+id/switch_theme"
-                            android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:layout_alignParentEnd="true"
-                            android:layout_centerVertical="true"
-                            android:checked="false"
-                            app:trackTint="#1A888888"/>
-                    </RelativeLayout>
-
-                    <RelativeLayout
-                        android:id="@+id/row_export_data"
-                        android:layout_width="match_parent"
-                        android:layout_height="60dp"
-                        android:paddingHorizontal="16dp"
-                        android:clickable="true" android:focusable="true" android:background="?attr/selectableItemBackground">
-
-                        <ImageView android:id="@+id/icon_export" android:layout_width="24dp" android:layout_height="24dp"
-                            android:src="@drawable/ic_export" android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
-
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="Export Data" android:layout_toEndOf="@id/icon_export" android:layout_marginStart="16dp"
-                            android:layout_centerVertical="true" android:textSize="16sp" android:textStyle="bold" android:textColor="?attr/colorTextPrimary"/>
-
-                        <ImageView android:layout_width="20dp" android:layout_height="20dp"
-                            android:src="@drawable/ic_chevron_right" android:layout_alignParentEnd="true"
-                            android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
-                    </RelativeLayout>
-
-                    <RelativeLayout
-                        android:id="@+id/row_qr_vault"
-                        android:layout_width="match_parent"
-                        android:layout_height="60dp"
-                        android:paddingHorizontal="16dp"
-                        android:clickable="true" android:focusable="true" android:background="?attr/selectableItemBackground">
-
-                        <ImageView android:id="@+id/icon_qr_vault" android:layout_width="24dp" android:layout_height="24dp"
-                            android:src="@drawable/ic_share_filled" android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
-
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="@string/qr_vault" android:layout_toEndOf="@id/icon_qr_vault" android:layout_marginStart="16dp"
-                            android:layout_centerVertical="true" android:textSize="16sp" android:textStyle="bold" android:textColor="?attr/colorTextPrimary"/>
-
-                        <ImageView android:layout_width="20dp" android:layout_height="20dp"
-                            android:src="@drawable/ic_chevron_right" android:layout_alignParentEnd="true"
-                            android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
-                    </RelativeLayout>
-
-                    <RelativeLayout
-                        android:id="@+id/row_clear_database"
-                        android:layout_width="match_parent"
-                        android:layout_height="60dp"
-                        android:paddingHorizontal="16dp"
-                        android:clickable="true" android:focusable="true" android:background="?attr/selectableItemBackground">
-
-                        <ImageView android:id="@+id/icon_clear" android:layout_width="24dp" android:layout_height="24dp"
-                            android:src="@drawable/ic_delete" android:layout_centerVertical="true" app:tint="#FF0000"/>
-
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="Clear Database" android:layout_toEndOf="@id/icon_clear" android:layout_marginStart="16dp"
-                            android:layout_centerVertical="true" android:textSize="16sp" android:textStyle="bold" android:textColor="#FF0000"/>
-
-                        <ImageView android:layout_width="20dp" android:layout_height="20dp"
-                            android:src="@drawable/ic_chevron_right" android:layout_alignParentEnd="true"
-                            android:layout_centerVertical="true" app:tint="#FF0000"/>
-                    </RelativeLayout>
-
-                    <RelativeLayout
-                        android:id="@+id/row_terms"
-                        android:layout_width="match_parent"
-                        android:layout_height="60dp"
-                        android:paddingHorizontal="16dp"
-                        android:clickable="true" android:focusable="true" android:background="?attr/selectableItemBackground">
-
-                        <ImageView android:id="@+id/icon_terms" android:layout_width="24dp" android:layout_height="24dp"
-                            android:src="@drawable/ic_terms" android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
-
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="Terms of Use" android:layout_toEndOf="@id/icon_terms" android:layout_marginStart="16dp"
-                            android:layout_centerVertical="true" android:textSize="16sp" android:textStyle="bold" android:textColor="?attr/colorTextPrimary"/>
-
-                        <ImageView android:layout_width="20dp" android:layout_height="20dp"
-                            android:src="@drawable/ic_chevron_right" android:layout_alignParentEnd="true"
-                            android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
-                    </RelativeLayout>
-
-                    <RelativeLayout
-                        android:id="@+id/row_backup"
-                        android:layout_width="match_parent"
-                        android:layout_height="60dp"
-                        android:paddingHorizontal="16dp"
-                        android:clickable="true" android:focusable="true" android:background="?attr/selectableItemBackground">
-
-                        <ImageView android:id="@+id/icon_backup" android:layout_width="24dp" android:layout_height="24dp"
-                            android:src="@drawable/ic_backup" android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
-
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="Backup &amp; Restore" android:layout_toEndOf="@id/icon_backup" android:layout_marginStart="16dp"
-                            android:layout_centerVertical="true" android:textSize="16sp" android:textStyle="bold" android:textColor="?attr/colorTextPrimary"/>
-
-                        <ImageView android:layout_width="20dp" android:layout_height="20dp"
-                            android:src="@drawable/ic_chevron_right" android:layout_alignParentEnd="true"
-                            android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
-                    </RelativeLayout>
-
-                    <RelativeLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="60dp"
-                        android:paddingHorizontal="16dp"
-                        android:clickable="true" android:focusable="true" android:background="?attr/selectableItemBackground">
-
-                        <ImageView android:id="@+id/icon_shake" android:layout_width="24dp" android:layout_height="24dp"
-                            android:src="@drawable/ic_shake" android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
-
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="Shake Sensitivity" android:layout_toEndOf="@id/icon_shake" android:layout_marginStart="16dp"
-                            android:layout_centerVertical="true" android:textSize="16sp" android:textStyle="bold" android:textColor="?attr/colorTextPrimary"/>
-
-                        <ImageView android:layout_width="20dp" android:layout_height="20dp"
-                            android:src="@drawable/ic_chevron_right" android:layout_alignParentEnd="true"
-                            android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
-                    </RelativeLayout>
-
-                    <RelativeLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="60dp"
-                        android:paddingHorizontal="16dp"
-                        android:clickable="true" android:focusable="true" android:background="?attr/selectableItemBackground">
-
-                        <ImageView android:id="@+id/icon_vault" android:layout_width="24dp" android:layout_height="24dp"
-                            android:src="@drawable/ic_vault" android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
-
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="[DEV] SEED SAMPLE MEDIA" android:layout_toEndOf="@id/icon_vault" android:layout_marginStart="16dp"
-                            android:layout_centerVertical="true" android:textSize="16sp" android:textStyle="bold" android:textColor="?attr/colorTextPrimary"/>
-
-                        <ImageView android:layout_width="20dp" android:layout_height="20dp"
-                            android:src="@drawable/ic_chevron_right" android:layout_alignParentEnd="true"
-                            android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
-                    </RelativeLayout>
-
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <com.google.android.material.card.MaterialCardView
+            <!-- Automation & Experience Section -->
+            <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardBackgroundColor="@color/glass_surface_color"
-                app:strokeColor="@color/glass_border_soft"
-                app:strokeWidth="1dp"
-                app:cardCornerRadius="20dp"
-                app:cardElevation="0dp">
+                android:background="@drawable/glass_card_bg"
+                android:padding="16dp"
+                android:layout_marginBottom="16dp">
 
-                <LinearLayout
+                <TextView
+                    android:id="@+id/header_automation"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="vertical">
+                    android:fontFamily="@font/sf_pro_bold"
+                    android:text="@string/auto_automation_and_experience"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="18sp"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <RelativeLayout
+                    android:id="@+id/row_monitoring"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:padding="8dp"
+                    app:layout_constraintTop_toBottomOf="@id/header_automation">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentStart="true"
+                        android:layout_toStartOf="@+id/layout_monitoring_right"
+                        android:layout_centerVertical="true"
+                        android:orientation="vertical">
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+                            
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="@font/sf_pro_bold"
+                                android:text="@string/auto_external_app_tracking"
+                                android:textColor="?attr/colorOnSurface"
+                                android:textSize="15sp" />
+                            
+                            <View
+                                android:id="@+id/indicator_accessibility"
+                                android:layout_width="8dp"
+                                android:layout_height="8dp"
+                                android:layout_marginStart="8dp"
+                                android:background="@drawable/badge_dot" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/text_accessibility_status"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:alpha="0.6"
+                            android:fontFamily="@font/sf_pro_regular"
+                            android:text="@string/auto_auto_track_progress_in_external_apps"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/layout_monitoring_right"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            android:id="@+id/switch_monitoring"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" />
+                    </LinearLayout>
+                </RelativeLayout>
+
+                <RelativeLayout
+                    android:id="@+id/row_assistant"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:padding="8dp"
+                    app:layout_constraintTop_toBottomOf="@id/row_monitoring">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentStart="true"
+                        android:layout_toStartOf="@+id/layout_assistant_right"
+                        android:layout_centerVertical="true"
+                        android:orientation="vertical">
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:orientation="horizontal"
+                            android:gravity="center_vertical">
+                            
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="@font/sf_pro_bold"
+                                android:text="@string/auto_floating_assistant"
+                                android:textColor="?attr/colorOnSurface"
+                                android:textSize="15sp" />
+                            
+                            <View
+                                android:id="@+id/indicator_overlay"
+                                android:layout_width="8dp"
+                                android:layout_height="8dp"
+                                android:layout_marginStart="8dp"
+                                android:background="@drawable/badge_dot" />
+                        </LinearLayout>
+
+                        <TextView
+                            android:id="@+id/text_overlay_status"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:alpha="0.6"
+                            android:fontFamily="@font/sf_pro_regular"
+                            android:text="@string/auto_enable_the_smart_floating_action_widget"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:id="@+id/layout_assistant_right"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:gravity="center_vertical"
+                        android:orientation="horizontal">
+
+                        <com.google.android.material.switchmaterial.SwitchMaterial
+                            android:id="@+id/switch_assistant"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content" />
+                    </LinearLayout>
+                </RelativeLayout>
+
+                <RelativeLayout
+                    android:id="@+id/row_persistent_anchor"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:padding="8dp"
+                    app:layout_constraintTop_toBottomOf="@id/row_assistant">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentStart="true"
+                        android:layout_toStartOf="@+id/switch_persistent_anchor"
+                        android:layout_centerVertical="true"
+                        android:orientation="vertical">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/sf_pro_bold"
+                            android:text="@string/auto_persistent_anchor_hub"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textSize="15sp" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:alpha="0.6"
+                            android:fontFamily="@font/sf_pro_regular"
+                            android:text="@string/auto_central_icon_for_all_tracker_activity"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textSize="12sp" />
+                    </LinearLayout>
+
+                    <com.google.android.material.switchmaterial.SwitchMaterial
+                        android:id="@+id/switch_persistent_anchor"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true" />
+                </RelativeLayout>
+
+                <RelativeLayout
+                    android:id="@+id/row_monitored_apps"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:padding="8dp"
+                    app:layout_constraintTop_toBottomOf="@id/row_persistent_anchor">
 
                     <TextView
-                        android:layout_width="match_parent"
+                        android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:padding="16dp"
-                        android:text="More"
-                        android:textStyle="bold"
-                        android:textSize="14sp"
-                        android:textColor="?attr/colorTextSecondary"/>
+                        android:layout_alignParentStart="true"
+                        android:layout_centerVertical="true"
+                        android:fontFamily="@font/sf_pro_bold"
+                        android:text="@string/auto_monitored_apps"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="15sp" />
 
-                    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#1A888888"/>
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:src="@drawable/ic_arrow_forward"
+                        app:tint="?attr/colorIconTint" />
+                </RelativeLayout>
 
-                    <RelativeLayout
-                        android:id="@+id/row_privacy"
-                        android:layout_width="match_parent"
-                        android:layout_height="60dp"
-                        android:paddingHorizontal="16dp"
-                        android:clickable="true" android:focusable="true" android:background="?attr/selectableItemBackground">
+                <RelativeLayout
+                    android:id="@+id/row_battery_optimization"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="16dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:padding="8dp"
+                    app:layout_constraintTop_toBottomOf="@id/row_monitored_apps">
 
-                        <ImageView android:id="@+id/icon_privacy" android:layout_width="24dp" android:layout_height="24dp"
-                            android:src="@drawable/ic_privacy" android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentStart="true"
+                        android:layout_toStartOf="@+id/text_battery_status"
+                        android:layout_centerVertical="true"
+                        android:orientation="vertical">
 
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="Privacy Policy" android:layout_toEndOf="@id/icon_privacy" android:layout_marginStart="16dp"
-                            android:layout_centerVertical="true" android:textSize="16sp" android:textStyle="bold" android:textColor="?attr/colorTextPrimary"/>
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/sf_pro_bold"
+                            android:text="@string/auto_battery_optimization"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textSize="15sp" />
 
-                        <ImageView android:layout_width="20dp" android:layout_height="20dp"
-                            android:src="@drawable/ic_chevron_right" android:layout_alignParentEnd="true"
-                            android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
-                    </RelativeLayout>
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:alpha="0.6"
+                            android:fontFamily="@font/sf_pro_regular"
+                            android:text="@string/auto_set_to_unrestricted_for_better_tracking"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textSize="12sp" />
+                    </LinearLayout>
 
-                    <RelativeLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="60dp"
-                        android:paddingHorizontal="16dp"
-                        android:clickable="true" android:focusable="true" android:background="?attr/selectableItemBackground">
+                    <TextView
+                        android:id="@+id/text_battery_status"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:fontFamily="@font/sf_pro_medium"
+                        android:text="@string/auto_check"
+                        android:textColor="?attr/colorPrimary"
+                        android:textSize="14sp" />
+                </RelativeLayout>
 
-                        <ImageView android:id="@+id/icon_help" android:layout_width="24dp" android:layout_height="24dp"
-                            android:src="@drawable/ic_help" android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
+                <RelativeLayout
+                    android:id="@+id/row_reminder_alerts"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:padding="8dp"
+                    app:layout_constraintTop_toBottomOf="@id/row_battery_optimization">
 
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="Help" android:layout_toEndOf="@id/icon_help" android:layout_marginStart="16dp"
-                            android:layout_centerVertical="true" android:textSize="16sp" android:textStyle="bold" android:textColor="?attr/colorTextPrimary"/>
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentStart="true"
+                        android:layout_toStartOf="@+id/text_reminder_alert_status"
+                        android:layout_centerVertical="true"
+                        android:orientation="vertical">
 
-                        <ImageView android:layout_width="20dp" android:layout_height="20dp"
-                            android:src="@drawable/ic_chevron_right" android:layout_alignParentEnd="true"
-                            android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
-                    </RelativeLayout>
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/sf_pro_bold"
+                            android:text="@string/auto_reminder_alerts"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textSize="15sp" />
 
-                    <RelativeLayout
-                        android:id="@+id/btn_about"
-                        android:layout_width="match_parent"
-                        android:layout_height="60dp"
-                        android:paddingHorizontal="16dp"
-                        android:clickable="true" android:focusable="true" android:background="?attr/selectableItemBackground">
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:alpha="0.6"
+                            android:fontFamily="@font/sf_pro_regular"
+                            android:text="@string/auto_sound_vibration_and_intensity"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textSize="12sp" />
+                    </LinearLayout>
 
-                        <ImageView android:id="@+id/icon_about" android:layout_width="24dp" android:layout_height="24dp"
-                            android:src="@drawable/ic_about" android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
+                    <TextView
+                        android:id="@+id/text_reminder_alert_status"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:fontFamily="@font/sf_pro_medium"
+                        android:text="@string/auto_configure"
+                        android:textColor="?attr/colorPrimary"
+                        android:textSize="14sp" />
+                </RelativeLayout>
 
-                        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-                            android:text="About" android:layout_toEndOf="@id/icon_about" android:layout_marginStart="16dp"
-                            android:layout_centerVertical="true" android:textSize="16sp" android:textStyle="bold" android:textColor="?attr/colorTextPrimary"/>
+                <RelativeLayout
+                    android:id="@+id/row_shake"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="12dp"
+                    android:background="?attr/selectableItemBackground"
+                    android:paddingHorizontal="8dp"
+                    app:layout_constraintTop_toBottomOf="@id/row_reminder_alerts">
+                    <ImageView
+                        android:id="@+id/icon_shake"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_centerVertical="true"
+                        android:src="@drawable/ic_shake"
+                        app:tint="?attr/colorOnSurface" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:layout_toEndOf="@id/icon_shake"
+                        android:layout_marginStart="12dp"
+                        android:fontFamily="@font/sf_pro_medium"
+                        android:text="@string/auto_shake_sensitivity"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="16sp" />
+                </RelativeLayout>
+            </androidx.constraintlayout.widget.ConstraintLayout>
 
-                        <ImageView android:layout_width="20dp" android:layout_height="20dp"
-                            android:src="@drawable/ic_chevron_right" android:layout_alignParentEnd="true"
-                            android:layout_centerVertical="true" app:tint="?attr/colorIconTint"/>
-                    </RelativeLayout>
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
+            <!-- Account & Data Section -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/glass_card_bg"
+                android:padding="16dp"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:id="@+id/header_actions"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/sf_pro_bold"
+                    android:text="@string/auto_account_and_data"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="18sp"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <RelativeLayout
+                    android:id="@+id/row_export_data"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="12dp"
+                    android:background="?attr/selectableItemBackground"
+                    app:layout_constraintTop_toBottomOf="@id/header_actions">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:fontFamily="@font/sf_pro_medium"
+                        android:text="@string/auto_export_import_vault"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="16sp" />
+                </RelativeLayout>
+
+                <RelativeLayout
+                    android:id="@+id/row_qr_vault"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:background="?attr/selectableItemBackground"
+                    app:layout_constraintTop_toBottomOf="@id/row_export_data">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:fontFamily="@font/sf_pro_medium"
+                        android:text="@string/qr_vault"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="16sp" />
+                </RelativeLayout>
+
+                <RelativeLayout
+                    android:id="@+id/row_vault"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:background="?attr/selectableItemBackground"
+                    app:layout_constraintTop_toBottomOf="@id/row_qr_vault">
+                    <ImageView
+                        android:id="@+id/icon_vault"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_centerVertical="true"
+                        android:src="@drawable/ic_vault"
+                        app:tint="?attr/colorOnSurface" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:layout_toEndOf="@id/icon_vault"
+                        android:layout_marginStart="12dp"
+                        android:fontFamily="@font/sf_pro_medium"
+                        android:text="@string/auto_vault_management_demo_seed"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="16sp" />
+                </RelativeLayout>
+
+                <RelativeLayout
+                    android:id="@+id/row_clear_database"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:background="?attr/selectableItemBackground"
+                    app:layout_constraintTop_toBottomOf="@id/row_vault">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:fontFamily="@font/sf_pro_medium"
+                        android:text="@string/auto_clear_database"
+                        android:textColor="#FF4D4D"
+                        android:textSize="16sp" />
+                </RelativeLayout>
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <!-- Legal & Support Section -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="@drawable/glass_card_bg"
+                android:padding="16dp"
+                android:layout_marginBottom="16dp">
+
+                <TextView
+                    android:id="@+id/header_legal"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/sf_pro_bold"
+                    android:text="@string/auto_legal_and_support"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="18sp"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <RelativeLayout
+                    android:id="@+id/row_terms"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="12dp"
+                    android:background="?attr/selectableItemBackground"
+                    app:layout_constraintTop_toBottomOf="@id/header_legal">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:fontFamily="@font/sf_pro_medium"
+                        android:text="@string/auto_terms_of_use"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="16sp" />
+                </RelativeLayout>
+
+                <RelativeLayout
+                    android:id="@+id/row_privacy"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:background="?attr/selectableItemBackground"
+                    app:layout_constraintTop_toBottomOf="@id/row_terms">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:fontFamily="@font/sf_pro_medium"
+                        android:text="@string/auto_privacy_policy"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="16sp" />
+                </RelativeLayout>
+
+                <RelativeLayout
+                    android:id="@+id/row_help"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:background="?attr/selectableItemBackground"
+                    app:layout_constraintTop_toBottomOf="@id/row_privacy">
+                    <ImageView
+                        android:id="@+id/icon_help"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_centerVertical="true"
+                        android:src="@drawable/ic_help"
+                        app:tint="?attr/colorOnSurface" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:layout_toEndOf="@id/icon_help"
+                        android:layout_marginStart="12dp"
+                        android:fontFamily="@font/sf_pro_medium"
+                        android:text="@string/auto_help_and_faq"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="16sp" />
+                </RelativeLayout>
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+            <RelativeLayout
+                android:id="@+id/btn_about"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:background="@drawable/glass_card_bg"
+                android:paddingHorizontal="16dp">
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_centerVertical="true"
+                    android:fontFamily="@font/sf_pro_bold"
+                    android:text="@string/auto_about_mediavault"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="16sp" />
+            </RelativeLayout>
+
         </LinearLayout>
     </androidx.core.widget.NestedScrollView>
 

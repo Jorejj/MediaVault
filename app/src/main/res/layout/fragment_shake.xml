@@ -30,7 +30,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 style="@style/TextScreenTitle"
-                android:text="Shake to Decide"
+                android:text="@string/auto_shake_to_decide"
                 android:textSize="24sp" />
 
             <TextView
@@ -40,7 +40,7 @@
                 android:layout_marginTop="10dp"
                 style="@style/TextBody"
                 android:gravity="center"
-                android:text="Shake your phone to trigger a random pick from your Plan to Watch list."
+                android:text="@string/auto_shake_your_phone_to_trigger_a_random_pick_from_y"
                 android:textSize="14sp" />
 
             <LinearLayout
@@ -56,7 +56,7 @@
                     android:layout_weight="1"
                     android:background="@drawable/glass_input_bg"
                     android:paddingHorizontal="10dp"
-                    android:contentDescription="Filter by media type" />
+                    android:contentDescription="@string/auto_filter_by_media_type" />
 
                 <Spinner
                     android:id="@+id/spinner_shake_genre"
@@ -66,7 +66,7 @@
                     android:layout_weight="1"
                     android:background="@drawable/glass_input_bg"
                     android:paddingHorizontal="10dp"
-                    android:contentDescription="Filter by genre" />
+                    android:contentDescription="@string/auto_filter_by_genre" />
             </LinearLayout>
 
             <FrameLayout
@@ -107,7 +107,7 @@
         android:layout_width="0dp"
         android:layout_height="56dp"
         android:layout_marginTop="16dp"
-        android:text="Back to Home"
+        android:text="@string/auto_back_to_home"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent" />

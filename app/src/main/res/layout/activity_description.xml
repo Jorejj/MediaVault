@@ -103,6 +103,16 @@
                     tools:text="Action, Adventure" />
             </LinearLayout>
 
+            <TextView
+                android:id="@+id/tv_description_creator"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:textColor="?attr/colorTextSecondary"
+                android:textSize="14sp"
+                android:textStyle="italic"
+                tools:text="By Creator Name" />
+
             <RatingBar
                 android:id="@+id/rb_description_rating"
                 style="?android:attr/ratingBarStyleSmall"
@@ -113,11 +123,24 @@
                 android:stepSize="0.5"
                 android:progressTint="@color/accent_blue" />
 
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_description_consume"
+                style="@style/BlueButton"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="24dp"
+                android:text="@string/auto_start_watching_reading"
+                android:textAllCaps="false"
+                app:cornerRadius="12dp"
+                app:icon="@drawable/ic_movie"
+                app:iconGravity="textStart"
+                app:iconPadding="12dp" />
+
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="24dp"
-                android:text="Description"
+                android:text="@string/auto_description"
                 android:textColor="?attr/colorTextPrimary"
                 android:textSize="18sp"
                 android:textStyle="bold" />
@@ -133,7 +156,7 @@
                 android:maxLines="8"
                 android:scrollbars="vertical"
                 android:fadeScrollbars="false"
-                android:text="Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat." />
+                android:text="@string/auto_lorem_ipsum_dolor_sit_amet_consectetur_adipiscin" />
 
             <com.google.android.material.divider.MaterialDivider
                 android:layout_width="match_parent"
@@ -161,7 +184,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:text="Priority"
+                android:text="@string/auto_priority"
                 android:textColor="?attr/colorTextPrimary"
                 android:textSize="18sp"
                 android:textStyle="bold" />
@@ -179,7 +202,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:text="Finish Mood"
+                android:text="@string/auto_finish_mood"
                 android:textColor="?attr/colorTextPrimary"
                 android:textSize="18sp"
                 android:textStyle="bold" />
@@ -237,7 +260,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="My Review / Comment"
+                android:text="@string/auto_my_review_comment"
                 android:textColor="?attr/colorTextPrimary"
                 android:textSize="18sp"
                 android:textStyle="bold" />
@@ -256,7 +279,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="20dp"
-                android:text="Memory Journal"
+                android:text="@string/auto_memory_journal"
                 android:textColor="?attr/colorTextPrimary"
                 android:textSize="18sp"
                 android:textStyle="bold" />
@@ -293,7 +316,7 @@
                     android:layout_height="56dp"
                     android:layout_weight="1"
                     android:layout_marginEnd="8dp"
-                    android:text="Edit"
+                    android:text="@string/auto_edit"
                     android:textAllCaps="false"
                     app:icon="@drawable/ic_edit_filled"
                     app:iconPadding="8dp" />
@@ -305,11 +328,22 @@
                     android:layout_height="56dp"
                     android:layout_weight="1"
                     android:layout_marginStart="8dp"
-                    android:text="Share"
+                    android:text="@string/auto_share"
                     android:textAllCaps="false"
                     app:icon="@drawable/ic_share_filled"
                     app:iconPadding="8dp" />
             </LinearLayout>
+
+            <Button
+                android:id="@+id/btn_description_update_progress"
+                style="@style/BlueButton"
+                android:layout_width="match_parent"
+                android:layout_height="56dp"
+                android:layout_marginTop="12dp"
+                android:text="@string/auto_update_progress"
+                android:textAllCaps="false"
+                app:icon="@drawable/ic_edit_filled"
+                app:iconPadding="8dp" />
 
             <Button
                 android:id="@+id/btn_description_delete"
@@ -318,7 +352,7 @@
                 android:layout_height="56dp"
                 android:layout_marginTop="16dp"
                 android:textColor="@android:color/holo_red_dark"
-                android:text="Delete Media"
+                android:text="@string/auto_delete_media"
                 android:textAllCaps="false"
                 app:strokeColor="@android:color/holo_red_dark" />
 

@@ -282,7 +282,7 @@
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
-                                android:text="Duration"
+                                android:text="@string/auto_duration"
                                 android:textColor="?attr/colorTextPrimary"
                                 android:textStyle="bold" />
 
@@ -305,7 +305,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="8dp"
-                                android:text="120 min"
+                                android:text="@string/auto_s_120_min"
                                 android:textColor="?attr/colorTextSecondary" />
                         </LinearLayout>
 
@@ -372,7 +372,7 @@
                         android:layout_gravity="center_horizontal"
                         android:layout_marginTop="8dp"
                         android:fontFamily="@font/sf_pro_medium"
-                        android:text="Your rating"
+                        android:text="@string/auto_your_rating"
                         android:textColor="?attr/colorTextPrimary"
                         android:textSize="14sp" />
 
@@ -398,7 +398,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:fontFamily="@font/sf_pro_regular"
-                            android:hint="Description"
+                            android:hint="@string/auto_description"
                             android:autofillHints="none"
                             android:inputType="textMultiLine"
                             android:minLines="3"
@@ -410,7 +410,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:fontFamily="@font/sf_pro_regular"
-                            android:hint="Personal Review"
+                            android:hint="@string/auto_personal_review"
                             android:autofillHints="none"
                             android:inputType="textMultiLine"
                             android:minLines="2"
@@ -427,7 +427,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:fontFamily="@font/sf_pro_regular"
-                            android:hint="Memory Journal"
+                            android:hint="@string/auto_memory_journal"
                             android:autofillHints="none"
                             android:inputType="textMultiLine"
                             android:minLines="2"
@@ -437,7 +437,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Finish Mood"
+                        android:text="@string/auto_finish_mood"
                         android:textStyle="bold"
                         android:textColor="?attr/colorTextPrimary"
                         android:layout_marginBottom="8dp" />
@@ -456,35 +456,35 @@
                             style="@style/Widget.MaterialComponents.Chip.Choice"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Excited" />
+                            android:text="@string/auto_excited" />
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_manual_mood_happy"
                             style="@style/Widget.MaterialComponents.Chip.Choice"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Happy" />
+                            android:text="@string/auto_happy" />
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_manual_mood_neutral"
                             style="@style/Widget.MaterialComponents.Chip.Choice"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Neutral" />
+                            android:text="@string/auto_neutral" />
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_manual_mood_sad"
                             style="@style/Widget.MaterialComponents.Chip.Choice"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Sad" />
+                            android:text="@string/auto_sad" />
 
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chip_manual_mood_mindblown"
                             style="@style/Widget.MaterialComponents.Chip.Choice"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="Mind-blown" />
+                            android:text="@string/auto_mind_blown" />
                     </com.google.android.material.chip.ChipGroup>
 
                     <Spinner
@@ -493,14 +493,14 @@
                         android:layout_height="48dp"
                         android:layout_marginBottom="12dp"
                         android:entries="@array/priority_levels"
-                        android:contentDescription="Priority level" />
+                        android:contentDescription="@string/auto_priority_level" />
 
                     <com.google.android.material.switchmaterial.SwitchMaterial
                         android:id="@+id/switch_manual_favorite"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="12dp"
-                        android:text="Mark as Favorite"
+                        android:text="@string/auto_mark_as_favorite"
                         android:textColor="?attr/colorTextPrimary" />
 
                     <com.google.android.material.textfield.TextInputLayout

@@ -19,8 +19,14 @@ public class SplashActivity extends AppCompatActivity {
         setContentView(R.layout.activity_starting_page);
 
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
-            Intent intent = new Intent(SplashActivity.this, MainActivity.class);
-            startActivity(intent);
+            // Check if onboarding should be shown
+            if (OnboardingActivity.shouldShowOnboarding(this)) {
+                Intent intent = new Intent(SplashActivity.this, OnboardingActivity.class);
+                startActivity(intent);
+            } else {
+                Intent intent = new Intent(SplashActivity.this, MainActivity.class);
+                startActivity(intent);
+            }
             finish();
         }, 3333);
     }

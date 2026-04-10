@@ -10,7 +10,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
-        android:text="Create a collection chip to filter your library."
+        android:text="@string/auto_create_a_collection_chip_to_filter_your_library"
         android:textColor="@color/text_secondary"
         android:fontFamily="@font/sf_pro_regular"
         android:textSize="14sp" />
@@ -20,7 +20,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:hint="Collection Name">
+        android:hint="@string/auto_collection_name">
 
         <com.google.android.material.textfield.TextInputEditText
             android:id="@+id/et_collection_name"
@@ -37,7 +37,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:hint="Media Type (Optional)">
+        android:hint="@string/auto_media_type_optional">
 
         <AutoCompleteTextView
             android:id="@+id/actv_media_type"
@@ -45,7 +45,7 @@
             android:layout_height="wrap_content"
             android:fontFamily="@font/sf_pro_regular"
             android:inputType="none"
-            android:text="Any" />
+            android:text="@string/auto_any" />
 
     </com.google.android.material.textfield.TextInputLayout>
 

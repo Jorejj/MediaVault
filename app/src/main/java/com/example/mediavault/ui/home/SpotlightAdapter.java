@@ -16,6 +16,7 @@ import com.bumptech.glide.Glide;
 import com.example.mediavault.DescriptionActivity;
 import com.example.mediavault.R;
 import com.example.mediavault.ui.library.MediaItem;
+import com.example.mediavault.utils.ProgressValueUtils;
 
 import java.io.File;
 import java.util.List;
@@ -48,12 +49,13 @@ public class SpotlightAdapter extends RecyclerView.Adapter<SpotlightAdapter.Spot
         if (holder.tvStatus != null) {
             String status = item.getStatus() != null ? item.getStatus() : "Unknown";
             String unit = item.getUnit() != null ? item.getUnit() : "";
-            holder.tvStatus.setText(status + " • " + item.getProgress() + "/" + item.getCapacity() + " " + unit);
+            String formattedProgress = ProgressValueUtils.formatForDisplay(item.getProgress(), unit);
+            holder.tvStatus.setText(String.format(java.util.Locale.getDefault(), "%s • %s/%d %s", status, formattedProgress, item.getCapacity(), unit));
         }
         
         if (holder.progressBar != null) {
             holder.progressBar.setMax(Math.max(item.getCapacity(), 1));
-            holder.progressBar.setProgress(item.getProgress());
+            holder.progressBar.setProgress((int) item.getProgress());
         }
 
         if (holder.ivBackground != null) {

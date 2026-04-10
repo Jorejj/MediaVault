@@ -17,4 +17,11 @@ public interface JikanApiService {
             @Query("q") String query,
             @Query("limit") int limit
     );
+
+    @GET("manga")
+    Call<JikanResponse> getMangaByType(
+            @Query("q") String query,
+            @Query("type") String type,
+            @Query("limit") int limit
+    );
 }

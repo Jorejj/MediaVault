@@ -5,6 +5,7 @@ import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -21,7 +22,7 @@ import com.bumptech.glide.request.target.Target;
 import android.graphics.drawable.Drawable;
 import com.example.mediavault.DescriptionActivity;
 import com.example.mediavault.R;
-import com.google.android.material.card.MaterialCardView;
+import com.example.mediavault.utils.ProgressValueUtils;
 
 import java.io.File;
 import java.util.Locale;
@@ -41,20 +42,21 @@ import com.example.mediavault.api.MediaSearchManager;
 
 public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHolder> {
 
-    private List<MediaItem> mediaItems;
-    private OnItemClickListener listener;
-    private DatabaseHelper dbHelper;
-    private MediaSearchManager searchManager;
-
     public interface OnItemClickListener {
         void onItemClick(MediaItem item);
     }
+
+    private List<MediaItem> mediaItems;
+    private DatabaseHelper dbHelper;
+    private MediaSearchManager searchManager;
+    private OnItemClickListener listener;
 
     public MediaAdapter(List<MediaItem> mediaItems) {
         this.mediaItems = mediaItems;
     }
 
-    public void setOnItemClickListener(OnItemClickListener listener) {
+    public MediaAdapter(List<MediaItem> mediaItems, OnItemClickListener listener) {
+        this.mediaItems = mediaItems;
         this.listener = listener;
     }
 
@@ -68,7 +70,7 @@ public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHol
     public MediaViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_media_card, parent, false);
         if (dbHelper == null) {
-            dbHelper = new DatabaseHelper(parent.getContext());
+            dbHelper = DatabaseHelper.getInstance(parent.getContext());
         }
         if (searchManager == null) {
             searchManager = new MediaSearchManager();
@@ -84,11 +86,12 @@ public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHol
         if (holder.rating != null) holder.rating.setText(String.format(Locale.getDefault(), "★ %.1f", item.getRatingValue()));
         if (holder.progressBar != null) {
             int capacity = Math.max(item.getCapacity(), 0);
-            int progress = Math.min(Math.max(item.getProgress(), 0), capacity > 0 ? capacity : 0);
-            holder.progressBar.setMax(capacity > 0 ? capacity : 1);
-            holder.progressBar.setProgress(progress);
+            float progress = Math.min(Math.max(item.getProgress(), 0f), (float) capacity);
+            float normalizedProgress = ProgressValueUtils.normalizeForUnit(progress, item.getUnit());
+            holder.progressBar.setMax(Math.max(capacity, 1));
+            holder.progressBar.setProgress((int) normalizedProgress);
             if (holder.progressText != null) {
-                holder.progressText.setText(progress + "/" + (capacity > 0 ? capacity : 0));
+                holder.progressText.setText(ProgressValueUtils.formatForDisplay(normalizedProgress, item.getUnit()) + "/" + Math.max(capacity, 0));
             }
         }
         styleCardByMediaType(holder, item);
@@ -102,14 +105,14 @@ public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHol
             if (imagePath.startsWith("http")) {
                 final String currentImagePath = imagePath;
                 final int currentId = item.getId();
-                new Thread(() -> {
+                com.example.mediavault.AppExecutor.getInstance().networkIO().execute(() -> {
                     String localPath = com.example.mediavault.ImageUtils.downloadAndSaveImage(holder.poster.getContext(), currentImagePath);
                     if (localPath != null && !localPath.equals(currentImagePath)) {
                         dbHelper.updateImagePath(currentId, localPath);
                         // Update the item object so next bind uses local path
                         item.setCoverPath(localPath);
                     }
-                }).start();
+                });
             }
 
             File imageFile = new File(imagePath);
@@ -121,13 +124,13 @@ public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHol
                     .placeholder(R.color.grey_300)
                     .listener(new RequestListener<Drawable>() {
                         @Override
-                        public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Drawable> target, boolean isFirstResource) {
+                        public boolean onLoadFailed(@Nullable GlideException e, Object model, @NonNull Target<Drawable> target, boolean isFirstResource) {
                             if (holder.pbPosterLoading != null) holder.pbPosterLoading.setVisibility(View.GONE);
                             return false;
                         }
 
                         @Override
-                        public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target, DataSource dataSource, boolean isFirstResource) {
+                        public boolean onResourceReady(@NonNull Drawable resource, @NonNull Object model, Target<Drawable> target, @NonNull DataSource dataSource, boolean isFirstResource) {
                             if (holder.pbPosterLoading != null) holder.pbPosterLoading.setVisibility(View.GONE);
                             return false;
                         }
@@ -143,9 +146,13 @@ public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHol
         }
 
         holder.itemView.setOnClickListener(v -> {
-            Intent intent = new Intent(v.getContext(), DescriptionActivity.class);
-            intent.putExtra(DescriptionActivity.EXTRA_MEDIA_ID, item.getId());
-            v.getContext().startActivity(intent);
+            if (listener != null) {
+                listener.onItemClick(item);
+            } else {
+                Intent intent = new Intent(v.getContext(), DescriptionActivity.class);
+                intent.putExtra(DescriptionActivity.EXTRA_MEDIA_ID, item.getId());
+                v.getContext().startActivity(intent);
+            }
         });
 
         if (holder.btnMoreOptions != null) {
@@ -266,9 +273,7 @@ public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHol
             accentColor = ContextCompat.getColor(holder.itemView.getContext(), R.color.grey_600);
         }
 
-        if (holder.card != null) {
-            holder.card.setStrokeColor(accentColor);
-        }
+        // FrameLayout doesn't have setStrokeColor - visual accent handled by glass_card_bg drawable
         if (holder.subtitle != null) {
             holder.subtitle.setTextColor(accentColor);
         }
@@ -324,7 +329,7 @@ public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHol
     }
 
     static class MediaViewHolder extends RecyclerView.ViewHolder {
-        MaterialCardView card;
+        FrameLayout card;
         ImageView poster;
         ImageView btnMoreOptions;
         TextView title;

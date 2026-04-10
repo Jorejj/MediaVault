@@ -13,8 +13,17 @@ public class JikanResponse {
     }
 
     public static class MediaData {
+        @SerializedName("mal_id")
+        private Integer malId;
+
         @SerializedName("title")
         private String title;
+
+        @SerializedName("title_english")
+        private String titleEnglish;
+
+        @SerializedName("title_japanese")
+        private String titleJapanese;
 
         @SerializedName("episodes")
         private Integer episodes;
@@ -37,7 +46,22 @@ public class JikanResponse {
         @SerializedName("studios")
         private List<GenericEntry> studios; // Used for Anime
 
+        @SerializedName("status")
+        private String status;
+
+        @SerializedName("score")
+        private Float score;
+
+        @SerializedName("popularity")
+        private Integer popularity;
+
+        @SerializedName("year")
+        private Integer year;
+
+        public Integer getMalId() { return malId; }
         public String getTitle() { return title; }
+        public String getTitleEnglish() { return titleEnglish; }
+        public String getTitleJapanese() { return titleJapanese; }
         public Integer getEpisodes() { return episodes; }
         public Integer getChapters() { return chapters; }
         public Images getImages() { return images; }
@@ -45,6 +69,10 @@ public class JikanResponse {
         public List<GenericEntry> getGenresList() { return genres; }
         public List<GenericEntry> getAuthors() { return authors; }
         public List<GenericEntry> getStudios() { return studios; }
+        public String getStatus() { return status; }
+        public Float getScore() { return score; }
+        public Integer getPopularity() { return popularity; }
+        public Integer getYear() { return year; }
 
         /**
          * Returns a comma-separated string of genres (e.g., "Action, Sci-Fi")
@@ -74,6 +102,15 @@ public class JikanResponse {
                 return studios.get(0).getName(); // e.g., "Ufotable"
             }
             return "Unknown Creator";
+        }
+
+        // Backward-compatible aliases used by MediaSearchManager
+        public String getGenresAsString() {
+            return getDisplayGenres();
+        }
+
+        public String getAuthor() {
+            return getCreator();
         }
     }
 

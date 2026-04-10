@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/anchor_container"
+    android:layout_width="64dp"
+    android:layout_height="64dp"
+    android:clipChildren="false"
+    android:clipToPadding="false">
+
+    <!-- Glass Circle Background -->
+    <View
+        android:id="@+id/anchor_background"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="center"
+        android:background="@drawable/glass_pill_bg"
+        android:alpha="0.8" />
+
+    <!-- MediaVault Icon -->
+    <ImageView
+        android:id="@+id/anchor_icon"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
+        android:layout_gravity="center"
+        android:src="@drawable/ic_vault"
+        app:tint="@color/accent_blue" />
+
+    <!-- Activity Pulse Overlay (Hidden by default) -->
+    <View
+        android:id="@+id/anchor_pulse"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="center"
+        android:background="@drawable/glass_pill_bg"
+        android:alpha="0"
+        android:visibility="gone" />
+
+    <!-- Notification Badge Dot -->
+    <View
+        android:id="@+id/anchor_badge"
+        android:layout_width="12dp"
+        android:layout_height="12dp"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="8dp"
+        android:layout_marginEnd="8dp"
+        android:background="@drawable/progress_bar_rounded_orange"
+        android:visibility="gone" />
+
+</FrameLayout>

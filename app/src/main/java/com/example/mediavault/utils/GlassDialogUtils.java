@@ -45,7 +45,7 @@ public class GlassDialogUtils {
     private static void setupDialogBlur(Context context, BlurView blurView, Window window) {
         View decorView = window.getDecorView();
         // The root view of the window
-        ViewGroup rootView = (ViewGroup) decorView.findViewById(android.R.id.content);
+        ViewGroup rootView = decorView.findViewById(android.R.id.content);
         Drawable windowBackground = decorView.getBackground();
 
         int overlayColor = ContextCompat.getColor(context, R.color.glass_surface_color);

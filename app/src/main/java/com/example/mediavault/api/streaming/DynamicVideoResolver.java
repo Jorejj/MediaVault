@@ -2,6 +2,7 @@ package com.example.mediavault.api.streaming;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.util.Log;
 import com.example.mediavault.api.consumet.ConsumetStreamResponse;
 import java.io.IOException;
@@ -47,7 +48,12 @@ public class DynamicVideoResolver {
             throw new IOException("Invalid stream path");
         }
 
-        DynamicScraperApiService apiService = createApi(baseUrl);
+        DynamicScraperApiService apiService;
+        try {
+            apiService = createApi(baseUrl);
+        } catch (IllegalArgumentException invalidBaseUrl) {
+            throw new IOException("Invalid scraper base URL: " + baseUrl, invalidBaseUrl);
+        }
         try {
             Response<ConsumetStreamResponse> response = apiService.getStreamingLinks(normalizedPath).execute();
             if (!response.isSuccessful()) {
@@ -87,16 +93,28 @@ public class DynamicVideoResolver {
         return retrofit.create(DynamicScraperApiService.class);
     }
 
-    private String readActiveBaseUrl() {
+    private String readActiveBaseUrl() throws IOException {
         SharedPreferences prefs = appContext.getSharedPreferences(SCRAPER_PREFS, Context.MODE_PRIVATE);
         String raw = prefs.getString(KEY_ACTIVE_SCRAPER_URL, DEFAULT_SCRAPER_URL);
         if (raw == null || raw.trim().isEmpty()) {
             return DEFAULT_SCRAPER_URL;
         }
         String normalized = raw.trim();
+        if (!normalized.startsWith("http://") && !normalized.startsWith("https://")) {
+            normalized = "https://" + normalized;
+        }
         if (!normalized.endsWith("/")) {
             normalized += "/";
         }
+
+        Uri parsed = Uri.parse(normalized);
+        String scheme = parsed.getScheme();
+        String host = parsed.getHost();
+        if (scheme == null || host == null ||
+                (!"http".equalsIgnoreCase(scheme) && !"https".equalsIgnoreCase(scheme))) {
+            throw new IOException("Invalid scraper base URL configured: " + raw);
+        }
+
         return normalized;
     }
 

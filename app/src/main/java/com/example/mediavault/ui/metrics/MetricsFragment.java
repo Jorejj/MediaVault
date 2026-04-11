@@ -218,9 +218,9 @@ public class MetricsFragment extends Fragment {
             Map<String, Integer> genreCounts = dbHelper.getGenreCounts();
             int[] streakHistory = dbHelper.getRecentGoalHistory(7);
 
-            final float finalPages = pages;
+            final int finalPages = Math.round(pages);
             final double finalHours = hours;
-            final float finalEpisodes = episodes;
+            final int finalEpisodes = Math.round(episodes);
             final int[] finalStreakHistory = streakHistory;
 
             AppExecutor.getInstance().mainThread().execute(() -> {
@@ -295,7 +295,7 @@ public class MetricsFragment extends Fragment {
         }
     }
 
-    private void renderHabitChart(float pages, double hours, float episodes) {
+    private void renderHabitChart(int pages, double hours, int episodes) {
         double roundedHours = Math.round(hours * 10.0) / 10.0;
         double maxVal = Math.max(pages, Math.max(roundedHours, episodes));
         String maxAttr = maxVal == 0 ? "max: 10," : "";
@@ -308,8 +308,8 @@ public class MetricsFragment extends Fragment {
                 "xAxis: { categories: ['Pages', 'Hours', 'Episodes'], lineColor: '" + chartTextSecondaryHex + "', tickColor: '" + chartTextSecondaryHex + "', labels: { style: { color: '" + chartTextPrimaryHex + "', fontSize: '12px', fontWeight: '600' } } }," +
                 "yAxis: { type: 'linear', min: 0, " + maxAttr + " allowDecimals: true, title: { text: '' }, gridLineColor: '" + chartGridLineHex + "', labels: { style: { color: '" + chartTextSecondaryHex + "', fontSize: '12px' }, formatter: function() { var v = this.value; if (v >= 1000000000) return (v / 1000000000).toFixed(1).replace('.0','') + 'B'; if (v >= 1000000) return (v / 1000000).toFixed(1).replace('.0','') + 'M'; if (v >= 1000) return (v / 1000).toFixed(1).replace('.0','') + 'k'; return v; } } }," +
                 "tooltip: { enabled: true, shared: true, useHTML: true, followTouchMove: true, backgroundColor: '" + chartTooltipBackgroundHex + "', borderColor: '" + chartAccentHex + "', style: { color: '" + chartTooltipTextHex + "', fontSize: '13px' }, " +
-                "formatter: function() { var val = this.points[0].y; return 'Progress: <b>' + val + '</b> ' + String(this.points[0].key).toLowerCase(); } }," +
-                "plotOptions: { column: { depth: 30, borderWidth: 0, borderRadius: 5, pointPadding: 0.14, groupPadding: 0.2, maxPointWidth: 56, stickyTracking: false, dataLabels: { enabled: true, color: '" + (chartTextPrimaryHex.equals("#000000") ? "#000000" : "#FFFFFF") + "', inside: false, style: { textOutline: 'none', fontSize: '11px' }, formatter: function() { return this.y; } } } }," +
+                "formatter: function() { var key = String(this.points[0].key); var val = this.points[0].y; if (key === 'Hours') { val = Number(val).toFixed(1).replace('.0',''); } else { val = Math.round(val); } return 'Progress: <b>' + val + '</b> ' + key.toLowerCase(); } }," +
+                "plotOptions: { column: { depth: 30, borderWidth: 0, borderRadius: 5, pointPadding: 0.14, groupPadding: 0.2, maxPointWidth: 56, stickyTracking: false, dataLabels: { enabled: true, color: '" + (chartTextPrimaryHex.equals("#000000") ? "#000000" : "#FFFFFF") + "', inside: false, style: { textOutline: 'none', fontSize: '11px' }, formatter: function() { var key = String(this.point.category); if (key === 'Hours') { return Number(this.y).toFixed(1).replace('.0',''); } return Math.round(this.y); } } } }," +
                 "series: [{ name: 'Progress', data: [" + pages + ", " + roundedHours + ", " + episodes + "], color: '" + chartAccentHex + "' }]," +
                 "responsive: { rules: [{ condition: { maxWidth: 360 }, chartOptions: { chart: { marginLeft: 40, marginBottom: 42 }, xAxis: { labels: { style: { fontSize: '11px' } } }, yAxis: { labels: { style: { fontSize: '11px' } } } } }] }" +
                 "}";

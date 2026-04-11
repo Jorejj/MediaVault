@@ -3,16 +3,16 @@ package com.example.mediavault.api.search.service;
 import com.example.mediavault.api.search.model.AniListSearchResponse;
 
 import retrofit2.Call;
-import retrofit2.http.GET;
-import retrofit2.http.Query;
+import retrofit2.http.Body;
+import retrofit2.http.POST;
+import java.util.Map;
 
 /**
- * AniList GraphQL query endpoint using GET with query/variables.
+ * AniList GraphQL query endpoint using POST with body payload.
  */
 public interface AniListSearchApiService {
-    @GET("/")
+    @POST("/")
     Call<AniListSearchResponse> searchAnime(
-            @Query("query") String graphQlQuery,
-            @Query("variables") String variablesJson
+            @Body Map<String, Object> body
     );
 }

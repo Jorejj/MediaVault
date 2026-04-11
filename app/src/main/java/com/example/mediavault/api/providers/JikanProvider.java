@@ -31,6 +31,7 @@ public class JikanProvider implements MediaProvider {
     private static final String JIKAN_BASE_URL = "https://api.jikan.moe/v4/";
     private static final String GOGOANIME_BASE_URL = "https://aniwatchtv.to/";
     private static final int TIMEOUT_SECONDS = 15;
+    private static final int MAX_EPISODE_PAGES = 100;
     
     // GogoAnime URL patterns
     private static final Pattern STREAMING_PATTERN = Pattern.compile(
@@ -150,7 +151,7 @@ public class JikanProvider implements MediaProvider {
             int page = 1;
             boolean hasMore = true;
             
-            while (hasMore) {
+            while (hasMore && page <= MAX_EPISODE_PAGES) {
                 // Rate limit: 3 req/sec
                 if (page > 1) {
                     Thread.sleep(350);
@@ -180,9 +181,10 @@ public class JikanProvider implements MediaProvider {
                 hasMore = epResponse.body().getPagination() != null && 
                           epResponse.body().getPagination().hasNextPage();
                 page++;
-                
-                // Safety limit
-                if (page > 10) break;
+            }
+
+            if (hasMore && page > MAX_EPISODE_PAGES) {
+                Log.w(TAG, "Episode pagination stopped at safety limit: " + MAX_EPISODE_PAGES + " pages");
             }
             
             Log.d(TAG, "Fetched " + allEpisodes.size() + " episodes");

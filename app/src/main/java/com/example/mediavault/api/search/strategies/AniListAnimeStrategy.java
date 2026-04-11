@@ -5,7 +5,6 @@ import com.example.mediavault.api.search.ProviderHttpException;
 import com.example.mediavault.api.search.UniversalMediaResult;
 import com.example.mediavault.api.search.model.AniListSearchResponse;
 import com.example.mediavault.api.search.service.AniListSearchApiService;
-import com.google.gson.Gson;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -27,7 +26,6 @@ public class AniListAnimeStrategy implements MediaSearchStrategy {
                     "} } }";
 
     private final AniListSearchApiService apiService;
-    private final Gson gson = new Gson();
 
     public AniListAnimeStrategy() {
         this(SearchRetrofitFactory.create(BASE_URL));
@@ -39,12 +37,14 @@ public class AniListAnimeStrategy implements MediaSearchStrategy {
 
     @Override
     public List<UniversalMediaResult> executeSearch(String query) throws IOException {
+        Map<String, Object> bodyMap = new HashMap<>();
+        bodyMap.put("query", SEARCH_QUERY);
         Map<String, String> variables = new HashMap<>();
         variables.put("search", query);
-        String variablesJson = gson.toJson(variables);
+        bodyMap.put("variables", variables);
 
         Response<AniListSearchResponse> response = apiService
-                .searchAnime(SEARCH_QUERY, variablesJson)
+                .searchAnime(bodyMap)
                 .execute();
 
         if (!response.isSuccessful()) {

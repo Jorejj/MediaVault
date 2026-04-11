@@ -1,5 +1,6 @@
 package com.example.mediavault;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.graphics.Typeface;
 import android.view.View;
@@ -77,7 +78,9 @@ public class SeriesDetailsActivity extends AppCompatActivity {
             
             runOnUiThread(() -> {
                 adapter = new MediaAdapter(contentList, item -> {
-                    // Navigate to appropriate player/reader based on type
+                    Intent intent = new Intent(SeriesDetailsActivity.this, DescriptionActivity.class);
+                    intent.putExtra(DescriptionActivity.EXTRA_MEDIA_ID, item.getId());
+                    startActivity(intent);
                 });
                 recyclerView.setAdapter(adapter);
             });
@@ -87,7 +90,9 @@ public class SeriesDetailsActivity extends AppCompatActivity {
     private void setupResumeButton() {
         MaterialButton btnResume = findViewById(R.id.btn_series_resume);
         btnResume.setOnClickListener(v -> {
-            // Logic to find the last-watched episode and resume
+            Intent intent = new Intent(SeriesDetailsActivity.this, DescriptionActivity.class);
+            intent.putExtra(DescriptionActivity.EXTRA_MEDIA_ID, seriesItem.getId());
+            startActivity(intent);
         });
     }
 }

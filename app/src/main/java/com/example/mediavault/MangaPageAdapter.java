@@ -1,6 +1,7 @@
 package com.example.mediavault;
 
 import android.content.Context;
+import android.graphics.drawable.Drawable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -8,11 +9,16 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.DataSource;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import com.bumptech.glide.load.engine.GlideException;
+import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.request.RequestOptions;
+import com.bumptech.glide.request.target.Target;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -59,11 +65,22 @@ public class MangaPageAdapter extends RecyclerView.Adapter<MangaPageAdapter.Page
         Glide.with(context)
                 .load(pageUrl)
                 .apply(options)
+                .listener(new RequestListener<Drawable>() {
+                    @Override
+                    public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Drawable> target, boolean isFirstResource) {
+                        holder.progressBar.setVisibility(View.GONE);
+                        holder.imageView.setVisibility(View.VISIBLE);
+                        return false;
+                    }
+
+                    @Override
+                    public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target, DataSource dataSource, boolean isFirstResource) {
+                        holder.progressBar.setVisibility(View.GONE);
+                        holder.imageView.setVisibility(View.VISIBLE);
+                        return false;
+                    }
+                })
                 .into(holder.imageView);
-        
-        // Hide spinner when loaded (Glide handles this automatically via placeholder/error)
-        holder.progressBar.setVisibility(View.GONE);
-        holder.imageView.setVisibility(View.VISIBLE);
     }
     
     @Override

@@ -52,6 +52,7 @@ public class FloatingAssistantManager {
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     private final Runnable hideLegacyRunnable = this::hideSync;
     private final Runnable collapsePillRunnable = this::collapseNotificationPill;
+    private final Runnable dismissContextMenuRunnable = this::dismissContextMenu;
     
     private boolean isLegacyAttached = false;
     private boolean isAnchorAttached = false;
@@ -308,6 +309,7 @@ public class FloatingAssistantManager {
     }
 
     private void expandNotificationPill(String text, int actionIcon, View.OnClickListener action) {
+        mainHandler.removeCallbacks(collapsePillRunnable);
         if (isPillExpanded || notificationPill != null) {
             dismissNotificationPillImmediate();
         }
@@ -340,7 +342,7 @@ public class FloatingAssistantManager {
             isPillExpanded = true;
 
             notificationPill.setTranslationY(-12f);
-            notificationPill.animate().alpha(1f).translationY(0f).setDuration(240).start();
+            notificationPill.animate().alpha(1f).translationY(0f).setDuration(140).start();
             mainHandler.postDelayed(collapsePillRunnable, 6000);
             Log.d(TAG, "Notification pill shown: " + text);
         } catch (Exception e) {
@@ -349,23 +351,14 @@ public class FloatingAssistantManager {
     }
 
     private void collapseNotificationPill() {
+        mainHandler.removeCallbacks(collapsePillRunnable);
         if (!isPillExpanded || notificationPill == null) {
             return;
         }
         View pillToRemove = notificationPill;
         notificationPill = null;
         isPillExpanded = false;
-        try {
-            pillToRemove.animate()
-                    .alpha(0f)
-                    .translationY(-12f)
-                    .setDuration(220)
-                    .withEndAction(() -> removeNotificationPillImmediate(pillToRemove))
-                    .start();
-        } catch (Exception e) {
-            Log.w(TAG, "Failed to animate notification pill collapse", e);
-            removeNotificationPillImmediate(pillToRemove);
-        }
+        removeNotificationPillImmediate(pillToRemove);
     }
 
     private void showLegacyUpdate(int mediaId, String title, float next, float prev) {
@@ -539,7 +532,7 @@ public class FloatingAssistantManager {
         // Color-code based on context type
         int color;
         switch (context.type) {
-            case BOOK_DETAIL:
+            case MEDIA_DETAIL:
                 color = 0xFF2ECC71; // Green - book detected
                 if (anchorIcon instanceof android.widget.ImageView) {
                     ((android.widget.ImageView) anchorIcon).setColorFilter(color);
@@ -592,7 +585,7 @@ public class FloatingAssistantManager {
         }
         
         if (currentContext != null
-                && currentContext.type == ScreenContextDetector.ScreenType.BOOK_DETAIL
+                && currentContext.type == ScreenContextDetector.ScreenType.MEDIA_DETAIL
                 && !isDetectedTitleDismissed(currentContext.extractedTitle)) {
             // Book detail detected - show context menu with detected title
             Log.d("FloatingAssistant", "Showing menu with detected title: " + currentContext.extractedTitle);
@@ -681,7 +674,8 @@ public class FloatingAssistantManager {
             isContextMenuShowing = true;
             
             // Auto-dismiss after 10 seconds
-            mainHandler.postDelayed(this::dismissContextMenu, 10000);
+            mainHandler.removeCallbacks(dismissContextMenuRunnable);
+            mainHandler.postDelayed(dismissContextMenuRunnable, 10000);
         } catch (Exception e) {
             Log.e("FloatingAssistant", "Failed to show context menu", e);
         }
@@ -691,6 +685,7 @@ public class FloatingAssistantManager {
      * Dismiss the context menu.
      */
     private void dismissContextMenu() {
+        mainHandler.removeCallbacks(dismissContextMenuRunnable);
         if (isContextMenuShowing && contextMenu != null) {
             View menuToRemove = contextMenu;
             contextMenu = null;
@@ -700,6 +695,7 @@ public class FloatingAssistantManager {
     }
 
     private void dismissNotificationPillImmediate() {
+        mainHandler.removeCallbacks(collapsePillRunnable);
         if (notificationPill != null) {
             View pillToRemove = notificationPill;
             notificationPill = null;
@@ -884,6 +880,14 @@ public class FloatingAssistantManager {
             return;
         }
         try {
+            try {
+                view.animate().cancel();
+            } catch (Exception ignored) {
+            }
+            view.clearAnimation();
+            view.setAlpha(1f);
+            view.setTranslationX(0f);
+            view.setTranslationY(0f);
             windowManager.removeViewImmediate(view);
         } catch (Exception e) {
             Log.w(TAG, "Failed to remove " + surface, e);

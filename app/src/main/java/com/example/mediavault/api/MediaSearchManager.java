@@ -8,6 +8,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 import com.example.mediavault.AppExecutor;
+import com.example.mediavault.BuildConfig;
 import com.example.mediavault.DatabaseHelper;
 import com.example.mediavault.ImageUtils;
 
@@ -21,8 +22,6 @@ import retrofit2.converter.gson.GsonConverterFactory;
 
 public class MediaSearchManager {
     private static final String TAG = "MediaSearchManager";
-    private static final String TMDB_API_KEY = "b839069f4d8893e2d87c422727980edc";
-    private static final String GOOGLE_BOOKS_API_KEY = "AIzaSyDeiOakIZXHccHCWrwYlxaEzANla_4nyy4";
 
     private final Retrofit jikanRetrofit;
     private final Retrofit googleBooksRetrofit;
@@ -66,6 +65,14 @@ public class MediaSearchManager {
                 .client(okHttpClient)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
+    }
+
+    private boolean hasTmdbApiKey() {
+        return BuildConfig.TMDB_API_KEY != null && !BuildConfig.TMDB_API_KEY.trim().isEmpty();
+    }
+
+    private boolean hasGoogleBooksApiKey() {
+        return BuildConfig.GOOGLE_BOOKS_API_KEY != null && !BuildConfig.GOOGLE_BOOKS_API_KEY.trim().isEmpty();
     }
 
     public void searchAndDownloadImage(Context context, int mediaId, String title, String type) {
@@ -188,8 +195,14 @@ public class MediaSearchManager {
     }
 
     private void enrichTmdbMetadata(Context context, int mediaId, String title, boolean isMovie) {
+        if (!hasTmdbApiKey()) {
+            Log.w(TAG, "TMDB API key missing; skipping TMDB metadata enrichment");
+            return;
+        }
         TmdbApiService service = tmdbRetrofit.create(TmdbApiService.class);
-        Call<TmdbResponse> call = isMovie ? service.searchMovies(TMDB_API_KEY, title) : service.searchTv(TMDB_API_KEY, title);
+        Call<TmdbResponse> call = isMovie
+                ? service.searchMovies(BuildConfig.TMDB_API_KEY, title)
+                : service.searchTv(BuildConfig.TMDB_API_KEY, title);
         
         call.enqueue(new Callback<TmdbResponse>() {
             @Override
@@ -230,8 +243,12 @@ public class MediaSearchManager {
     }
 
     private void fetchTvDetailsAndEnrich(Context context, int mediaId, TmdbResponse.TmdbItem item, String imageUrl) {
+        if (!hasTmdbApiKey()) {
+            Log.w(TAG, "TMDB API key missing; skipping TV details enrichment");
+            return;
+        }
         TmdbApiService service = tmdbRetrofit.create(TmdbApiService.class);
-        service.getTvDetails(item.getId(), TMDB_API_KEY).enqueue(new Callback<TvDetailResponse>() {
+        service.getTvDetails(item.getId(), BuildConfig.TMDB_API_KEY).enqueue(new Callback<TvDetailResponse>() {
             @Override
             public void onResponse(@NonNull Call<TvDetailResponse> call, @NonNull Response<TvDetailResponse> response) {
                 if (response.isSuccessful() && response.body() != null) {
@@ -268,8 +285,12 @@ public class MediaSearchManager {
     }
 
     private void enrichBookMetadata(Context context, int mediaId, String title) {
+        if (!hasGoogleBooksApiKey()) {
+            Log.w(TAG, "Google Books API key missing; skipping Google Books metadata enrichment");
+            return;
+        }
         GoogleBooksApiService service = googleBooksRetrofit.create(GoogleBooksApiService.class);
-        service.getBooks(title, GOOGLE_BOOKS_API_KEY).enqueue(new Callback<GoogleBooksResponse>() {
+        service.getBooks(title, BuildConfig.GOOGLE_BOOKS_API_KEY).enqueue(new Callback<GoogleBooksResponse>() {
             @Override
             public void onResponse(@NonNull Call<GoogleBooksResponse> call, @NonNull Response<GoogleBooksResponse> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().getItems() != null && !response.body().getItems().isEmpty()) {
@@ -446,9 +467,13 @@ public class MediaSearchManager {
     }
 
     private void searchBookImage(Context context, int mediaId, String title) {
+        if (!hasGoogleBooksApiKey()) {
+            searchOpenLibraryImage(context, mediaId, title);
+            return;
+        }
         // Try Google Books first
         GoogleBooksApiService service = googleBooksRetrofit.create(GoogleBooksApiService.class);
-        service.getBooks(title, GOOGLE_BOOKS_API_KEY).enqueue(new Callback<GoogleBooksResponse>() {
+        service.getBooks(title, BuildConfig.GOOGLE_BOOKS_API_KEY).enqueue(new Callback<GoogleBooksResponse>() {
             @Override
             public void onResponse(@NonNull Call<GoogleBooksResponse> call, @NonNull Response<GoogleBooksResponse> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().getItems() != null && !response.body().getItems().isEmpty()) {
@@ -498,8 +523,14 @@ public class MediaSearchManager {
     }
 
     private void searchTmdbImage(Context context, int mediaId, String title, boolean isMovie) {
+        if (!hasTmdbApiKey()) {
+            Log.w(TAG, "TMDB API key missing; skipping TMDB image search");
+            return;
+        }
         TmdbApiService service = tmdbRetrofit.create(TmdbApiService.class);
-        Call<TmdbResponse> call = isMovie ? service.searchMovies(TMDB_API_KEY, title) : service.searchTv(TMDB_API_KEY, title);
+        Call<TmdbResponse> call = isMovie
+                ? service.searchMovies(BuildConfig.TMDB_API_KEY, title)
+                : service.searchTv(BuildConfig.TMDB_API_KEY, title);
         
         call.enqueue(new Callback<TmdbResponse>() {
             @Override
@@ -521,9 +552,13 @@ public class MediaSearchManager {
     }
 
     private void searchSeriesImage(Context context, int mediaId, String title) {
+        if (!hasTmdbApiKey()) {
+            searchTvMazeImage(context, mediaId, title);
+            return;
+        }
         // Try TMDB first, then TVMaze as fallback
         TmdbApiService service = tmdbRetrofit.create(TmdbApiService.class);
-        service.searchTv(TMDB_API_KEY, title).enqueue(new Callback<TmdbResponse>() {
+        service.searchTv(BuildConfig.TMDB_API_KEY, title).enqueue(new Callback<TmdbResponse>() {
             @Override
             public void onResponse(@NonNull Call<TmdbResponse> call, @NonNull Response<TmdbResponse> response) {
                 if (response.isSuccessful() && response.body() != null && response.body().getResults() != null && !response.body().getResults().isEmpty()) {

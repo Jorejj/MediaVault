@@ -85,6 +85,8 @@ public class FloatingWidgetManager {
     private int pendingDetectedTotalChapters = 0;
     private String pendingDetectedDescription = null;
     
+    private String pendingDetectedMediaType = null;
+    
     // Ignored titles with timestamps
     private final Map<String, Long> ignoredTitles = new HashMap<>();
     
@@ -304,6 +306,7 @@ public class FloatingWidgetManager {
                 pendingDetectedAuthor = null;
                 pendingDetectedTotalChapters = 0;
                 pendingDetectedDescription = null;
+                pendingDetectedMediaType = null;
                 scheduleAutoFade();
                 break;
                 
@@ -364,15 +367,15 @@ public class FloatingWidgetManager {
      * Show detection prompt with title
      */
     public void showDetectionPrompt(String title, String progress) {
-        showDetectionPrompt(title, progress, -1, null, 0f, null, 0, null);
+        showDetectionPrompt(title, progress, -1, null, 0f, null, 0, null, null);
     }
 
     public void showDetectionPrompt(String title, String progress, int mediaId, String packageName, float detectedProgress) {
-        showDetectionPrompt(title, progress, mediaId, packageName, detectedProgress, null, 0, null);
+        showDetectionPrompt(title, progress, mediaId, packageName, detectedProgress, null, 0, null, null);
     }
 
     public void showDetectionPrompt(String title, String progress, int mediaId, String packageName, float detectedProgress, String detectedAuthor, int detectedTotalChapters) {
-        showDetectionPrompt(title, progress, mediaId, packageName, detectedProgress, detectedAuthor, detectedTotalChapters, null);
+        showDetectionPrompt(title, progress, mediaId, packageName, detectedProgress, detectedAuthor, detectedTotalChapters, null, null);
     }
 
     public void showDetectionPrompt(
@@ -383,7 +386,8 @@ public class FloatingWidgetManager {
             float detectedProgress,
             String detectedAuthor,
             int detectedTotalChapters,
-            String detectedDescription
+            String detectedDescription,
+            String detectedMediaType
     ) {
         if (Looper.myLooper() != Looper.getMainLooper()) {
             final String nextTitle = title;
@@ -394,6 +398,7 @@ public class FloatingWidgetManager {
             final String nextDetectedAuthor = detectedAuthor;
             final int nextDetectedTotalChapters = detectedTotalChapters;
             final String nextDetectedDescription = detectedDescription;
+            final String nextDetectedMediaType = detectedMediaType;
             fadeHandler.post(() -> showDetectionPrompt(
                     nextTitle,
                     nextProgress,
@@ -402,7 +407,8 @@ public class FloatingWidgetManager {
                     nextDetectedProgress,
                     nextDetectedAuthor,
                     nextDetectedTotalChapters,
-                    nextDetectedDescription
+                    nextDetectedDescription,
+                    nextDetectedMediaType
             ));
             return;
         }
@@ -432,6 +438,7 @@ public class FloatingWidgetManager {
         pendingDetectedAuthor = detectedAuthor;
         pendingDetectedTotalChapters = Math.max(0, detectedTotalChapters);
         pendingDetectedDescription = detectedDescription;
+        pendingDetectedMediaType = detectedMediaType;
         String displayTitle = pendingTitle;
         if (pendingMediaId > 0) {
             String canonical = databaseHelper.getPreferredDisplayTitle(pendingMediaId);
@@ -595,6 +602,9 @@ public class FloatingWidgetManager {
             intent.putExtra("FROM_TRACKER", true);
             intent.putExtra("TRACKER_PACKAGE", pendingPackageName);
             String inferredType = inferTrackerTypeFromPackage(pendingPackageName);
+            if (TextUtils.isEmpty(inferredType) && !TextUtils.isEmpty(pendingDetectedMediaType)) {
+                inferredType = pendingDetectedMediaType;
+            }
             if (!TextUtils.isEmpty(inferredType)) {
                 intent.putExtra("PREFILL_TYPE_HINT", inferredType);
             }

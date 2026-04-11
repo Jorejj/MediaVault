@@ -17,16 +17,19 @@ import java.util.regex.Pattern;
 public class ScreenContextDetector {
     private static final String TAG = "ScreenContextDetector";
     private static final Pattern CHAPTER_LINE_PATTERN = Pattern.compile("(?i).*\\b(chapter|ch\\.?|episode|ep\\.?)\\s*\\d+.*");
-    private static final Pattern WEBNOVEL_DETAIL_SIGNAL_PATTERN = Pattern.compile("(?i).*(read\\s*now|add\\s*to\\s*library|contents|chapters?\\s+updated|by\\s+\\w+|novel\\s*[·•\\-]).*");
-    private static final Pattern AUTHOR_PATTERN = Pattern.compile("(?i)^by\\s+(.+)$");
-    private static final Pattern TOTAL_CHAPTERS_PATTERN = Pattern.compile("(?i)(\\d{1,3}(?:[\\,\\.]\\d{3})*|\\d{1,5})\\s+chapters?");
+    private static final Pattern WEBNOVEL_DETAIL_SIGNAL_PATTERN = Pattern.compile("(?i).*(read\\s*now|add\\s*to\\s*library|contents|chapters?\\s+updated|by\\s+\\w+|novel\\s*[·•\\-]|episodes?|synopsis|summary).*");
+    private static final Pattern AUTHOR_PATTERN = Pattern.compile("(?i)^(?:by|author|creator|artist)\\s*[:\\-]?(.*)$");
+    private static final Pattern TOTAL_CHAPTERS_PATTERN = Pattern.compile("(?i)(\\d{1,3}(?:[\\,\\.]\\d{3})*|\\d{1,5})\\s+(?:chapters?|episodes?)");
     private static final Pattern CHAPTER_PROGRESS_PATTERN = Pattern.compile("(?i)\\b(?:chapter|ch\\.?|episode|ep\\.?)\\s*(\\d+(?:[\\.\\-]\\d+)?)");
-    private static final Pattern WEBNOVEL_ACTION_PATTERN = Pattern.compile("(?i).*(read\\s*now|start\\s*reading|continue\\s*reading|add\\s*to\\s*library|contents?).*");
-    private static final Pattern WEBNOVEL_STATS_PATTERN = Pattern.compile("(?i).*(\\d{1,5}\\s+chapters?(?:\\s+updated)?|\\d+(?:[\\.,]\\d+)?\\s*[kmb]?\\s*(views?|votes?)|novel\\s*[·•\\-]).*");
+    private static final Pattern MEDIA_ACTION_PATTERN = Pattern.compile("(?i).*(read\\s*now|start\\s*reading|continue\\s*reading|add\\s*to\\s*library|watch\\s*now|play\\s*now|start\\s*watching|continue\\s*watching|add\\s*to\\s*watchlist|watchlist|subscribe|favorite|contents?|episodes?|chapters?|catalog|volumes?).*");
+    private static final Pattern WEBNOVEL_STATS_PATTERN = Pattern.compile("(?i).*(\\d{1,5}\\s+(?:chapters?|episodes?)(?:\\s+updated)?|\\d+(?:[\\.,]\\d+)?\\s*[kmb]?\\s*(views?|votes?|likes?|reviews?)|novel\\s*[·•\\-]).*");
     private static final Pattern CHAPTER_ROW_PREFIX_PATTERN = Pattern.compile("^\\s*\\d{1,5}(?:[\\.:\\-)]\\s*|\\s+).+");
-    private static final Pattern DETAIL_NOISE_PATTERN = Pattern.compile("(?i).*(comments?|reviews?|views?|votes?|collections?|downloads?|rank\\s*#?\\d+).*");
+    private static final Pattern DETAIL_NOISE_PATTERN = Pattern.compile("(?i).*(comments?|reviews?|views?|votes?|collections?|downloads?|rank\\s*#?\\d+|ratings?|stars?|sub\\b|dub\\b|release\\s*date|status|type).*");
     private static final Pattern AUTH_UI_PATTERN = Pattern.compile("(?i).*(log\\s*in|login|sign\\s*in|sign\\s*up|register|create\\s+account|continue\\s+with|google|facebook|apple\\s*id|phone\\s*number|verification\\s*code|otp|captcha).*");
-    private static final Pattern GENERIC_UI_PHRASE_PATTERN = Pattern.compile("(?i).*(more options?|options|share|report|follow|bookmark|bookmarks|notification|notifications|discover|recommended|popular|latest|trending|all\\s+genres?|genres?|fanfic|movies?|series|tv\\s*shows?|media\\s*content|content\\s*hub).*");
+    private static final Pattern GENERIC_UI_PHRASE_PATTERN = Pattern.compile("(?i).*(more options?|options|share|report|follow|bookmark|bookmarks|notification|notifications|discover|recommended|popular|latest|trending|all\\s+genres?|genres?|fanfic|movies?|series|tv\\s*shows?|media\\s*content|content\\s*hub|home|explore|library|search|profile|settings).*");
+    private static final Pattern STATUS_SOURCE_LINE_PATTERN = Pattern.compile("(?i)^(?:ongoing|completed|hiatus|cancelled|canceled|dropped|publishing|finished)(?:\\s*[·•\\-]\\s*[\\p{L}\\p{M}\\d][\\p{L}\\p{M}\\d\\s\\.,'’:_&\\-]{1,60})?$");
+    private static final Pattern DETAIL_TAB_PATTERN = Pattern.compile("(?i)^(?:in\\s+library|soon|tracking|webview|overview|details|chapters?|related|similar|description|reviews?)$");
+    private static final Pattern AUTHOR_LIST_PATTERN = Pattern.compile("^[\\p{L}\\p{M}][\\p{L}\\p{M}'’\\-. ]{0,30}(?:,\\s*[\\p{L}\\p{M}][\\p{L}\\p{M}'’\\-. ]{0,30}){1,4}$");
     private static final Pattern DESCRIPTION_CANDIDATE_PATTERN = Pattern.compile("(?i).*[a-z]{3,}.*[\\.,!?].*");
     private static final Set<String> GENRE_CHIP_TERMS = new HashSet<>(Arrays.asList(
             "novel", "webnovel", "book", "genre", "genres", "fantasy", "action", "adventure",
@@ -35,13 +38,15 @@ public class ScreenContextDetector {
             "thriller", "magic", "supernatural", "system", "urban", "school", "xianxia", "wuxia",
             "fanfic", "fanfiction", "movie", "movies", "film", "films", "tv", "show", "shows",
             "series", "anime", "manga", "manhwa", "manhua", "comic", "comics", "webtoon",
-            "media", "content", "novels", "chapter", "chapters", "latest", "popular", "trending"
+            "media", "content", "novels", "chapter", "chapters", "latest", "popular", "trending",
+            "ongoing", "completed", "status", "author", "creator", "artist", "tracking", "webview",
+            "library", "bookmark", "soon"
     ));
 
     public enum ScreenType {
-        BOOK_DETAIL,        // Book description/info page
-        CHAPTER_READING,    // Active chapter reading
-        LIBRARY_LIST,       // List of books
+        MEDIA_DETAIL,       // Media description/info page
+        CHAPTER_READING,    // Active chapter reading / video watching
+        LIBRARY_LIST,       // List of books/media
         SEARCH_RESULTS,     // Search results
         UNKNOWN
     }
@@ -53,18 +58,24 @@ public class ScreenContextDetector {
         public final float extractedProgress;
         public final String author;
         public final int totalChapters;
+        public final String detectedMediaType; // e.g., "Manga", "Anime", "Book"
 
         public ScreenContext(ScreenType type, String extractedTitle, String additionalInfo) {
-            this(type, extractedTitle, additionalInfo, -1f, null, 0);
+            this(type, extractedTitle, additionalInfo, -1f, null, 0, null);
         }
 
         public ScreenContext(ScreenType type, String extractedTitle, String additionalInfo, float extractedProgress, String author, int totalChapters) {
+            this(type, extractedTitle, additionalInfo, extractedProgress, author, totalChapters, null);
+        }
+
+        public ScreenContext(ScreenType type, String extractedTitle, String additionalInfo, float extractedProgress, String author, int totalChapters, String detectedMediaType) {
             this.type = type;
             this.extractedTitle = extractedTitle;
             this.additionalInfo = additionalInfo;
             this.extractedProgress = extractedProgress;
             this.author = author;
             this.totalChapters = totalChapters;
+            this.detectedMediaType = detectedMediaType;
         }
     }
 
@@ -76,75 +87,119 @@ public class ScreenContextDetector {
             return new ScreenContext(ScreenType.UNKNOWN, null, null);
         }
 
-        // Check for book detail indicators (prioritized when strong detail signals exist)
-        if (isBookDetailScreen(textNodes)) {
+        String detectedMediaType = inferMediaType(textNodes);
+
+        // Check for media detail indicators (prioritized when strong detail signals exist)
+        if (isMediaDetailScreen(textNodes)) {
             String title = extractTitleFromDetail(textNodes);
             String description = extractDescriptionFromDetail(textNodes, title);
             String author = extractAuthor(textNodes);
             int totalChapters = extractTotalChapters(textNodes);
             return new ScreenContext(
-                    ScreenType.BOOK_DETAIL,
+                    ScreenType.MEDIA_DETAIL,
                     title,
-                    (description != null && !description.trim().isEmpty()) ? description : "Book detail page",
+                    (description != null && !description.trim().isEmpty()) ? description : "Media detail page",
                     -1f,
                     author,
-                    totalChapters
+                    totalChapters,
+                    detectedMediaType
             );
         }
 
-        // Check for chapter reading patterns
-        if (isChapterReadingScreen(textNodes)) {
+        // Check for reading/watching patterns
+        if (isReadingOrWatchingScreen(textNodes)) {
             float progress = extractChapterProgress(textNodes);
-            return new ScreenContext(ScreenType.CHAPTER_READING, null, "Chapter reading", progress, null, 0);
+            return new ScreenContext(ScreenType.CHAPTER_READING, null, "Currently active", progress, null, 0, detectedMediaType);
         }
 
         // Check for library list
         if (isLibraryListScreen(textNodes)) {
-            return new ScreenContext(ScreenType.LIBRARY_LIST, null, "Library list");
+            return new ScreenContext(ScreenType.LIBRARY_LIST, null, "Library list", -1f, null, 0, detectedMediaType);
         }
 
-        return new ScreenContext(ScreenType.UNKNOWN, null, null);
+        return new ScreenContext(ScreenType.UNKNOWN, null, null, -1f, null, 0, detectedMediaType);
+    }
+
+    private static String inferMediaType(List<String> textNodes) {
+        int mangaScore = 0;
+        int animeScore = 0;
+        int novelScore = 0;
+
+        for (String node : textNodes) {
+            if (node == null) continue;
+            String lower = node.toLowerCase(Locale.ROOT);
+            
+            if (lower.contains("manga") || lower.contains("manhwa") || lower.contains("manhua") || lower.contains("scanlation") || lower.contains("comic")) {
+                mangaScore += 10;
+            }
+            if (lower.contains("anime")
+                    || lower.matches(".*\\bepisode\\b.*")
+                    || lower.matches(".*\\bsub(?:bed|title|titles)?\\b.*")
+                    || lower.matches(".*\\bdub(?:bed)?\\b.*")
+                    || lower.contains("bilibili")
+                    || lower.contains("bstar")) {
+                animeScore += 10;
+            }
+            if (lower.contains("novel") || lower.contains("light novel") || lower.contains("web novel")) {
+                novelScore += 10;
+            }
+            if (lower.matches(".*\\bchapter\\b.*") || lower.matches(".*\\bch\\.\\s*\\d+.*")) {
+                mangaScore += 2;
+                novelScore += 2;
+            }
+            if (lower.contains("mangafire") || lower.contains("comix") || lower.contains("mangatoto")) {
+                mangaScore += 20;
+            }
+            if (lower.contains("animekai") || lower.contains("aniwatch") || lower.contains("crunchyroll") || lower.contains("bilibili")) {
+                animeScore += 20;
+            }
+        }
+
+        if (mangaScore > animeScore && mangaScore > novelScore && mangaScore >= 10) return "Manga";
+        if (animeScore > mangaScore && animeScore > novelScore && animeScore >= 10) return "Anime";
+        if (novelScore > mangaScore && novelScore > animeScore && novelScore >= 10) return "Book";
+
+        return null;
     }
 
     /**
-     * Detect if current screen is a book detail page.
-     * Indicators: "Start Reading", "Continue Reading", "Add to Library", rating stars, description
+     * Detect if current screen is a media detail page.
      */
-    private static boolean isBookDetailScreen(List<String> textNodes) {
+    private static boolean isMediaDetailScreen(List<String> textNodes) {
         boolean hasActionButton = false;
         boolean hasCatalogSignals = false;
         boolean hasDescription = false;
         int longTextCount = 0;
         int chapterLikeCount = 0;
-        int webNovelSignalCount = 0;
+        int mediaSignalCount = 0;
         int authSignalCount = 0;
 
         for (String text : textNodes) {
             String lower = text.toLowerCase(Locale.ROOT);
             
-            // Check for action buttons typical of book detail pages
-            if (WEBNOVEL_ACTION_PATTERN.matcher(text).matches()
-                    || lower.matches(".*(start reading|continue reading|add to library|read now|begin reading).*")) {
+            // Check for action buttons typical of detail pages
+            if (MEDIA_ACTION_PATTERN.matcher(text).matches()
+                    || lower.matches(".*(start reading|continue reading|add to library|read now|begin reading|watch now|play now|start watching|continue watching|add to watchlist).*")) {
                 hasActionButton = true;
-                webNovelSignalCount++;
+                mediaSignalCount++;
             }
 
             if (WEBNOVEL_DETAIL_SIGNAL_PATTERN.matcher(text).matches()) {
                 hasCatalogSignals = true;
-                webNovelSignalCount++;
+                mediaSignalCount++;
             }
             if (WEBNOVEL_STATS_PATTERN.matcher(text).matches()) {
-                webNovelSignalCount++;
+                mediaSignalCount++;
             }
             if (AUTH_UI_PATTERN.matcher(text).matches()) {
                 authSignalCount++;
             }
              
-            // Check for description-like text (50+ characters, no chapter numbers)
+            // Check for description-like text
             if (CHAPTER_LINE_PATTERN.matcher(text).matches()) {
                 chapterLikeCount++;
             }
-            if (text.length() > 50 && !CHAPTER_LINE_PATTERN.matcher(text).matches()) {
+            if (text.length() > 50 && !CHAPTER_LINE_PATTERN.matcher(text).matches() && !GENERIC_UI_PHRASE_PATTERN.matcher(text).matches()) {
                 longTextCount++;
                 if (longTextCount >= 2) {
                     hasDescription = true;
@@ -152,55 +207,48 @@ public class ScreenContextDetector {
             }
         }
 
-        // Avoid treating chapter-reader pages as detail pages
-        if (chapterLikeCount > 8 && !hasActionButton && webNovelSignalCount < 2) {
+        // Avoid treating reading pages as detail pages
+        if (chapterLikeCount > 10 && !hasActionButton && mediaSignalCount < 2) {
             return false;
         }
-        if (authSignalCount >= 2 && webNovelSignalCount <= 1) {
+        if (authSignalCount >= 2 && mediaSignalCount <= 1) {
             return false;
         }
 
         // Strong signal: explicit actions + catalog markers
-        if (hasActionButton && (hasCatalogSignals || webNovelSignalCount >= 2)) {
+        if (hasActionButton && (hasCatalogSignals || mediaSignalCount >= 2)) {
             return true;
         }
 
-        // WebNovel detail pages often expose metadata cards without long description blocks.
-        if (webNovelSignalCount >= 3 && chapterLikeCount <= 6) {
+        // Detail pages often expose metadata cards without long description blocks.
+        if (mediaSignalCount >= 3 && chapterLikeCount <= 8) {
             return true;
         }
 
-        // Secondary signal: catalog/detail markers + descriptive block, but avoid chapter pages.
-        return hasCatalogSignals
-                && webNovelSignalCount >= 2
-                && chapterLikeCount <= 6
-                && (hasDescription || longTextCount >= 1);
+        return (hasCatalogSignals || mediaSignalCount >= 2)
+                && chapterLikeCount <= 8
+                && (hasDescription || longTextCount >= 1 || hasActionButton);
     }
 
     /**
-     * Detect if current screen is actively reading a chapter.
-     * Indicators: Chapter patterns, high text density, paragraph content
+     * Detect if current screen is actively reading or watching.
      */
-    private static boolean isChapterReadingScreen(List<String> textNodes) {
+    private static boolean isReadingOrWatchingScreen(List<String> textNodes) {
         int chapterPatternCount = 0;
         int paragraphCount = 0;
 
         Pattern chapterPattern = Pattern.compile("(?i)(?:^|\\s)(?:chapter|ch\\.?|episode|ep\\.?)\\s*\\d+");
 
         for (String text : textNodes) {
-            // Check for chapter title patterns
             if (chapterPattern.matcher(text).find()) {
                 chapterPatternCount++;
             }
-            
-            // Check for paragraph-like content (30-200 chars, proper sentences)
-            if (text.length() > 30 && text.length() < 200 && text.contains(" ")) {
+            if (text.length() > 30 && text.length() < 250 && text.contains(" ")) {
                 paragraphCount++;
             }
         }
 
-        // Chapter reading has chapter patterns OR many paragraphs
-        return chapterPatternCount > 0 || paragraphCount > 10;
+        return chapterPatternCount > 0 || paragraphCount > 12;
     }
 
     /**
@@ -210,37 +258,36 @@ public class ScreenContextDetector {
         int titleLikeCount = 0;
 
         for (String text : textNodes) {
-            // Count short titles (3-40 chars, capitalized)
-            if (text.length() >= 3 && text.length() <= 40 && Character.isUpperCase(text.charAt(0))) {
+            // Count short titles (3-50 chars, capitalized)
+            if (text.length() >= 3 && text.length() <= 50 && Character.isUpperCase(text.charAt(0))) {
                 titleLikeCount++;
             }
         }
 
-        // Library lists have many title-like elements
-        return titleLikeCount > 5;
+        return titleLikeCount > 6;
     }
 
     /**
-     * Extract the book title from a detail page.
-     * Strategy: Find the largest text element in the top portion that looks like a title.
+     * Extract the title from a detail page.
      */
     public static String extractTitleFromDetail(List<String> textNodes) {
         String bestCandidate = null;
         int bestScore = 0;
+        int bestIndex = -1;
 
         // Common UI elements to filter out
-        Pattern uiElementPattern = Pattern.compile("(?i)(library|search|settings|home|profile|back|menu|filter|sort|featured|explore|ranking|genres?|categories|contents|reviews?|comments|read\\s*now|continue\\s*reading|add\\s*to\\s*library|chapters?\\s*updated|table\\s*of\\s*contents|more\\s*options?|share|report|follow|bookmark)");
+        Pattern uiElementPattern = Pattern.compile("(?i)(library|search|settings|home|profile|back|menu|filter|sort|featured|explore|ranking|genres?|categories|contents|reviews?|comments|read\\s*now|continue\\s*reading|add\\s*to\\s*library|watch\\s*now|play\\s*now|chapters?\\s*updated|table\\s*of\\s*contents|more\\s*options?|share|report|follow|bookmark)");
 
-        // Take top 65% of nodes; detail headers can appear lower in immersive layouts.
-        int topPortionSize = Math.max(1, Math.min((int) Math.ceil(textNodes.size() * 0.65f), 45));
+        // Take top 70% of nodes
+        int portionLimit = Math.max(1, Math.min((int) Math.ceil(textNodes.size() * 0.7f), 50));
+        
         String authorAnchored = extractTitleNearAuthor(textNodes, uiElementPattern);
         if (authorAnchored != null) {
-            Log.d(TAG, "Extracted author-anchored title: '" + authorAnchored + "'");
             return authorAnchored;
         }
 
         Map<String, Integer> frequency = new HashMap<>();
-        for (int i = 0; i < Math.min(topPortionSize, textNodes.size()); i++) {
+        for (int i = 0; i < Math.min(portionLimit, textNodes.size()); i++) {
             String text = textNodes.get(i) == null ? "" : textNodes.get(i).trim();
             if (isLikelyTitleCandidate(text, uiElementPattern)) {
                 String key = text.toLowerCase(Locale.ROOT);
@@ -248,21 +295,17 @@ public class ScreenContextDetector {
             }
         }
 
-        for (int i = 0; i < Math.min(topPortionSize, textNodes.size()); i++) {
+        for (int i = 0; i < Math.min(portionLimit, textNodes.size()); i++) {
             String text = textNodes.get(i).trim();
 
             if (!isLikelyTitleCandidate(text, uiElementPattern)) continue;
 
-            // Calculate score based on:
-            // - Length (longer titles score higher, but not too long)
-            // - Capitalization (proper titles are capitalized)
-            // - Position (earlier in list = higher)
             int score = 0;
 
-            // Length score (sweet spot: 10-50 characters)
-            if (text.length() >= 10 && text.length() <= 50) {
-                score += 30;
-            } else if (text.length() >= 5 && text.length() <= 80) {
+            // Length score
+            if (text.length() >= 8 && text.length() <= 50) {
+                score += 35; // One Piece is 9 chars, now gets higher base score
+            } else if (text.length() >= 3 && text.length() <= 80) {
                 score += 20;
             }
 
@@ -270,85 +313,92 @@ public class ScreenContextDetector {
             if (Character.isUpperCase(text.charAt(0))) {
                 score += 15;
             }
-
-            // Position score (earlier = better, but not first 2 which are often nav)
-            if (i >= 2 && i < 10) {
-                score += (10 - i) * 2;
+            if (text.equals(text.toUpperCase(Locale.ROOT)) && text.length() > 3) {
+                score += 10; // ALL CAPS titles are common in some apps
             }
 
-            // Word count score (titles usually 2-8 words)
+            // Position score (Earlier is generally better)
+            if (i < 15) {
+                score += (15 - i) * 2;
+            }
+
+            // Word count score
             int wordCount = text.split("\\s+").length;
-            if (wordCount >= 2 && wordCount <= 8) {
+            if (wordCount >= 1 && wordCount <= 8) {
                 score += 20;
-            } else if (wordCount > 11) {
-                score -= 18;
+            } else if (wordCount > 10) {
+                score -= 20;
             }
+            
             if (text.contains(":") || text.contains(" - ") || text.contains(" – ") || text.contains(" — ")) {
-                score += 12;
+                score += 15; // Web browser titles often have " - Site Name"
             }
 
-            // Nearby author/action labels are strong title anchors on WebNovel detail pages.
+            // Anchors
             int from = Math.max(0, i - 3);
             int to = Math.min(textNodes.size() - 1, i + 3);
             for (int j = from; j <= to; j++) {
                 if (j == i) continue;
                 String nearby = textNodes.get(j).trim().toLowerCase(Locale.ROOT);
-                if (nearby.startsWith("by ")) {
-                    score += 20;
+                if (nearby.startsWith("by ") || nearby.startsWith("author") || nearby.startsWith("creator")) {
+                    score += 25;
                 }
-                if (nearby.matches(".*(read now|start reading|continue reading|add to library|chapters? updated|contents).*")) {
-                    score += 18;
+                if (MEDIA_ACTION_PATTERN.matcher(nearby).matches()) {
+                    score += 20;
                 }
             }
 
-            // Penalize strings that look like body content/sentences
-            if (text.endsWith(".") || text.contains(",")) {
-                score -= 10;
+            // Penalties
+            if (text.endsWith(".") && !text.matches(".*\\b(?:inc|ltd|corp)\\b.*")) {
+                score -= 15;
             }
             if (text.matches("(?i).*(\\bchapter\\b|\\bepisode\\b|\\bvol(?:ume)?\\b).*")) {
-                score -= 30;
+                score -= 40;
             }
             if (CHAPTER_ROW_PREFIX_PATTERN.matcher(text).matches()) {
-                score -= 25;
+                score -= 30;
             }
             if (DETAIL_NOISE_PATTERN.matcher(text).matches()) {
-                score -= 20;
+                score -= 25;
             }
-            if (Character.isDigit(text.charAt(0)) && text.length() > 5) {
-                score -= 16;
+            if (Character.isDigit(text.charAt(0)) && text.length() < 10) {
+                score -= 20; // Likely a rating or ep number
             }
             if (looksLikeGenreChip(text)) {
                 score -= 35;
             }
             if (GENERIC_UI_PHRASE_PATTERN.matcher(text).matches()) {
-                score -= 40;
+                score -= 45;
             }
 
             int repeats = frequency.getOrDefault(text.toLowerCase(Locale.ROOT), 0);
             if (repeats > 1) {
-                score += (repeats - 1) * 12;
-            }
-
-            // Contains common title words
-            if (text.matches("(?i).*(wizard|hero|legend|chronicles|tales|story|saga|journey|quest).*")) {
-                score += 10;
+                score += (repeats - 1) * 15;
             }
 
             if (score > bestScore) {
                 bestScore = score;
                 bestCandidate = text;
+                bestIndex = i;
             }
         }
 
-        if (bestCandidate != null) {
-            Log.d(TAG, "Extracted title: '" + bestCandidate + "' (score: " + bestScore + ")");
-        } else {
-            Log.d(TAG, "No title candidate found");
+        if (bestScore < 25) {
+            return null;
         }
 
-        // Require a minimum confidence score to avoid chapter body text becoming title.
-        if (bestScore < 30) {
-            return null;
+        bestCandidate = combineAdjacentTitleLines(textNodes, bestIndex, bestCandidate, uiElementPattern);
+
+        // Clean browser titles (e.g., "One Piece - Bilibili" -> "One Piece")
+        if (bestCandidate != null && bestCandidate.contains(" - ")) {
+            String[] parts = bestCandidate.split(" - ");
+            if (parts.length > 1) {
+                String potentialTitle = parts[0].trim();
+                String siteName = parts[parts.length - 1].trim().toLowerCase(Locale.ROOT);
+                if (siteName.contains("bilibili") || siteName.contains("chrome") || siteName.contains("google") || siteName.contains("youtube")) {
+                    return potentialTitle;
+                }
+            }
         }
 
         return bestCandidate;
@@ -357,14 +407,19 @@ public class ScreenContextDetector {
     private static boolean isLikelyTitleCandidate(String text, Pattern uiElementPattern) {
         if (text == null) return false;
         if (text.length() < 3 || text.length() > 120) return false;
+        String lower = text.toLowerCase(Locale.US);
         if (uiElementPattern.matcher(text).matches()) return false;
         if (GENERIC_UI_PHRASE_PATTERN.matcher(text).matches()) return false;
+        if (STATUS_SOURCE_LINE_PATTERN.matcher(text).matches()) return false;
+        if (DETAIL_TAB_PATTERN.matcher(text).matches()) return false;
+        if (AUTHOR_LIST_PATTERN.matcher(text).matches()) return false;
         if (CHAPTER_LINE_PATTERN.matcher(text).matches()) return false;
         if (text.matches("(?i).*\\b(chapter list|volume \\d+|vol\\.\\s*\\d+).*")) return false;
         if (AUTH_UI_PATTERN.matcher(text).matches()) return false;
         if (text.matches("^\\d+(?:[\\.,]\\d+)?$")) return false;
         if (CHAPTER_ROW_PREFIX_PATTERN.matcher(text).matches()) return false;
         if (DETAIL_NOISE_PATTERN.matcher(text).matches()) return false;
+        if (looksLikeSingleNoiseToken(lower)) return false;
         if (text.split("\\s+").length > 12) return false;
         if (text.length() > 70 && text.matches(".*[\\.,!?].*")) return false;
         if (looksLikeGenreChip(text)) return false;
@@ -379,7 +434,10 @@ public class ScreenContextDetector {
                 .trim();
         if (normalized.isEmpty()) return false;
         String[] tokens = normalized.split("\\s+");
-        if (tokens.length < 2 || tokens.length > 6) return false;
+        if (tokens.length == 1) {
+            return GENRE_CHIP_TERMS.contains(tokens[0]);
+        }
+        if (tokens.length > 6) return false;
         int noiseCount = 0;
         for (String token : tokens) {
             if (GENRE_CHIP_TERMS.contains(token)) {
@@ -392,7 +450,12 @@ public class ScreenContextDetector {
     private static String extractTitleNearAuthor(List<String> textNodes, Pattern uiElementPattern) {
         for (int i = 0; i < textNodes.size(); i++) {
             String node = textNodes.get(i) == null ? "" : textNodes.get(i).trim();
-            if (!node.toLowerCase(Locale.ROOT).startsWith("by ")) {
+            String lower = node.toLowerCase(Locale.ROOT);
+            if (!(lower.startsWith("by ")
+                    || lower.startsWith("author")
+                    || lower.startsWith("creator")
+                    || lower.startsWith("artist")
+                    || AUTHOR_LIST_PATTERN.matcher(node).matches())) {
                 continue;
             }
             for (int back = 1; back <= 3; back++) {
@@ -400,11 +463,41 @@ public class ScreenContextDetector {
                 if (idx < 0) break;
                 String candidate = textNodes.get(idx) == null ? "" : textNodes.get(idx).trim();
                 if (isLikelyTitleCandidate(candidate, uiElementPattern)) {
-                    return candidate;
+                    return combineAdjacentTitleLines(textNodes, idx, candidate, uiElementPattern);
                 }
             }
         }
         return null;
+    }
+
+    private static String combineAdjacentTitleLines(List<String> textNodes, int pivotIndex, String baseTitle, Pattern uiElementPattern) {
+        if (baseTitle == null || pivotIndex < 0 || pivotIndex >= textNodes.size()) {
+            return baseTitle;
+        }
+        String current = baseTitle.trim();
+
+        int nextIndex = pivotIndex + 1;
+        if (nextIndex < textNodes.size()) {
+            String next = textNodes.get(nextIndex) == null ? "" : textNodes.get(nextIndex).trim();
+            if (isLikelyTitleCandidate(next, uiElementPattern) && !AUTHOR_LIST_PATTERN.matcher(next).matches()) {
+                String joined = (current + " " + next).replaceAll("\\s{2,}", " ").trim();
+                if ((current.endsWith(":") || current.endsWith("-") || current.split("\\s+").length <= 5)
+                        && joined.length() <= 100
+                        && !STATUS_SOURCE_LINE_PATTERN.matcher(joined).matches()) {
+                    return joined;
+                }
+            }
+        }
+
+        return current;
+    }
+
+    private static boolean looksLikeSingleNoiseToken(String lowerText) {
+        if (lowerText == null) {
+            return false;
+        }
+        String normalized = lowerText.replaceAll("[^a-z]", "");
+        return !normalized.isEmpty() && GENRE_CHIP_TERMS.contains(normalized);
     }
 
     private static String extractAuthor(List<String> textNodes) {
@@ -482,7 +575,7 @@ public class ScreenContextDetector {
                     || GENERIC_UI_PHRASE_PATTERN.matcher(text).matches()
                     || DETAIL_NOISE_PATTERN.matcher(text).matches()
                     || AUTH_UI_PATTERN.matcher(text).matches()
-                    || WEBNOVEL_ACTION_PATTERN.matcher(text).matches()
+                    || MEDIA_ACTION_PATTERN.matcher(text).matches()
                     || WEBNOVEL_STATS_PATTERN.matcher(text).matches()) {
                 continue;
             }

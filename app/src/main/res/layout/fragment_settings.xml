@@ -567,6 +567,83 @@
                         android:textColor="#FF4D4D"
                         android:textSize="16sp" />
                 </RelativeLayout>
+
+                <!-- Debug Section (Always visible) -->
+                <View
+                    android:id="@+id/sep_debug"
+                    android:layout_width="match_parent"
+                    android:layout_height="1dp"
+                    android:layout_marginTop="8dp"
+                    android:alpha="0.1"
+                    android:background="?attr/colorOnSurface"
+                    app:layout_constraintTop_toBottomOf="@id/row_clear_database" />
+
+                <TextView
+                    android:id="@+id/tv_debug_header"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:fontFamily="@font/sf_pro_bold"
+                    android:text="Streak &amp; Routines Debug"
+                    android:textColor="#FF9800"
+                    android:textSize="13sp"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toBottomOf="@id/sep_debug" />
+
+                <LinearLayout
+                    android:id="@+id/layout_debug_buttons"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:orientation="horizontal"
+                    app:layout_constraintTop_toBottomOf="@id/tv_debug_header">
+
+                    <Button
+                        android:id="@+id/btn_debug_inc_manga"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="+1 Manga"
+                        android:textAllCaps="false"
+                        android:textColor="#FF9800"
+                        android:textSize="12sp"
+                        app:strokeColor="#FF9800" />
+
+                    <Button
+                        android:id="@+id/btn_debug_inc_anime"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="8dp"
+                        android:layout_weight="1"
+                        android:text="+1 Anime"
+                        android:textAllCaps="false"
+                        android:textColor="#FF9800"
+                        android:textSize="12sp"
+                        app:strokeColor="#FF9800" />
+                </LinearLayout>
+
+                <Button
+                    android:id="@+id/btn_debug_recalc_streak"
+                    style="@style/Widget.MaterialComponents.Button.TextButton"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Recalculate Streak"
+                    android:textAllCaps="false"
+                    android:textColor="#FF9800"
+                    app:layout_constraintTop_toBottomOf="@id/layout_debug_buttons" />
+
+                <TextView
+                    android:id="@+id/tv_debug_info"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:alpha="0.8"
+                    android:fontFamily="@font/sf_pro_regular"
+                    android:text="Streak: 0 | Goals Met: No"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="11sp"
+                    app:layout_constraintTop_toBottomOf="@id/btn_debug_recalc_streak" />
             </androidx.constraintlayout.widget.ConstraintLayout>
 
             <!-- Legal & Support Section -->

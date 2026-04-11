@@ -2,6 +2,7 @@ package com.example.mediavault;
 
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
@@ -32,6 +33,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public static final String TABLE_PROGRESS_LOG = "progress_log";
     public static final String TABLE_DAILY_METRICS = "daily_metrics";
     public static final String TABLE_MEDIA_METADATA = "media_metadata";
+    private static final String COLLECTION_PREFS = "library_collection_prefs";
+    private static final String KEY_CUSTOM_COLLECTIONS_JSON = "custom_collections_json";
 
     // Column Constants for daily_metrics
     public static final String COL_DAILY_ID = "id";
@@ -955,31 +958,61 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     public java.util.Map<String, Integer> getGenreCounts() {
         java.util.Map<String, Integer> counts = new java.util.HashMap<>();
+        Set<String> collectionTags = getCustomCollectionNamesLowercase();
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor cursor = db.rawQuery("SELECT " + COL_GENRE + " FROM " + TABLE_MEDIA + " WHERE " + COL_STATUS + " != 'Recently Deleted'", null);
         if (cursor.moveToFirst()) {
             do {
                 String rawGenre = cursor.getString(0);
-                addGenreTokens(counts, rawGenre);
+                addGenreTokens(counts, rawGenre, collectionTags);
             } while (cursor.moveToNext());
         }
         cursor.close();
         return counts;
     }
 
-    private void addGenreTokens(java.util.Map<String, Integer> counts, String rawGenre) {
+    private void addGenreTokens(java.util.Map<String, Integer> counts, String rawGenre, Set<String> collectionTags) {
         if (rawGenre == null || rawGenre.trim().isEmpty()) {
             counts.put("Uncategorized", counts.getOrDefault("Uncategorized", 0) + 1);
             return;
         }
+        boolean addedAnyGenre = false;
         String[] genres = rawGenre.split(",");
         for (String token : genres) {
             String normalized = token.trim();
             if (normalized.isEmpty()) {
                 continue;
             }
+            if (collectionTags.contains(normalized.toLowerCase(Locale.ROOT))) {
+                continue;
+            }
             counts.put(normalized, counts.getOrDefault(normalized, 0) + 1);
+            addedAnyGenre = true;
         }
+        if (!addedAnyGenre) {
+            counts.put("Uncategorized", counts.getOrDefault("Uncategorized", 0) + 1);
+        }
+    }
+
+    private Set<String> getCustomCollectionNamesLowercase() {
+        Set<String> names = new HashSet<>();
+        SharedPreferences prefs = context.getSharedPreferences(COLLECTION_PREFS, Context.MODE_PRIVATE);
+        String raw = prefs.getString(KEY_CUSTOM_COLLECTIONS_JSON, "[]");
+        try {
+            JSONArray array = new JSONArray(raw);
+            for (int i = 0; i < array.length(); i++) {
+                JSONObject entry = array.optJSONObject(i);
+                if (entry == null) {
+                    continue;
+                }
+                String name = entry.optString("name", "").trim();
+                if (!name.isEmpty()) {
+                    names.add(name.toLowerCase(Locale.ROOT));
+                }
+            }
+        } catch (JSONException ignored) {
+        }
+        return names;
     }
 
     public boolean addCollectionTag(int mediaId, String collectionName) {

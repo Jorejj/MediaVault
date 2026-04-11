@@ -145,11 +145,32 @@ public class DailyGoalsManager {
             int episodeGoal = getGoalEpisodes();
             int minuteGoal = getGoalMinutes();
 
-            boolean pageMet = pageGoal > 0 && progress.pagesRead >= pageGoal;
-            boolean episodeMet = episodeGoal > 0 && progress.episodesWatched >= episodeGoal;
-            boolean minuteMet = minuteGoal > 0 && progress.minutesWatched >= minuteGoal;
-            boolean anyGoalConfigured = pageGoal > 0 || episodeGoal > 0 || minuteGoal > 0;
-            int goalMet = (anyGoalConfigured && (pageMet || episodeMet || minuteMet)) ? 1 : 0;
+            int normalizedPages = Math.max(0, (int) Math.floor(progress.pagesRead));
+            int normalizedEpisodes = Math.max(0, (int) Math.floor(progress.episodesWatched));
+            int normalizedMinutes = Math.max(0, Math.round(progress.minutesWatched));
+
+            boolean hasGoalConfigured = false;
+            boolean allConfiguredGoalsMet = true;
+            if (pageGoal > 0) {
+                hasGoalConfigured = true;
+                if (normalizedPages < pageGoal) {
+                    allConfiguredGoalsMet = false;
+                }
+            }
+            if (episodeGoal > 0) {
+                hasGoalConfigured = true;
+                if (normalizedEpisodes < episodeGoal) {
+                    allConfiguredGoalsMet = false;
+                }
+            }
+            if (minuteGoal > 0) {
+                hasGoalConfigured = true;
+                if (normalizedMinutes < minuteGoal) {
+                    allConfiguredGoalsMet = false;
+                }
+            }
+
+            int goalMet = (hasGoalConfigured && allConfiguredGoalsMet) ? 1 : 0;
 
             SQLiteDatabase wdb = dbHelper.getWritableDatabase();
             wdb.execSQL("UPDATE " + DatabaseHelper.TABLE_DAILY_METRICS +

@@ -1,6 +1,7 @@
 package com.example.mediavault.ui.library;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -25,11 +26,12 @@ import com.example.mediavault.R;
 import com.example.mediavault.utils.ProgressValueUtils;
 
 import java.io.File;
+import java.util.LinkedHashSet;
 import java.util.Locale;
 import java.util.List;
+import java.util.Set;
 
 import android.content.Context;
-import android.content.DialogInterface;
 import android.text.TextUtils;
 import android.widget.LinearLayout;
 import androidx.appcompat.widget.PopupMenu;
@@ -39,6 +41,9 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.example.mediavault.api.MediaSearchManager;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHolder> {
 
@@ -50,6 +55,9 @@ public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHol
     private DatabaseHelper dbHelper;
     private MediaSearchManager searchManager;
     private OnItemClickListener listener;
+    private static final String COLLECTION_PREFS = "library_collection_prefs";
+    private static final String KEY_CUSTOM_COLLECTIONS_JSON = "custom_collections_json";
+    private static final String COLLECTION_TYPE_ANY = "Any Type";
 
     public MediaAdapter(List<MediaItem> mediaItems) {
         this.mediaItems = mediaItems;
@@ -158,35 +166,17 @@ public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHol
         if (holder.btnMoreOptions != null) {
             holder.btnMoreOptions.setOnClickListener(v -> {
                 PopupMenu popup = new PopupMenu(v.getContext(), holder.btnMoreOptions);
-                
-                if ("Recently Deleted".equals(item.getStatus())) {
-                    popup.getMenu().add(0, 1, 0, "Recover to Planning");
-                    popup.getMenu().add(0, 2, 1, "Delete Permanently");
-                } else {
-                    if ("Book".equalsIgnoreCase(item.getType()) || "Manga".equalsIgnoreCase(item.getType())) {
-                        popup.getMenu().add(0, 4, 0, "Add to Collection");
-                    }
-                    popup.getMenu().add(0, 3, 0, "Delete");
+                if ("Book".equalsIgnoreCase(item.getType()) || "Manga".equalsIgnoreCase(item.getType())) {
+                    popup.getMenu().add(0, 4, 0, "Add to Collection");
                 }
+                popup.getMenu().add(0, 3, 0, "Delete");
 
                 popup.setOnMenuItemClickListener(menuItem -> {
                     Context context = v.getContext();
                     switch (menuItem.getItemId()) {
-                        case 1: // Recover
-                            com.example.mediavault.AppExecutor.executeDb(() -> {
-                                boolean success = dbHelper.updateProgress(item.getId(), item.getProgress(), "Planning", item.getRatingValue());
-                                if (success) {
-                                    com.example.mediavault.AppExecutor.runOnMain(() -> {
-                                        ToastUtils.showCustomToast(context, "Recovered to Planning");
-                                        item.setStatus("Planning");
-                                        updateList(mediaItems); // Refresh list
-                                    });
-                                }
-                            });
-                            return true;
-                        case 2: // Permanently Delete
+                        case 3: // Delete
                             new MaterialAlertDialogBuilder(context)
-                                .setTitle("Delete Permanently?")
+                                .setTitle("Delete " + item.getTitle() + "?")
                                 .setMessage("This action cannot be undone.")
                                 .setPositiveButton("Delete", (dialog, which) -> {
                                     com.example.mediavault.AppExecutor.executeDb(() -> {
@@ -206,37 +196,7 @@ public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHol
                                                         notifyDataSetChanged();
                                                     }
                                                 }
-                                                ToastUtils.showCustomToast(context, "Permanently deleted");
-                                            });
-                                        }
-                                    });
-                                })
-                                .setNegativeButton("Cancel", null)
-                                .show();
-                            return true;
-                        case 3: // Move to Trash
-                            new MaterialAlertDialogBuilder(context)
-                                .setTitle("Delete " + item.getTitle() + "?")
-                                .setMessage("It will be moved to Recently Deleted.")
-                                .setPositiveButton("Delete", (dialog, which) -> {
-                                    com.example.mediavault.AppExecutor.executeDb(() -> {
-                                        boolean success = dbHelper.updateProgress(item.getId(), item.getProgress(), "Recently Deleted", item.getRatingValue());
-                                        if (success) {
-                                            com.example.mediavault.AppExecutor.runOnMain(() -> {
-                                                int adapterPosition = holder.getBindingAdapterPosition();
-                                                if (adapterPosition != RecyclerView.NO_POSITION) {
-                                                    mediaItems.remove(adapterPosition);
-                                                    notifyItemRemoved(adapterPosition);
-                                                } else {
-                                                    int fallbackIndex = mediaItems.indexOf(item);
-                                                    if (fallbackIndex >= 0) {
-                                                        mediaItems.remove(fallbackIndex);
-                                                        notifyItemRemoved(fallbackIndex);
-                                                    } else {
-                                                        notifyDataSetChanged();
-                                                    }
-                                                }
-                                                ToastUtils.showCustomToast(context, "Moved to Recently Deleted");
+                                                ToastUtils.showCustomToast(context, "Deleted");
                                             });
                                         }
                                     });
@@ -304,6 +264,11 @@ public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHol
                         ToastUtils.showCustomToast(context, "Collection name is required");
                         return;
                     }
+                    String typeConstraintViolation = getCollectionConstraintViolation(context, collectionName, item.getType());
+                    if (!TextUtils.isEmpty(typeConstraintViolation)) {
+                        ToastUtils.showCustomToast(context, typeConstraintViolation);
+                        return;
+                    }
                     com.example.mediavault.AppExecutor.executeDb(() -> {
                         boolean updated = dbHelper.addCollectionTag(item.getId(), collectionName);
                         com.example.mediavault.AppExecutor.runOnMain(() -> {
@@ -326,6 +291,64 @@ public class MediaAdapter extends RecyclerView.Adapter<MediaAdapter.MediaViewHol
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
+    }
+
+    @Nullable
+    private String getCollectionConstraintViolation(
+            @NonNull Context context,
+            @NonNull String collectionName,
+            @Nullable String mediaType
+    ) {
+        SharedPreferences prefs = context.getSharedPreferences(COLLECTION_PREFS, Context.MODE_PRIVATE);
+        String raw = prefs.getString(KEY_CUSTOM_COLLECTIONS_JSON, "[]");
+        Set<String> matchingConstraints = new LinkedHashSet<>();
+        String targetName = collectionName.trim().toLowerCase(Locale.ROOT);
+
+        try {
+            JSONArray array = new JSONArray(raw);
+            for (int i = 0; i < array.length(); i++) {
+                JSONObject entry = array.optJSONObject(i);
+                if (entry == null) {
+                    continue;
+                }
+                String name = entry.optString("name", "").trim();
+                if (!name.toLowerCase(Locale.ROOT).equals(targetName)) {
+                    continue;
+                }
+                String type = entry.optString("type", COLLECTION_TYPE_ANY).trim();
+                matchingConstraints.add(type.isEmpty() ? COLLECTION_TYPE_ANY : type);
+            }
+        } catch (JSONException ignored) {
+            return null;
+        }
+
+        if (matchingConstraints.isEmpty()) {
+            return null;
+        }
+        for (String constraint : matchingConstraints) {
+            if (isAnyTypeConstraint(constraint)) {
+                return null;
+            }
+        }
+
+        String normalizedType = mediaType == null ? "" : mediaType.trim();
+        for (String constraint : matchingConstraints) {
+            if (constraint.equalsIgnoreCase(normalizedType)) {
+                return null;
+            }
+        }
+
+        return "This collection only accepts: " + TextUtils.join(", ", matchingConstraints);
+    }
+
+    private boolean isAnyTypeConstraint(@Nullable String typeConstraint) {
+        if (typeConstraint == null) {
+            return true;
+        }
+        String normalized = typeConstraint.trim();
+        return normalized.isEmpty()
+                || COLLECTION_TYPE_ANY.equalsIgnoreCase(normalized)
+                || "Any".equalsIgnoreCase(normalized);
     }
 
     static class MediaViewHolder extends RecyclerView.ViewHolder {

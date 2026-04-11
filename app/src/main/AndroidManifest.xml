@@ -128,6 +128,12 @@
             android:screenOrientation="fullSensor" />
 
         <activity
+            android:name=".ui.library.CollectionMediaPickerActivity"
+            android:exported="false"
+            android:label="Add to Collection"
+            android:theme="@style/Theme.MediaVault" />
+
+        <activity
             android:name=".MoviePlayerActivity"
             android:exported="false"
             android:label="Loading Movie"

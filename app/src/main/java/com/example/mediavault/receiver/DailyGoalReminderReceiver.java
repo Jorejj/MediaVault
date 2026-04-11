@@ -17,6 +17,7 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
 import androidx.core.app.NotificationManagerCompat;
 
+import com.example.mediavault.BuildConfig;
 import com.example.mediavault.DailyGoalsManager;
 import com.example.mediavault.DailyProgress;
 import com.example.mediavault.DatabaseHelper;
@@ -39,7 +40,9 @@ public class DailyGoalReminderReceiver extends BroadcastReceiver {
         DailyGoalsManager goalsManager = DailyGoalsManager.getInstance(context);
 
         if (intent != null && ACTION_TEST_REMINDER.equals(intent.getAction())) {
-            sendNotification(context, goalsManager, "Daily Goal Reminder (Test)", "This is a test reminder notification.");
+            if (BuildConfig.DEBUG) {
+                sendNotification(context, goalsManager, "Daily Goal Reminder (Test)", "This is a test reminder notification.");
+            }
             return;
         }
 
@@ -59,23 +62,30 @@ public class DailyGoalReminderReceiver extends BroadcastReceiver {
         StringBuilder message = new StringBuilder("Remaining today: ");
         int pendingCount = 0;
 
-        if (goalsManager.getGoalPages() > 0 && progress.pagesRead < goalsManager.getGoalPages()) {
+        int pagesGoal = goalsManager.getGoalPages();
+        int episodesGoal = goalsManager.getGoalEpisodes();
+        int minutesGoal = goalsManager.getGoalMinutes();
+        int pagesDone = Math.max(0, (int) Math.floor(progress.pagesRead));
+        int episodesDone = Math.max(0, (int) Math.floor(progress.episodesWatched));
+        int minutesDone = Math.max(0, Math.round(progress.minutesWatched));
+
+        if (pagesGoal > 0 && pagesDone < pagesGoal) {
             goalsMet = false;
-            message.append(goalsManager.getGoalPages() - progress.pagesRead).append(" pages");
+            message.append(pagesGoal - pagesDone).append(" pages");
             pendingCount++;
         }
 
-        if (goalsManager.getGoalEpisodes() > 0 && progress.episodesWatched < goalsManager.getGoalEpisodes()) {
+        if (episodesGoal > 0 && episodesDone < episodesGoal) {
             goalsMet = false;
             if (pendingCount > 0) message.append(", ");
-            message.append(goalsManager.getGoalEpisodes() - progress.episodesWatched).append(" eps");
+            message.append(episodesGoal - episodesDone).append(" eps");
             pendingCount++;
         }
 
-        if (goalsManager.getGoalMinutes() > 0 && progress.minutesWatched < goalsManager.getGoalMinutes()) {
+        if (minutesGoal > 0 && minutesDone < minutesGoal) {
             goalsMet = false;
             if (pendingCount > 0) message.append(", ");
-            message.append(goalsManager.getGoalMinutes() - progress.minutesWatched).append(" min");
+            message.append(minutesGoal - minutesDone).append(" min");
         }
 
         if (!goalsMet) {

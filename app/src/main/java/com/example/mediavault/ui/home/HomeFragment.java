@@ -21,6 +21,7 @@ import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
 
+import com.example.mediavault.BuildConfig;
 import com.example.mediavault.DailyGoalsManager;
 import com.example.mediavault.DailyProgress;
 import com.example.mediavault.DatabaseHelper;
@@ -74,7 +75,9 @@ public class HomeFragment extends Fragment {
                 updateSpotlightData();
                 updateDailyProgress();
                 updateStreakUI();
-                ToastUtils.showCustomToast(context, "Home data refreshed");
+                if (BuildConfig.DEBUG) {
+                    ToastUtils.showCustomToast(context, "Home data refreshed");
+                }
             }
         }
     };
@@ -196,12 +199,16 @@ public class HomeFragment extends Fragment {
         });
 
         if (btnTestReminderNow != null) {
-            btnTestReminderNow.setOnClickListener(v -> {
-                Intent testIntent = new Intent(com.example.mediavault.receiver.DailyGoalReminderReceiver.ACTION_TEST_REMINDER);
-                testIntent.setClass(requireContext(), DailyGoalReminderReceiver.class);
-                requireContext().sendBroadcast(testIntent);
-                ToastUtils.showCustomToast(requireContext(), "Test reminder sent");
-            });
+            if (!BuildConfig.DEBUG) {
+                btnTestReminderNow.setVisibility(View.GONE);
+            } else {
+                btnTestReminderNow.setOnClickListener(v -> {
+                    Intent testIntent = new Intent(com.example.mediavault.receiver.DailyGoalReminderReceiver.ACTION_TEST_REMINDER);
+                    testIntent.setClass(requireContext(), DailyGoalReminderReceiver.class);
+                    requireContext().sendBroadcast(testIntent);
+                    ToastUtils.showCustomToast(requireContext(), "Test reminder sent");
+                });
+            }
         }
         
         androidx.appcompat.app.AlertDialog alertDialog = new MaterialAlertDialogBuilder(requireContext())
@@ -212,10 +219,18 @@ public class HomeFragment extends Fragment {
                     String pagesStr = etPages.getText() != null ? etPages.getText().toString().trim() : "";
                     String epsStr = etEpisodes.getText() != null ? etEpisodes.getText().toString().trim() : "";
                     String minStr = etMinutes.getText() != null ? etMinutes.getText().toString().trim() : "";
-                    
-                    goalsManager.setGoalPages(pagesStr.isEmpty() ? 0 : Integer.parseInt(pagesStr));
-                    goalsManager.setGoalEpisodes(epsStr.isEmpty() ? 0 : Integer.parseInt(epsStr));
-                    goalsManager.setGoalMinutes(minStr.isEmpty() ? 0 : Integer.parseInt(minStr));
+
+                    int pagesGoal = parseNonNegativeGoal(pagesStr);
+                    int episodesGoal = parseNonNegativeGoal(epsStr);
+                    int minutesGoal = parseNonNegativeGoal(minStr);
+                    if (minutesGoal > 1440) {
+                        minutesGoal = 1440;
+                        ToastUtils.showCustomToast(requireContext(), "Minutes goal capped at 1440 per day");
+                    }
+
+                    goalsManager.setGoalPages(pagesGoal);
+                    goalsManager.setGoalEpisodes(episodesGoal);
+                    goalsManager.setGoalMinutes(minutesGoal);
                     
                     goalsManager.setReminderEnabled(switchReminder.isChecked());
                     goalsManager.setReminderTime(reminderTime[0], reminderTime[1]);
@@ -260,7 +275,7 @@ public class HomeFragment extends Fragment {
             pbGoalPages.setProgress(normalizedPages);
             tvProgressPages.setText(String.format(Locale.getDefault(), "%d/%d", normalizedPages, goalPages));
             hasAnyGoal = true;
-            if (progress.pagesRead < goalPages) allGoalsMet = false;
+            if (normalizedPages < goalPages) allGoalsMet = false;
         } else {
             layoutGoalPages.setVisibility(View.GONE);
         }
@@ -274,7 +289,7 @@ public class HomeFragment extends Fragment {
             pbGoalEpisodes.setProgress(normalizedEpisodes);
             tvProgressEpisodes.setText(String.format(Locale.getDefault(), "%d/%d", normalizedEpisodes, goalEpisodes));
             hasAnyGoal = true;
-            if (progress.episodesWatched < goalEpisodes) allGoalsMet = false;
+            if (normalizedEpisodes < goalEpisodes) allGoalsMet = false;
         } else {
             layoutGoalEpisodes.setVisibility(View.GONE);
         }
@@ -284,10 +299,11 @@ public class HomeFragment extends Fragment {
         if (goalMinutes > 0) {
             layoutGoalMinutes.setVisibility(View.VISIBLE);
             pbGoalMinutes.setMax(goalMinutes);
-            pbGoalMinutes.setProgress((int) progress.minutesWatched);
-            tvProgressMinutes.setText(String.format(Locale.getDefault(), "%.1f/%d", progress.minutesWatched, goalMinutes));
+            int normalizedMinutes = Math.max(0, Math.round(progress.minutesWatched));
+            pbGoalMinutes.setProgress(normalizedMinutes);
+            tvProgressMinutes.setText(String.format(Locale.getDefault(), "%d/%d", normalizedMinutes, goalMinutes));
             hasAnyGoal = true;
-            if (progress.minutesWatched < goalMinutes) allGoalsMet = false;
+            if (normalizedMinutes < goalMinutes) allGoalsMet = false;
         } else {
             layoutGoalMinutes.setVisibility(View.GONE);
         }
@@ -489,6 +505,14 @@ public class HomeFragment extends Fragment {
                 }
             });
         });
+    }
+
+    private int parseNonNegativeGoal(String raw) {
+        if (raw == null || raw.trim().isEmpty()) {
+            return 0;
+        }
+        int parsed = Integer.parseInt(raw.trim());
+        return Math.max(0, parsed);
     }
 
     private void setupNavigation(View view) {

@@ -24,13 +24,15 @@ public class ScreenContextDetector {
     private static final Pattern MEDIA_ACTION_PATTERN = Pattern.compile("(?i).*(read\\s*now|start\\s*reading|continue\\s*reading|add\\s*to\\s*library|watch\\s*now|play\\s*now|start\\s*watching|continue\\s*watching|add\\s*to\\s*watchlist|watchlist|subscribe|favorite|contents?|episodes?|chapters?|catalog|volumes?).*");
     private static final Pattern WEBNOVEL_STATS_PATTERN = Pattern.compile("(?i).*(\\d{1,5}\\s+(?:chapters?|episodes?)(?:\\s+updated)?|\\d+(?:[\\.,]\\d+)?\\s*[kmb]?\\s*(views?|votes?|likes?|reviews?)|novel\\s*[·•\\-]).*");
     private static final Pattern CHAPTER_ROW_PREFIX_PATTERN = Pattern.compile("^\\s*\\d{1,5}(?:[\\.:\\-)]\\s*|\\s+).+");
-    private static final Pattern DETAIL_NOISE_PATTERN = Pattern.compile("(?i).*(comments?|reviews?|views?|votes?|collections?|downloads?|rank\\s*#?\\d+|ratings?|stars?|sub\\b|dub\\b|release\\s*date|status|type).*");
+    private static final Pattern DETAIL_NOISE_PATTERN = Pattern.compile("(?i).*(comments?|reviews?|views?|votes?|collections?|downloads?|rank\\s*#?\\d+|ratings?|stars?|sub\\b|dub\\b|release\\s*date|status|type|license|premium|vip|membership).*");
     private static final Pattern AUTH_UI_PATTERN = Pattern.compile("(?i).*(log\\s*in|login|sign\\s*in|sign\\s*up|register|create\\s+account|continue\\s+with|google|facebook|apple\\s*id|phone\\s*number|verification\\s*code|otp|captcha).*");
-    private static final Pattern GENERIC_UI_PHRASE_PATTERN = Pattern.compile("(?i).*(more options?|options|share|report|follow|bookmark|bookmarks|notification|notifications|discover|recommended|popular|latest|trending|all\\s+genres?|genres?|fanfic|movies?|series|tv\\s*shows?|media\\s*content|content\\s*hub|home|explore|library|search|profile|settings).*");
+    private static final Pattern GENERIC_UI_PHRASE_PATTERN = Pattern.compile("(?i).*(more options?|options|share|report|follow|bookmark|bookmarks|notification|notifications|discover|recommended|popular|latest|trending|all\\s+genres?|genres?|fanfic|movies?|series|tv\\s*shows?|media\\s*content|content\\s*hub|home|explore|library|search|profile|settings|premium|vip|subscribe|unlock|license).*");
+    private static final Pattern METADATA_LABEL_PATTERN = Pattern.compile("(?i)^(?:author|authors|artist|artists|creator|status|genre|genres|type|rating|views?|likes?|bookmarks?|follows?|chapters?|episodes?|source|serialization|published|updated|alternative\\s+title|alt\\.?\\s*title|tags?|license|premium|vip|membership)\\s*:?$");
     private static final Pattern STATUS_SOURCE_LINE_PATTERN = Pattern.compile("(?i)^(?:ongoing|completed|hiatus|cancelled|canceled|dropped|publishing|finished)(?:\\s*[·•\\-]\\s*[\\p{L}\\p{M}\\d][\\p{L}\\p{M}\\d\\s\\.,'’:_&\\-]{1,60})?$");
     private static final Pattern DETAIL_TAB_PATTERN = Pattern.compile("(?i)^(?:in\\s+library|soon|tracking|webview|overview|details|chapters?|related|similar|description|reviews?)$");
     private static final Pattern AUTHOR_LIST_PATTERN = Pattern.compile("^[\\p{L}\\p{M}][\\p{L}\\p{M}'’\\-. ]{0,30}(?:,\\s*[\\p{L}\\p{M}][\\p{L}\\p{M}'’\\-. ]{0,30}){1,4}$");
     private static final Pattern DESCRIPTION_CANDIDATE_PATTERN = Pattern.compile("(?i).*[a-z]{3,}.*[\\.,!?].*");
+    private static final Pattern PLATFORM_NOISE_TITLE_PATTERN = Pattern.compile("(?i)^(?:license\\s*premium|premium|vip|licensed|member(?:ship)?\\s*only|subscribe\\s*now|unlock\\s*all|watch\\s*with\\s*premium|trial\\s*member|novel\\s*fantasy|authors?|genres?|status)$");
     private static final Set<String> GENRE_CHIP_TERMS = new HashSet<>(Arrays.asList(
             "novel", "webnovel", "book", "genre", "genres", "fantasy", "action", "adventure",
             "romance", "drama", "comedy", "slice", "life", "isekai", "martial", "arts",
@@ -40,7 +42,7 @@ public class ScreenContextDetector {
             "series", "anime", "manga", "manhwa", "manhua", "comic", "comics", "webtoon",
             "media", "content", "novels", "chapter", "chapters", "latest", "popular", "trending",
             "ongoing", "completed", "status", "author", "creator", "artist", "tracking", "webview",
-            "library", "bookmark", "soon"
+            "library", "bookmark", "soon", "premium", "vip", "license", "membership"
     ));
 
     public enum ScreenType {
@@ -340,11 +342,17 @@ public class ScreenContextDetector {
             for (int j = from; j <= to; j++) {
                 if (j == i) continue;
                 String nearby = textNodes.get(j).trim().toLowerCase(Locale.ROOT);
-                if (nearby.startsWith("by ") || nearby.startsWith("author") || nearby.startsWith("creator")) {
+                if (nearby.startsWith("by ")) {
                     score += 25;
                 }
                 if (MEDIA_ACTION_PATTERN.matcher(nearby).matches()) {
                     score += 20;
+                }
+                if (METADATA_LABEL_PATTERN.matcher(nearby).matches()) {
+                    score -= 40;
+                }
+                if (PLATFORM_NOISE_TITLE_PATTERN.matcher(nearby).matches()) {
+                    score -= 55;
                 }
             }
 
@@ -361,6 +369,9 @@ public class ScreenContextDetector {
             if (DETAIL_NOISE_PATTERN.matcher(text).matches()) {
                 score -= 25;
             }
+            if (PLATFORM_NOISE_TITLE_PATTERN.matcher(text).matches()) {
+                score -= 80;
+            }
             if (Character.isDigit(text.charAt(0)) && text.length() < 10) {
                 score -= 20; // Likely a rating or ep number
             }
@@ -369,6 +380,9 @@ public class ScreenContextDetector {
             }
             if (GENERIC_UI_PHRASE_PATTERN.matcher(text).matches()) {
                 score -= 45;
+            }
+            if (isLikelyMetadataValue(textNodes, i, text)) {
+                score -= 90;
             }
 
             int repeats = frequency.getOrDefault(text.toLowerCase(Locale.ROOT), 0);
@@ -410,6 +424,7 @@ public class ScreenContextDetector {
         String lower = text.toLowerCase(Locale.US);
         if (uiElementPattern.matcher(text).matches()) return false;
         if (GENERIC_UI_PHRASE_PATTERN.matcher(text).matches()) return false;
+        if (METADATA_LABEL_PATTERN.matcher(text).matches()) return false;
         if (STATUS_SOURCE_LINE_PATTERN.matcher(text).matches()) return false;
         if (DETAIL_TAB_PATTERN.matcher(text).matches()) return false;
         if (AUTHOR_LIST_PATTERN.matcher(text).matches()) return false;
@@ -419,6 +434,7 @@ public class ScreenContextDetector {
         if (text.matches("^\\d+(?:[\\.,]\\d+)?$")) return false;
         if (CHAPTER_ROW_PREFIX_PATTERN.matcher(text).matches()) return false;
         if (DETAIL_NOISE_PATTERN.matcher(text).matches()) return false;
+        if (PLATFORM_NOISE_TITLE_PATTERN.matcher(text).matches()) return false;
         if (looksLikeSingleNoiseToken(lower)) return false;
         if (text.split("\\s+").length > 12) return false;
         if (text.length() > 70 && text.matches(".*[\\.,!?].*")) return false;
@@ -498,6 +514,48 @@ public class ScreenContextDetector {
         }
         String normalized = lowerText.replaceAll("[^a-z]", "");
         return !normalized.isEmpty() && GENRE_CHIP_TERMS.contains(normalized);
+    }
+
+    private static boolean isLikelyMetadataValue(List<String> textNodes, int index, String candidate) {
+        if (textNodes == null || index < 0 || index >= textNodes.size()) {
+            return false;
+        }
+        String value = candidate == null ? "" : candidate.trim();
+        if (value.isEmpty()) {
+            return false;
+        }
+
+        if (value.toLowerCase(Locale.US).startsWith("by ")) {
+            return true;
+        }
+        if (PLATFORM_NOISE_TITLE_PATTERN.matcher(value).matches()) {
+            return true;
+        }
+        String lower = value.toLowerCase(Locale.US);
+        if (lower.contains("license premium")
+                || lower.contains("vip")
+                || lower.contains("member only")
+                || lower.contains("subscribe now")) {
+            return true;
+        }
+
+        if (index > 0) {
+            String previous = textNodes.get(index - 1) == null ? "" : textNodes.get(index - 1).trim();
+            if (METADATA_LABEL_PATTERN.matcher(previous).matches()
+                    || PLATFORM_NOISE_TITLE_PATTERN.matcher(previous).matches()) {
+                return true;
+            }
+        }
+
+        if (index + 1 < textNodes.size()) {
+            String next = textNodes.get(index + 1) == null ? "" : textNodes.get(index + 1).trim();
+            if (METADATA_LABEL_PATTERN.matcher(next).matches()
+                    || PLATFORM_NOISE_TITLE_PATTERN.matcher(next).matches()) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static String extractAuthor(List<String> textNodes) {

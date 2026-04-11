@@ -97,6 +97,8 @@ public class MediaMatcher {
     private static final Pattern STATUS_SOURCE_LINE_PATTERN = Pattern.compile("(?i)^(?:ongoing|completed|hiatus|cancelled|canceled|dropped|publishing|finished)(?:\\s*[·•\\-]\\s*[\\p{L}\\p{M}\\d][\\p{L}\\p{M}\\d\\s\\.,'’:_&\\-]{1,60})?$");
     private static final Pattern DETAIL_TAB_PATTERN = Pattern.compile("(?i)^(?:in\\s+library|soon|tracking|webview|overview|details|chapters?|related|similar|description|reviews?)$");
     private static final Pattern AUTHOR_LIST_PATTERN = Pattern.compile("^[\\p{L}\\p{M}][\\p{L}\\p{M}'’\\-. ]{0,30}(?:,\\s*[\\p{L}\\p{M}][\\p{L}\\p{M}'’\\-. ]{0,30}){1,4}$");
+    private static final Pattern BILIBILI_TITLE_NOISE_PATTERN = Pattern.compile("(?i)^(?:license\\s*premium|premium|vip|vip\\s*exclusive|licensed|member(?:ship)?\\s*only|subscribe\\s*now|unlock\\s*all|watch\\s*with\\s*premium|trial\\s*member)$");
+    private static final Pattern WEBNOVEL_TITLE_NOISE_PATTERN = Pattern.compile("(?i)^(?:novel\\s*fantasy|fantasy|author|authors?|status|ongoing|completed|chapters?\\s*updated|read\\s*now|contents?|book\\s*detail|book\\s*description|top\\s*up|power\\s*stone|energy\\s*stone|gift\\s*ranking)$");
 
     private final DatabaseHelper dbHelper;
     private final FloatingAssistantManager assistantManager;
@@ -104,14 +106,14 @@ public class MediaMatcher {
     private final Map<Integer, Long> lastUpdateMap = new ConcurrentHashMap<>();
     private final Map<String, Integer> titleConfidenceMap = new ConcurrentHashMap<>();
     private final Map<String, Long> lastTitleDetectionMap = new ConcurrentHashMap<>();
-    private final Map<String, Integer> persistentTextMap = new ConcurrentHashMap<>(); // Track text that appears consistently
+    private final Map<String, Integer> persistentTextMap = new ConcurrentHashMap<>(); // key: package|title -> count
     private final Map<String, String> packageTitleSession = new ConcurrentHashMap<>(); // packageName -> canonical book title
+    private final Map<String, String> packageLastDetectedTitle = new ConcurrentHashMap<>(); // packageName -> last stable title
     private final Map<String, Float> packageLastProgress = new ConcurrentHashMap<>(); // packageName -> latest parsed progress
     private final Map<String, Long> packageLastScrollUpdate = new ConcurrentHashMap<>(); // packageName -> last synthetic update time
     private final Map<String, Long> packageLastNoTextSeen = new ConcurrentHashMap<>(); // packageName -> last no-text observation time
     private final Map<String, Long> dismissedTitleUntilMap = new ConcurrentHashMap<>();
     private final Map<String, Long> dismissedPackageUntilMap = new ConcurrentHashMap<>();
-    private String lastDetectedBookTitle = null; // Cache the most likely book title
     
     private static final long DEBOUNCE_WINDOW_REGEX_MS = 60_000L;
     private static final long DEBOUNCE_WINDOW_SYNTHETIC_MS = 30_000L;
@@ -201,22 +203,24 @@ public class MediaMatcher {
             boolean autoProgressEnabled = isAutoProgressTrackingEnabled();
             boolean bilibiliPackage = isBilibiliPackage(packageName);
             boolean bilibiliPlayerState = !bilibiliPackage || isBilibiliPlayerState(textNodes, context);
+            boolean strictMangaReaderPackage = isMangaReaderPackage(packageName);
 
             // Canonical title session from detected MEDIA_DETAIL pages
             String sessionTitle = packageTitleSession.get(packageName);
             if (!(bilibiliPackage && !bilibiliPlayerState)
                     && context != null
                     && context.type == ScreenContextDetector.ScreenType.MEDIA_DETAIL
-                    && isLikelyBookTitle(context.extractedTitle)) {
+                    && isLikelyTitleForPackage(packageName, context.extractedTitle)) {
                 sessionTitle = context.extractedTitle.trim();
                 packageTitleSession.put(packageName, sessionTitle);
-                lastDetectedBookTitle = sessionTitle;
+                packageLastDetectedTitle.put(packageName, sessionTitle);
                 Log.i(TAG, "Canonical title session set: " + sessionTitle + " (" + packageName + ")");
                 enrichExistingMetadataFromContext(sessionTitle, context);
             }
             if (bilibiliPackage && !bilibiliPlayerState) {
                 sessionTitle = null;
                 packageTitleSession.remove(packageName);
+                packageLastDetectedTitle.remove(packageName);
             }
             if (sessionTitle != null) {
                 float contextProgress = (context != null && context.extractedProgress > 0f) ? context.extractedProgress : 0f;
@@ -226,24 +230,31 @@ public class MediaMatcher {
             }
 
             // Track persistent text (potential book title)
-            if (!(bilibiliPackage && !bilibiliPlayerState)) {
-                for (String node : textNodes) {
-                    String trimmed = node.trim();
+            if (!(bilibiliPackage && !bilibiliPlayerState) && !strictMangaReaderPackage) {
+                for (int index = 0; index < textNodes.size(); index++) {
+                    String node = textNodes.get(index);
+                    String trimmed = node == null ? "" : node.trim();
                     // Only consider consistent canonical-title-like text.
-                    if (trimmed.length() >= 3 && trimmed.length() <= 70 && isLikelyBookTitle(trimmed)) {
-                        persistentTextMap.put(trimmed, persistentTextMap.getOrDefault(trimmed, 0) + 1);
+                    if (trimmed.length() >= 3 && trimmed.length() <= 70 && isLikelyTitleForPackage(packageName, trimmed)) {
+                        String persistentKey = buildPersistentKey(packageName, trimmed);
+                        int seenCount = persistentTextMap.getOrDefault(persistentKey, 0) + 1;
+                        persistentTextMap.put(persistentKey, seenCount);
 
                         // If text appears 3+ times, it's likely the book title
-                        if (persistentTextMap.get(trimmed) >= 3 && lastDetectedBookTitle == null) {
-                            lastDetectedBookTitle = trimmed;
-                            Log.i(TAG, "Detected persistent book title: " + lastDetectedBookTitle);
+                        if (seenCount >= 3) {
+                            String previousDetected = packageLastDetectedTitle.get(packageName);
+                            if (!isLikelyTitleForPackage(packageName, previousDetected) || trimmed.length() > previousDetected.length()) {
+                                packageLastDetectedTitle.put(packageName, trimmed);
+                                Log.i(TAG, "Detected persistent book title: " + trimmed + " (" + packageName + ")");
+                            }
                         }
                     }
                 }
             }
 
-            if (sessionTitle == null && isLikelyBookTitle(lastDetectedBookTitle)) {
-                sessionTitle = lastDetectedBookTitle;
+            String fallbackDetectedTitle = packageLastDetectedTitle.get(packageName);
+            if (sessionTitle == null && isLikelyTitleForPackage(packageName, fallbackDetectedTitle)) {
+                sessionTitle = fallbackDetectedTitle;
                 packageTitleSession.put(packageName, sessionTitle);
             }
 
@@ -257,7 +268,7 @@ public class MediaMatcher {
                 MediaMatch match = parseMedia(node);
                 if (match != null) {
                     String canonicalTitle = sessionTitle;
-                    if (canonicalTitle == null && isLikelyBookTitle(match.title)) {
+                    if (canonicalTitle == null && isLikelyTitleForPackage(packageName, match.title)) {
                         canonicalTitle = match.title.trim();
                     }
 
@@ -350,8 +361,8 @@ public class MediaMatcher {
 
                 if (!alreadyInDb) {
                     String titleToPrompt = (sessionTitle != null) ? sessionTitle
-                            : (isLikelyBookTitle(lastDetectedBookTitle) ? lastDetectedBookTitle : screenTitle);
-                    if (isLikelyBookTitle(titleToPrompt)) {
+                            : (isLikelyTitleForPackage(packageName, fallbackDetectedTitle) ? fallbackDetectedTitle : screenTitle);
+                    if (isLikelyTitleForPackage(packageName, titleToPrompt)) {
                         DetectedMediaCandidate candidate = new DetectedMediaCandidate(
                                 packageName,
                                 titleToPrompt,
@@ -373,6 +384,9 @@ public class MediaMatcher {
 
     private void handlePotentialNewTitle(String packageName, String title, float progress) {
         if (!isAutoTitleTrackingEnabled()) {
+            return;
+        }
+        if (!isLikelyTitleForPackage(packageName, title)) {
             return;
         }
         if (isTitlePromptSuppressed(packageName, title)) {
@@ -642,6 +656,12 @@ public class MediaMatcher {
         return false;
     }
 
+    private static String buildPersistentKey(String packageName, String title) {
+        String pkg = packageName == null ? "unknown" : packageName.trim().toLowerCase(Locale.US);
+        String value = title == null ? "" : title.trim().toLowerCase(Locale.US);
+        return pkg + "|" + value;
+    }
+
     private static boolean isLikelyBookTitle(String title) {
         if (title == null) return false;
         String t = title.trim();
@@ -654,6 +674,13 @@ public class MediaMatcher {
         if (looksLikeSingleNoiseToken(t)) return false;
         if (isLikelyChapterOrBodyText(t) || isLikelyUiText(t)) return false;
         return true;
+    }
+
+    public boolean isLikelyTitleForPackage(String packageName, String title) {
+        if (!isLikelyBookTitle(title)) {
+            return false;
+        }
+        return !isPackageSpecificNoiseTitle(packageName, title);
     }
 
     private static boolean isLikelyUiText(String text) {
@@ -705,6 +732,40 @@ public class MediaMatcher {
         return !normalized.isEmpty() && TITLE_NOISE_TOKENS.contains(normalized);
     }
 
+    private static boolean isPackageSpecificNoiseTitle(String packageName, String title) {
+        if (title == null) {
+            return true;
+        }
+        String lower = title.trim().toLowerCase(Locale.US);
+        if (lower.isEmpty()) {
+            return true;
+        }
+        if (isBilibiliPackage(packageName)) {
+            if (BILIBILI_TITLE_NOISE_PATTERN.matcher(lower).matches()) {
+                return true;
+            }
+            if (lower.contains("premium")
+                    && (lower.contains("license") || lower.contains("vip") || lower.contains("member"))) {
+                return true;
+            }
+        }
+        if (isWebNovelPackage(packageName)) {
+            if (WEBNOVEL_TITLE_NOISE_PATTERN.matcher(lower).matches()) {
+                return true;
+            }
+            if (lower.startsWith("by ")
+                    || lower.startsWith("author:")
+                    || lower.startsWith("authors:")
+                    || lower.startsWith("genre:")) {
+                return true;
+            }
+            if (looksLikeGenreChip(lower)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static boolean isBilibiliPackage(String packageName) {
         if (packageName == null) {
             return false;
@@ -713,6 +774,27 @@ public class MediaMatcher {
         return normalized.contains("bilibili")
                 || normalized.contains("bstar")
                 || normalized.contains("danmaku.bili");
+    }
+
+    private static boolean isMangaReaderPackage(String packageName) {
+        if (packageName == null) {
+            return false;
+        }
+        String normalized = packageName.trim().toLowerCase(Locale.US);
+        return normalized.contains("mihon")
+                || normalized.contains("tachiyomi")
+                || normalized.contains("aniyomi")
+                || normalized.contains("kotatsu");
+    }
+
+    private static boolean isWebNovelPackage(String packageName) {
+        if (packageName == null) {
+            return false;
+        }
+        String normalized = packageName.trim().toLowerCase(Locale.US);
+        return normalized.contains("webnovel")
+                || normalized.contains("qidian")
+                || normalized.contains("novel");
     }
 
     private static boolean isBilibiliPlayerState(List<String> textNodes, ScreenContextDetector.ScreenContext context) {
@@ -763,7 +845,7 @@ public class MediaMatcher {
     public void onClickSignal(String packageName, List<CharSequence> eventTexts) {
         if (eventTexts == null || eventTexts.isEmpty()) return;
         String sessionTitle = packageTitleSession.get(packageName);
-        if (!isLikelyBookTitle(sessionTitle)) return;
+        if (!isLikelyTitleForPackage(packageName, sessionTitle)) return;
 
         float currentProgress = packageLastProgress.getOrDefault(packageName, -1f);
         int total = Integer.MAX_VALUE;
@@ -887,7 +969,7 @@ public class MediaMatcher {
     public void onImmersiveScroll(String packageName, int fromIndex, int toIndex, int itemCount) {
         String sessionTitle = packageTitleSession.get(packageName);
         Float lastProgress = packageLastProgress.get(packageName);
-        if (!isLikelyBookTitle(sessionTitle) || lastProgress == null || lastProgress <= 0f) return;
+        if (!isLikelyTitleForPackage(packageName, sessionTitle) || lastProgress == null || lastProgress <= 0f) return;
 
         if (toIndex <= fromIndex) return;
 

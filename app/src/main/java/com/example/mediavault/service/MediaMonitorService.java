@@ -281,6 +281,9 @@ public class MediaMonitorService extends AccessibilityService {
         }
 
         if (!textNodes.isEmpty()) {
+            if (matcher == null) {
+                matcher = new MediaMatcher(this);
+            }
             // Detect screen context for new floating widget
             ScreenContextDetector.ScreenContext context = ScreenContextDetector.detectContext(textNodes);
             if (context.type == ScreenContextDetector.ScreenType.MEDIA_DETAIL
@@ -298,6 +301,12 @@ public class MediaMonitorService extends AccessibilityService {
                     );
                 }
             }
+            if (context.extractedTitle != null
+                    && !context.extractedTitle.trim().isEmpty()
+                    && !matcher.isLikelyTitleForPackage(packageName, context.extractedTitle)) {
+                Log.d(TAG, "Dropped noisy extracted title for " + packageName + ": " + context.extractedTitle);
+                context = withSanitizedTitle(context, null);
+            }
             if (forcePrompt && (context.extractedTitle == null || context.extractedTitle.trim().isEmpty())) {
                 String fallbackTitle = ScreenContextDetector.extractTitleFromDetail(textNodes);
                 if (fallbackTitle != null && !fallbackTitle.trim().isEmpty()) {
@@ -310,6 +319,9 @@ public class MediaMonitorService extends AccessibilityService {
                             context.totalChapters,
                             context.detectedMediaType
                     );
+                    if (!matcher.isLikelyTitleForPackage(packageName, context.extractedTitle)) {
+                        context = withSanitizedTitle(context, null);
+                    }
                 }
             }
             boolean assistantEnabled = getSharedPreferences("Settings", MODE_PRIVATE)
@@ -326,8 +338,14 @@ public class MediaMonitorService extends AccessibilityService {
                 
                 // Show detection prompt in new widget
                 if (context.extractedTitle != null && !context.extractedTitle.isEmpty()) {
-                    int resolvedMediaId = matcher != null ? matcher.resolveExistingMediaId(context.extractedTitle) : -1;
-                    if (resolvedMediaId > 0 && matcher != null) {
+                    if (!matcher.isLikelyTitleForPackage(packageName, context.extractedTitle)) {
+                        Log.d(TAG, "Suppressed prompt for noisy title candidate: " + context.extractedTitle);
+                        context = withSanitizedTitle(context, null);
+                    }
+                }
+                if (context.extractedTitle != null && !context.extractedTitle.isEmpty()) {
+                    int resolvedMediaId = matcher.resolveExistingMediaId(context.extractedTitle);
+                    if (resolvedMediaId > 0) {
                         matcher.recordAccessibilitySignal(
                                 resolvedMediaId,
                                 new MediaMatcher.DetectedMediaCandidate(
@@ -366,6 +384,21 @@ public class MediaMonitorService extends AccessibilityService {
             matcher.onNoTextWindow(packageName);
             Log.d(TAG, "No text nodes found - nothing to match");
         }
+    }
+
+    private ScreenContextDetector.ScreenContext withSanitizedTitle(
+            ScreenContextDetector.ScreenContext context,
+            String sanitizedTitle
+    ) {
+        return new ScreenContextDetector.ScreenContext(
+                context.type,
+                sanitizedTitle,
+                context.additionalInfo,
+                context.extractedProgress,
+                context.author,
+                context.totalChapters,
+                context.detectedMediaType
+        );
     }
 
     private void scrapeNodes(AccessibilityNodeInfo node, List<String> resultList, int depth, String activePackage) {

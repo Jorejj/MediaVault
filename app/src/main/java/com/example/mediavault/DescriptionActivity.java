@@ -153,6 +153,8 @@ public class DescriptionActivity extends AppCompatActivity {
         AppExecutor.getInstance().diskIO().execute(() -> {
             String url = null;
             String type = null;
+            String unit = null;
+            String contentType = null;
             String title = null;
             float currentProgress = 0;
             int currentSeason = 1;
@@ -162,6 +164,14 @@ public class DescriptionActivity extends AppCompatActivity {
                 if (cursor != null && cursor.moveToFirst()) {
                     url = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_SOURCE_URL));
                     type = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_MEDIA_TYPE));
+                    int unitIndex = cursor.getColumnIndex(DatabaseHelper.COL_UNIT);
+                    if (unitIndex >= 0) {
+                        unit = cursor.getString(unitIndex);
+                    }
+                    int contentTypeIndex = cursor.getColumnIndex(DatabaseHelper.COL_CONTENT_TYPE);
+                    if (contentTypeIndex >= 0) {
+                        contentType = cursor.getString(contentTypeIndex);
+                    }
                     title = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_TITLE));
                     currentProgress = cursor.getFloat(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_CURRENT_PROGRESS));
                     int seasonIndex = cursor.getColumnIndex(DatabaseHelper.COL_CURRENT_SEASON);
@@ -177,14 +187,17 @@ public class DescriptionActivity extends AppCompatActivity {
 
             String finalUrl = normalizeLegacyProviderUrl(url);
             String finalType = type;
+            String finalUnit = unit;
+            String finalContentType = contentType;
             String finalTitle = title;
             int finalProgress = Math.max(1, (int) currentProgress);
             int finalSeason = Math.max(1, currentSeason);
             int finalEpisode = Math.max(1, currentEpisode);
+            LaunchKind launchKind = classifyLaunchKind(finalType, finalUnit, finalContentType, finalUrl);
             
             AppExecutor.getInstance().mainThread().execute(() -> {
                 // ISSUE #1 FIX: Validate required data before routing
-                if (finalType == null || finalTitle == null) {
+                if (finalTitle == null || finalTitle.trim().isEmpty()) {
                     ToastUtils.showCustomToast(this, "Error: Media information is incomplete");
                     return;
                 }
@@ -192,26 +205,26 @@ public class DescriptionActivity extends AppCompatActivity {
                 Intent intent;
                 
                 // Route to appropriate activity based on media type
-                if ("Manga".equalsIgnoreCase(finalType)) {
+                if (launchKind == LaunchKind.MANGA) {
                     // Manga: chapter selector table before opening reader
                     intent = new Intent(this, MangaChapterSelectorActivity.class);
                     intent.putExtra(MangaChapterSelectorActivity.EXTRA_MANGA_TITLE, finalTitle);
                     intent.putExtra(MangaChapterSelectorActivity.EXTRA_MEDIA_ID, mediaId);
                     intent.putExtra(MangaChapterSelectorActivity.EXTRA_CURRENT_CHAPTER, finalProgress);
                     
-                } else if ("Book".equalsIgnoreCase(finalType) || "Novel".equalsIgnoreCase(finalType)) {
+                } else if (launchKind == LaunchKind.BOOK) {
                     // Books/novels: use text reader flow with chapter-like pagination.
                     launchBookWithProviderChooser(finalTitle, finalUrl, mediaId);
                     return;
                     
-                } else if ("Anime".equalsIgnoreCase(finalType)) {
+                } else if (launchKind == LaunchKind.ANIME) {
                     // Anime: Episode selector for Consumet resolution
                     intent = new Intent(this, EpisodeSelectorActivity.class);
                     intent.putExtra(EpisodeSelectorActivity.EXTRA_ANIME_TITLE, finalTitle);
                     intent.putExtra(EpisodeSelectorActivity.EXTRA_MEDIA_ID, mediaId);
                     intent.putExtra(EpisodeSelectorActivity.EXTRA_CURRENT_EPISODE, finalProgress);
                     
-                } else if ("TV Show".equalsIgnoreCase(finalType) || "Series".equalsIgnoreCase(finalType)) {
+                } else if (launchKind == LaunchKind.TV) {
                     // TV Shows: Season/Episode selector
                     intent = new Intent(this, TvSeriesPlayerActivity.class);
                     intent.putExtra(TvSeriesPlayerActivity.EXTRA_TV_SHOW_TITLE, finalTitle);
@@ -220,7 +233,7 @@ public class DescriptionActivity extends AppCompatActivity {
                     intent.putExtra(TvSeriesPlayerActivity.EXTRA_CURRENT_EPISODE, finalEpisode);
                     intent.putExtra(TvSeriesPlayerActivity.EXTRA_SOURCE_URL, finalUrl);
                     
-                } else if ("Movie".equalsIgnoreCase(finalType)) {
+                } else if (launchKind == LaunchKind.MOVIE) {
                     // Movies: always route through provider selector flow.
                     intent = new Intent(this, MoviePlayerActivity.class);
                     intent.putExtra(MoviePlayerActivity.EXTRA_MOVIE_TITLE, finalTitle);
@@ -231,7 +244,12 @@ public class DescriptionActivity extends AppCompatActivity {
                 } else {
                     // Fallback: Direct playback with sourceUrl if available
                     if (finalUrl == null || finalUrl.isEmpty()) {
-                        ToastUtils.showCustomToast(this, "No source URL found for this media.");
+                        // Final fallback for readable units even when type metadata is malformed.
+                        if (isReadableUnit(finalUnit)) {
+                            launchBookWithProviderChooser(finalTitle, finalUrl, mediaId);
+                            return;
+                        }
+                        ToastUtils.showCustomToast(this, "No playable source found for this media.");
                         return;
                     }
                     intent = new Intent(this, PlayerActivity.class);
@@ -242,6 +260,77 @@ public class DescriptionActivity extends AppCompatActivity {
                 startActivity(intent);
             });
         });
+    }
+
+    private enum LaunchKind {
+        MANGA,
+        BOOK,
+        ANIME,
+        TV,
+        MOVIE,
+        UNKNOWN
+    }
+
+    private LaunchKind classifyLaunchKind(String mediaType, String unit, String contentType, String sourceUrl) {
+        String type = mediaType == null ? "" : mediaType.trim().toLowerCase(Locale.US);
+        String content = contentType == null ? "" : contentType.trim().toLowerCase(Locale.US);
+        String normalizedUnit = unit == null ? "" : unit.trim().toLowerCase(Locale.US);
+        String source = sourceUrl == null ? "" : sourceUrl.trim().toLowerCase(Locale.US);
+        String combined = (type + " " + content).trim();
+
+        if (containsAny(combined, "manga", "manhwa", "manhua", "webtoon", "comic")) {
+            return LaunchKind.MANGA;
+        }
+        if (containsAny(combined, "book", "novel", "webnovel", "light novel", "text", "reader")) {
+            return LaunchKind.BOOK;
+        }
+        if (containsAny(combined, "anime")) {
+            return LaunchKind.ANIME;
+        }
+        if (containsAny(combined, "tv", "series", "show", "television")) {
+            return LaunchKind.TV;
+        }
+        if (containsAny(combined, "movie", "film")) {
+            return LaunchKind.MOVIE;
+        }
+
+        if ("minutes".equals(normalizedUnit)) {
+            return LaunchKind.MOVIE;
+        }
+        if ("episodes".equals(normalizedUnit)) {
+            if (containsAny(source, "/tv/", "season", "episode=", "s=", "e=")) {
+                return LaunchKind.TV;
+            }
+            return LaunchKind.ANIME;
+        }
+        if ("chapters".equals(normalizedUnit) || "pages".equals(normalizedUnit)) {
+            if (containsAny(source, "mangadex", "manga", "manhwa", "manhua", "webtoon", "comix.to", "mangafire", "weebcentral")) {
+                return LaunchKind.MANGA;
+            }
+            return LaunchKind.BOOK;
+        }
+
+        return LaunchKind.UNKNOWN;
+    }
+
+    private boolean isReadableUnit(String unit) {
+        if (unit == null) {
+            return false;
+        }
+        String normalized = unit.trim().toLowerCase(Locale.US);
+        return "chapters".equals(normalized) || "pages".equals(normalized);
+    }
+
+    private boolean containsAny(String value, String... tokens) {
+        if (value == null || value.isEmpty() || tokens == null) {
+            return false;
+        }
+        for (String token : tokens) {
+            if (token != null && !token.isEmpty() && value.contains(token)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void launchBookWithProviderChooser(String title, String savedSourceUrl, int mediaId) {

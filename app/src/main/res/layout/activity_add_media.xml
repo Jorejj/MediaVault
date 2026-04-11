@@ -232,21 +232,50 @@
                         android:layout_marginBottom="12dp"
                         android:orientation="horizontal">
 
-                        <Spinner
-                            android:id="@+id/spinner_manual_type"
+                        <LinearLayout
                             android:layout_width="0dp"
-                            android:layout_height="48dp"
+                            android:layout_height="wrap_content"
                             android:layout_weight="1"
-                            android:entries="@array/media_types"
-                            android:contentDescription="@string/media_ratio" />
+                            android:orientation="vertical">
 
-                        <Spinner
-                            android:id="@+id/spinner_manual_status"
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="@font/sf_pro_medium"
+                                android:text="@string/media_type"
+                                android:textColor="?attr/colorTextPrimary" />
+
+                            <Spinner
+                                android:id="@+id/spinner_manual_type"
+                                android:layout_width="match_parent"
+                                android:layout_height="48dp"
+                                android:layout_marginTop="4dp"
+                                android:entries="@array/media_types"
+                                android:contentDescription="@string/media_type" />
+                        </LinearLayout>
+
+                        <LinearLayout
                             android:layout_width="0dp"
-                            android:layout_height="48dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="12dp"
                             android:layout_weight="1"
-                            android:entries="@array/media_statuses"
-                            android:contentDescription="@string/status" />
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:fontFamily="@font/sf_pro_medium"
+                                android:text="@string/status"
+                                android:textColor="?attr/colorTextPrimary" />
+
+                            <Spinner
+                                android:id="@+id/spinner_manual_status"
+                                android:layout_width="match_parent"
+                                android:layout_height="48dp"
+                                android:layout_marginTop="4dp"
+                                android:entries="@array/media_statuses"
+                                android:contentDescription="@string/status" />
+                        </LinearLayout>
                     </LinearLayout>
 
                     <LinearLayout
@@ -359,10 +388,18 @@
                         </LinearLayout>
                     </LinearLayout>
 
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/sf_pro_medium"
+                        android:text="@string/genre_s"
+                        android:textColor="?attr/colorTextPrimary" />
+
                     <Spinner
                         android:id="@+id/spinner_manual_genre"
                         android:layout_width="match_parent"
                         android:layout_height="48dp"
+                        android:layout_marginTop="4dp"
                         android:layout_marginBottom="12dp"
                         android:contentDescription="@string/genre_s" />
 
@@ -487,13 +524,21 @@
                             android:text="@string/auto_mind_blown" />
                     </com.google.android.material.chip.ChipGroup>
 
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:fontFamily="@font/sf_pro_medium"
+                        android:text="@string/priority"
+                        android:textColor="?attr/colorTextPrimary" />
+
                     <Spinner
                         android:id="@+id/spinner_manual_priority"
                         android:layout_width="match_parent"
                         android:layout_height="48dp"
+                        android:layout_marginTop="4dp"
                         android:layout_marginBottom="12dp"
                         android:entries="@array/priority_levels"
-                        android:contentDescription="@string/auto_priority_level" />
+                        android:contentDescription="@string/priority" />
 
                     <com.google.android.material.switchmaterial.SwitchMaterial
                         android:id="@+id/switch_manual_favorite"

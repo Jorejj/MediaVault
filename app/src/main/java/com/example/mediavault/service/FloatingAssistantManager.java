@@ -216,6 +216,10 @@ public class FloatingAssistantManager {
         }
 
         mainHandler.post(() -> {
+            if (isWidgetPromptActive()) {
+                Log.d(TAG, "Skipped progress pill while widget prompt is active");
+                return;
+            }
             pulseAnchor(0xFF3498DB); // Blue pulse
             AtomicBoolean undoConsumed = new AtomicBoolean(false);
             expandNotificationPill("📈 " + displayTitle + " progress updated: " + prevProgress + " -> " + nextProgress, R.drawable.ic_delete, v -> {
@@ -309,6 +313,10 @@ public class FloatingAssistantManager {
     }
 
     private void expandNotificationPill(String text, int actionIcon, View.OnClickListener action) {
+        if (isWidgetPromptActive()) {
+            Log.d(TAG, "Suppressing assistant pill while widget prompt is active");
+            return;
+        }
         mainHandler.removeCallbacks(collapsePillRunnable);
         if (isPillExpanded || notificationPill != null) {
             dismissNotificationPillImmediate();
@@ -413,6 +421,10 @@ public class FloatingAssistantManager {
     public void showCompletionOverlay(int id, String title) {
         String displayTitle = resolveDisplayTitle(id, title);
         if (isAnchorAttached) {
+            if (isWidgetPromptActive()) {
+                Log.d(TAG, "Skipped completion pill while widget prompt is active");
+                return;
+            }
             pulseAnchor(0xFF2ECC71); // Green pulse
             expandNotificationPill("🎉 " + displayTitle + " Completed!", R.drawable.ic_chart, v -> collapseNotificationPill());
         } else {
@@ -423,6 +435,10 @@ public class FloatingAssistantManager {
     public void showNearCompletionOverlay(int id, String title, float next) {
         String displayTitle = resolveDisplayTitle(id, title);
         if (isAnchorAttached) {
+            if (isWidgetPromptActive()) {
+                Log.d(TAG, "Skipped near-completion pill while widget prompt is active");
+                return;
+            }
             pulseAnchor(0xFF2ECC71);
             expandNotificationPill("Last Chapter of " + displayTitle + "!", R.drawable.ic_chart, v -> collapseNotificationPill());
         }
@@ -504,6 +520,18 @@ public class FloatingAssistantManager {
         });
     }
 
+    public void setAnchorSuppressed(boolean suppressed) {
+        mainHandler.post(() -> {
+            if (anchorView == null || !isAnchorAttached) {
+                return;
+            }
+            anchorView.animate().cancel();
+            anchorView.clearAnimation();
+            anchorView.setAlpha(suppressed ? 0f : 1f);
+            anchorView.setVisibility(suppressed ? View.GONE : View.VISIBLE);
+        });
+    }
+
     /**
      * Update the current screen context. Called by MediaMonitorService.
      */
@@ -538,21 +566,18 @@ public class FloatingAssistantManager {
                     ((android.widget.ImageView) anchorIcon).setColorFilter(color);
                 }
                 pulseAnchor(color);
-                
-                // Show notification when first detecting book
+
+                // Let FloatingWidgetManager be the single source for detection prompts.
                 if (contextChanged
                         && isAutoTitleTrackingEnabled()
                         && context.extractedTitle != null
                         && !context.extractedTitle.isEmpty()
-                        && !isDetectedTitleDismissed(context.extractedTitle)) {
-                    expandNotificationPill(
-                        context.extractedTitle + " detected. Tap to add.",
-                        R.drawable.ic_add,
-                        v -> {
-                            onAnchorTapped(); // Show add menu
-                            collapseNotificationPill();
-                        }
-                    );
+                        && !isDetectedTitleDismissed(context.extractedTitle)
+                        && !FloatingWidgetManager.getInstance(this.context).isShowing()) {
+                    expandNotificationPill(context.extractedTitle + " detected.", R.drawable.ic_add, v -> {
+                        onAnchorTapped();
+                        collapseNotificationPill();
+                    });
                 }
                 break;
             case CHAPTER_READING:
@@ -896,6 +921,11 @@ public class FloatingAssistantManager {
 
     private boolean isViewAttached(View view) {
         return view != null && view.getParent() != null;
+    }
+
+    private boolean isWidgetPromptActive() {
+        FloatingWidgetManager widgetManager = FloatingWidgetManager.getInstance(context);
+        return widgetManager.isPromptActive();
     }
 
     private void clampToScreen(WindowManager.LayoutParams params, View view) {

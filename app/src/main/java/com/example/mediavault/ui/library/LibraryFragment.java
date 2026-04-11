@@ -4,7 +4,9 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.database.Cursor;
+import android.app.Activity;
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -19,6 +21,8 @@ import android.widget.LinearLayout;
 import android.widget.PopupMenu;
 import android.widget.TextView;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
@@ -36,6 +40,10 @@ import com.google.android.material.chip.ChipGroup;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -64,6 +72,14 @@ public class LibraryFragment extends Fragment {
     private boolean isReceiverRegistered = false;
     private final Map<Integer, CollectionFilter> customCollectionByChipId = new HashMap<>();
     private static final String COLLECTION_TYPE_ANY = "Any Type";
+    private static final String COLLECTION_PREFS = "library_collection_prefs";
+    private static final String KEY_CUSTOM_COLLECTIONS_JSON = "custom_collections_json";
+    private final ActivityResultLauncher<Intent> collectionPickerLauncher =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() == Activity.RESULT_OK) {
+                    refreshLibrary();
+                }
+            });
 
     private static class CollectionFilter {
         final String name;
@@ -107,6 +123,7 @@ public class LibraryFragment extends Fragment {
         recyclerView.setAdapter(adapter);
 
         setupListeners();
+        restoreCustomCollections();
         updateAddCollectionChipVisibility();
         refreshLibrary();
 
@@ -181,11 +198,46 @@ public class LibraryFragment extends Fragment {
 
         btnFilter.setOnClickListener(this::showSortMenu);
         if (btnAddCollection != null) {
-            btnAddCollection.setOnClickListener(v -> showAddCollectionDialog());
+            btnAddCollection.setOnClickListener(v -> onCollectionPlusClicked());
         }
         if (chipCollectionAdd != null) {
-            chipCollectionAdd.setOnClickListener(v -> showAddCollectionDialog());
+            chipCollectionAdd.setOnClickListener(v -> onCollectionPlusClicked());
         }
+    }
+
+    private void onCollectionPlusClicked() {
+        if (chipGroupStatus != null) {
+            int checkedId = chipGroupStatus.getCheckedChipId();
+            if (customCollectionByChipId.containsKey(checkedId)) {
+                openCollectionPicker(checkedId);
+                return;
+            }
+        }
+        Integer activeCustomId = findCustomCollectionChipId(currentCollectionFilter, currentCollectionTypeConstraint);
+        if (activeCustomId != null) {
+            openCollectionPicker(activeCustomId);
+            return;
+        }
+        showAddCollectionDialog();
+    }
+
+    @Nullable
+    private Integer findCustomCollectionChipId(@Nullable String collectionName, @Nullable String typeConstraint) {
+        if (collectionName == null || collectionName.trim().isEmpty()) {
+            return null;
+        }
+        String targetName = collectionName.trim();
+        String targetType = typeConstraint == null || typeConstraint.trim().isEmpty()
+                ? COLLECTION_TYPE_ANY
+                : typeConstraint.trim();
+        for (Map.Entry<Integer, CollectionFilter> entry : customCollectionByChipId.entrySet()) {
+            CollectionFilter filter = entry.getValue();
+            if (filter.name.equalsIgnoreCase(targetName)
+                    && filter.typeConstraint.equalsIgnoreCase(targetType)) {
+                return entry.getKey();
+            }
+        }
+        return null;
     }
 
     private void updateChipAppearance(ChipGroup group, int checkedId) {
@@ -212,9 +264,15 @@ public class LibraryFragment extends Fragment {
                 if (chip.getId() == checkedId) {
                     chip.setChipBackgroundColorResource(R.color.accent_blue);
                     chip.setTextColor(getResources().getColor(R.color.white));
+                    if (chip.isCloseIconVisible()) {
+                        chip.setCloseIconTintResource(R.color.white);
+                    }
                 } else {
                     chip.setChipBackgroundColorResource(R.color.chip_unselected_bg);
                     chip.setTextColor(getResources().getColor(R.color.chip_unselected_text));
+                    if (chip.isCloseIconVisible()) {
+                        chip.setCloseIconTintResource(R.color.chip_unselected_text);
+                    }
                 }
             }
         }
@@ -266,8 +324,7 @@ public class LibraryFragment extends Fragment {
                     || "Dropped".equalsIgnoreCase(currentCollectionFilter)) {
                 matchesCollection = item.getStatus().equalsIgnoreCase(currentCollectionFilter);
             } else {
-                String genre = item.getGenre() != null ? item.getGenre() : "";
-                boolean matchesName = genre.toLowerCase(Locale.ROOT).contains(currentCollectionFilter.toLowerCase(Locale.ROOT));
+                boolean matchesName = hasCollectionTag(item.getGenre(), currentCollectionFilter);
                 boolean matchesTypeConstraint = isTypeConstraintMatch(item.getType(), currentCollectionTypeConstraint);
                 matchesCollection = matchesName && matchesTypeConstraint;
             }
@@ -348,14 +405,30 @@ public class LibraryFragment extends Fragment {
     }
 
     private void addCustomCollectionChip(@NonNull String collectionName, @NonNull String typeConstraint) {
+        addCustomCollectionChipInternal(collectionName, typeConstraint, true, true);
+    }
+
+    private void addCustomCollectionChipInternal(
+            @NonNull String collectionName,
+            @NonNull String typeConstraint,
+            boolean selectChip,
+            boolean showToast
+    ) {
         if (chipGroupStatus == null) {
             return;
         }
         for (Map.Entry<Integer, CollectionFilter> entry : customCollectionByChipId.entrySet()) {
             CollectionFilter existing = entry.getValue();
             if (existing.name.equalsIgnoreCase(collectionName) && existing.typeConstraint.equalsIgnoreCase(typeConstraint)) {
-                chipGroupStatus.check(entry.getKey());
-                ToastUtils.showCustomToast(requireContext(), "Collection already exists");
+                if (selectChip) {
+                    chipGroupStatus.check(entry.getKey());
+                    currentCollectionFilter = existing.name;
+                    currentCollectionTypeConstraint = existing.typeConstraint;
+                    applyFilters();
+                }
+                if (showToast) {
+                    ToastUtils.showCustomToast(requireContext(), "Collection already exists");
+                }
                 return;
             }
         }
@@ -364,7 +437,11 @@ public class LibraryFragment extends Fragment {
         chip.setId(chipId);
         chip.setText(buildCollectionChipLabel(collectionName, typeConstraint));
         chip.setCheckable(true);
-        chip.setCloseIconVisible(false);
+        chip.setCloseIconVisible(true);
+        chip.setCloseIconResource(R.drawable.ic_add);
+        chip.setCloseIconTintResource(R.color.chip_unselected_text);
+        chip.setCloseIconContentDescription(getString(R.string.auto_add_media_to_collection));
+        chip.setOnCloseIconClickListener(v -> openCollectionPicker(chipId));
         chip.setChipBackgroundColorResource(R.color.chip_unselected_bg);
         chip.setTextColor(getResources().getColor(R.color.chip_unselected_text));
         chip.setOnLongClickListener(v -> {
@@ -390,6 +467,7 @@ public class LibraryFragment extends Fragment {
                                             applyFilters();
                                         }
                                         updateAddCollectionChipVisibility();
+                                        persistCustomCollections();
                                     })
                                     .setNegativeButton("Cancel", null)
                                     .show();
@@ -400,11 +478,27 @@ public class LibraryFragment extends Fragment {
         });
         customCollectionByChipId.put(chipId, new CollectionFilter(collectionName, typeConstraint));
         chipGroupStatus.addView(chip);
-        chipGroupStatus.check(chipId);
-        currentCollectionFilter = collectionName;
-        currentCollectionTypeConstraint = typeConstraint;
+        if (selectChip) {
+            chipGroupStatus.check(chipId);
+            currentCollectionFilter = collectionName;
+            currentCollectionTypeConstraint = typeConstraint;
+        }
         updateAddCollectionChipVisibility();
-        ToastUtils.showCustomToast(requireContext(), "Collection added");
+        persistCustomCollections();
+        if (showToast) {
+            ToastUtils.showCustomToast(requireContext(), "Collection added");
+        }
+    }
+
+    private void openCollectionPicker(int chipId) {
+        CollectionFilter filter = customCollectionByChipId.get(chipId);
+        if (filter == null || getContext() == null) {
+            return;
+        }
+        Intent pickerIntent = new Intent(requireContext(), CollectionMediaPickerActivity.class);
+        pickerIntent.putExtra(CollectionMediaPickerActivity.EXTRA_COLLECTION_NAME, filter.name);
+        pickerIntent.putExtra(CollectionMediaPickerActivity.EXTRA_TYPE_CONSTRAINT, filter.typeConstraint);
+        collectionPickerLauncher.launch(pickerIntent);
     }
 
     private void showEditCollectionDialog(int chipId, @NonNull Chip chip) {
@@ -478,6 +572,7 @@ public class LibraryFragment extends Fragment {
                         currentCollectionTypeConstraint = newType;
                     }
 
+                    persistCustomCollections();
                     ToastUtils.showCustomToast(requireContext(), "Collection updated");
                 })
                 .setNegativeButton("Cancel", null)
@@ -498,9 +593,6 @@ public class LibraryFragment extends Fragment {
         if (itemType == null) {
             return false;
         }
-        if ("Book".equalsIgnoreCase(typeConstraint)) {
-            return "Book".equalsIgnoreCase(itemType) || "Manga".equalsIgnoreCase(itemType);
-        }
         return itemType.equalsIgnoreCase(typeConstraint);
     }
 
@@ -508,7 +600,70 @@ public class LibraryFragment extends Fragment {
         if (chipCollectionAdd == null) {
             return;
         }
-        chipCollectionAdd.setVisibility(customCollectionByChipId.isEmpty() ? View.VISIBLE : View.GONE);
+        chipCollectionAdd.setVisibility(View.VISIBLE);
+    }
+
+    private boolean hasCollectionTag(@Nullable String genre, @Nullable String collectionName) {
+        if (genre == null || genre.trim().isEmpty() || collectionName == null || collectionName.trim().isEmpty()) {
+            return false;
+        }
+        String target = collectionName.trim().toLowerCase(Locale.ROOT);
+        String[] tokens = genre.split(",");
+        for (String token : tokens) {
+            if (target.equals(token.trim().toLowerCase(Locale.ROOT))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void restoreCustomCollections() {
+        Context context = getContext();
+        if (context == null) {
+            return;
+        }
+        SharedPreferences prefs = context.getSharedPreferences(COLLECTION_PREFS, Context.MODE_PRIVATE);
+        String raw = prefs.getString(KEY_CUSTOM_COLLECTIONS_JSON, "[]");
+        try {
+            JSONArray array = new JSONArray(raw);
+            for (int i = 0; i < array.length(); i++) {
+                JSONObject entry = array.optJSONObject(i);
+                if (entry == null) {
+                    continue;
+                }
+                String name = entry.optString("name", "").trim();
+                if (name.isEmpty()) {
+                    continue;
+                }
+                String type = entry.optString("type", COLLECTION_TYPE_ANY).trim();
+                if (type.isEmpty()) {
+                    type = COLLECTION_TYPE_ANY;
+                }
+                addCustomCollectionChipInternal(name, type, false, false);
+            }
+        } catch (JSONException ignored) {
+        }
+    }
+
+    private void persistCustomCollections() {
+        Context context = getContext();
+        if (context == null) {
+            return;
+        }
+        JSONArray array = new JSONArray();
+        for (CollectionFilter filter : customCollectionByChipId.values()) {
+            JSONObject entry = new JSONObject();
+            try {
+                entry.put("name", filter.name);
+                entry.put("type", filter.typeConstraint);
+                array.put(entry);
+            } catch (JSONException ignored) {
+            }
+        }
+        context.getSharedPreferences(COLLECTION_PREFS, Context.MODE_PRIVATE)
+                .edit()
+                .putString(KEY_CUSTOM_COLLECTIONS_JSON, array.toString())
+                .apply();
     }
 
     private void refreshLibrary() {

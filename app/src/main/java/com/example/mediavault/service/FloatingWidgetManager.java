@@ -57,6 +57,7 @@ public class FloatingWidgetManager {
     private static final int FADE_DELAY_MS = 4000;
     private static final float IDLE_ALPHA = 0.35f;
     private static final long IGNORE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes
+    private static final long PROMPT_DUPLICATE_WINDOW_MS = 2500L;
     private static final String SETTINGS_PREFS = "Settings";
     private static final String PREF_AUTO_TITLE_TRACKING_ENABLED = "auto_title_tracking_enabled";
     private static final String PREF_AUTO_PROGRESS_TRACKING_ENABLED = "auto_progress_tracking_enabled";
@@ -86,6 +87,9 @@ public class FloatingWidgetManager {
     private String pendingDetectedDescription = null;
     
     private String pendingDetectedMediaType = null;
+    private String lastPromptTitleKey = null;
+    private String lastPromptPackageKey = null;
+    private long lastPromptShownAtMs = 0L;
     
     // Ignored titles with timestamps
     private final Map<String, Long> ignoredTitles = new HashMap<>();
@@ -221,6 +225,7 @@ public class FloatingWidgetManager {
         }
         if (mainView != null) {
             try {
+                resetStateSurface(mainView);
                 mainView.animate().cancel();
                 windowManager.removeViewImmediate(mainView);
             } catch (IllegalArgumentException e) {
@@ -229,6 +234,7 @@ public class FloatingWidgetManager {
         }
         if (trashCanView != null) {
             try {
+                resetStateSurface(trashCanView);
                 trashCanView.animate().cancel();
                 windowManager.removeViewImmediate(trashCanView);
             } catch (IllegalArgumentException e) {
@@ -242,17 +248,25 @@ public class FloatingWidgetManager {
         stateEditPrompt = null;
         stateExpandedMenu = null;
         currentState = WidgetState.IDLE;
+        lastPromptTitleKey = null;
+        lastPromptPackageKey = null;
+        lastPromptShownAtMs = 0L;
         if (snapAnimator != null) {
             snapAnimator.cancel();
             snapAnimator = null;
         }
         fadeHandler.removeCallbacksAndMessages(null);
         unregisterClipboardListener();
+        FloatingAssistantManager.getInstance(context).setAnchorSuppressed(false);
         Log.i(TAG, "Floating widget hidden");
     }
 
     public boolean isShowing() {
         return mainView != null;
+    }
+
+    public boolean isPromptActive() {
+        return mainView != null && currentState != WidgetState.IDLE;
     }
 
     public void showQuickActions() {
@@ -280,8 +294,13 @@ public class FloatingWidgetManager {
         Log.d(TAG, "State transition: " + currentState + " -> " + newState);
         WidgetState previousState = currentState;
         currentState = newState;
+        FloatingAssistantManager.getInstance(context).setAnchorSuppressed(newState != WidgetState.IDLE);
         
         // Hide all states
+        resetStateSurface(stateIdle);
+        resetStateSurface(stateDetectedPrompt);
+        resetStateSurface(stateEditPrompt);
+        resetStateSurface(stateExpandedMenu);
         stateIdle.setVisibility(View.GONE);
         stateDetectedPrompt.setVisibility(View.GONE);
         stateEditPrompt.setVisibility(View.GONE);
@@ -418,6 +437,16 @@ public class FloatingWidgetManager {
             return;
         }
         String normalizedTitle = title.trim();
+        String normalizedPackage = normalizePackageKey(packageName);
+        String promptTitleKey = normalizeTitleKey(normalizedTitle);
+        long now = System.currentTimeMillis();
+        if (promptTitleKey.equals(lastPromptTitleKey)
+                && normalizedPackage.equals(lastPromptPackageKey)
+                && (now - lastPromptShownAtMs) < PROMPT_DUPLICATE_WINDOW_MS
+                && currentState == WidgetState.DETECTED_PROMPT) {
+            Log.d(TAG, "Debounced duplicate detection prompt: " + normalizedTitle);
+            return;
+        }
         String ignoreKey = buildIgnoreKey(normalizedTitle, mediaId);
         
         // Check if this title is in ignore list and not expired
@@ -439,6 +468,9 @@ public class FloatingWidgetManager {
         pendingDetectedTotalChapters = Math.max(0, detectedTotalChapters);
         pendingDetectedDescription = detectedDescription;
         pendingDetectedMediaType = detectedMediaType;
+        lastPromptTitleKey = promptTitleKey;
+        lastPromptPackageKey = normalizedPackage;
+        lastPromptShownAtMs = now;
         String displayTitle = pendingTitle;
         if (pendingMediaId > 0) {
             String canonical = databaseHelper.getPreferredDisplayTitle(pendingMediaId);
@@ -1234,5 +1266,33 @@ public class FloatingWidgetManager {
 
     private boolean isViewAttached(View view) {
         return view != null && view.getParent() != null;
+    }
+
+    private void resetStateSurface(View view) {
+        if (view == null) {
+            return;
+        }
+        view.animate().cancel();
+        view.clearAnimation();
+        view.setAlpha(1f);
+        view.setTranslationX(0f);
+        view.setTranslationY(0f);
+        view.setScaleX(1f);
+        view.setScaleY(1f);
+        view.setRotation(0f);
+    }
+
+    private String normalizeTitleKey(String title) {
+        if (title == null) {
+            return "";
+        }
+        return title.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private String normalizePackageKey(String packageName) {
+        if (packageName == null) {
+            return "";
+        }
+        return packageName.trim().toLowerCase(Locale.ROOT);
     }
 }

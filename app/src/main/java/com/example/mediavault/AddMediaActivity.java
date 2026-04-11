@@ -59,6 +59,8 @@ import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.switchmaterial.SwitchMaterial;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
+import org.json.JSONArray;
+import org.json.JSONException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -131,6 +133,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
     private String trackerDetectedDescription;
     private boolean trackerForceManual;
     private String trackerPrefillSourceUrl;
+    private String pendingGenrePrefill;
 
     private final ActivityResultLauncher<Intent> imagePickerLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -1217,14 +1220,10 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         }
 
         etManualDescription.setText(result.getDescription());
+        String metadataGenreCsv = extractMetadataGenresCsv(selectedMetadataProfile);
+        String selectedGenre = !TextUtils.isEmpty(metadataGenreCsv) ? metadataGenreCsv : result.getGenre();
+        pendingGenrePrefill = normalizeGenreForType(result.getType(), extractPrimaryGenre(selectedGenre));
         updateGenreSpinner();
-        String selectedGenre = result.getGenre();
-        if (!TextUtils.isEmpty(selectedGenre)) {
-            String primaryGenre = selectedGenre.contains(",")
-                    ? selectedGenre.split(",")[0].trim()
-                    : selectedGenre.trim();
-            setSpinnerToValue(spinnerManualGenre, primaryGenre);
-        }
         etManualAuthor.setText(result.getAuthor());
         toggleGroup.check(R.id.btn_mode_manual);
 
@@ -1232,13 +1231,18 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         ToastUtils.showCustomToast(this, "Auto-filled data from " + apiName + ". Please review.");
     }
     private void setSpinnerToValue(Spinner spinner, String value) {
-        if (value == null) return;
+        setSpinnerToExactValue(spinner, value);
+    }
+
+    private boolean setSpinnerToExactValue(Spinner spinner, String value) {
+        if (spinner == null || value == null) return false;
         for (int i = 0; i < spinner.getCount(); i++) {
             if (spinner.getItemAtPosition(i).toString().equalsIgnoreCase(value)) {
                 spinner.setSelection(i);
-                break;
+                return true;
             }
         }
+        return false;
     }
 
     private void setSpinnerToContains(Spinner spinner, String token) {
@@ -1252,6 +1256,77 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                 return;
             }
         }
+    }
+
+    private boolean containsIgnoreCase(List<String> values, String target) {
+        if (values == null || target == null) {
+            return false;
+        }
+        for (String value : values) {
+            if (value != null && value.equalsIgnoreCase(target)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private String extractPrimaryGenre(String rawGenre) {
+        if (TextUtils.isEmpty(rawGenre)) {
+            return "";
+        }
+        String[] tokens = rawGenre.split(",");
+        for (String token : tokens) {
+            String trimmed = token == null ? "" : token.trim();
+            if (!trimmed.isEmpty()) {
+                return trimmed;
+            }
+        }
+        return rawGenre.trim();
+    }
+
+    private String extractMetadataGenresCsv(MediaMetadataProfile profile) {
+        if (profile == null || TextUtils.isEmpty(profile.getGenresJson())) {
+            return "";
+        }
+        try {
+            JSONArray genresArray = new JSONArray(profile.getGenresJson());
+            List<String> genres = new ArrayList<>();
+            for (int i = 0; i < genresArray.length(); i++) {
+                String genre = genresArray.optString(i, "").trim();
+                if (!genre.isEmpty()) {
+                    genres.add(genre);
+                }
+            }
+            return genres.isEmpty() ? "" : TextUtils.join(", ", genres);
+        } catch (JSONException ignored) {
+            return "";
+        }
+    }
+
+    private String normalizeGenreForType(String mediaType, String rawGenre) {
+        if (TextUtils.isEmpty(rawGenre)) {
+            return "";
+        }
+        String normalized = rawGenre.trim();
+        String lower = normalized.toLowerCase(Locale.ROOT);
+
+        if ("Book".equalsIgnoreCase(mediaType)) {
+            if (lower.equals("sci-fi") || lower.equals("science fiction")) {
+                return "Science Fiction";
+            }
+            if (lower.contains("rom com") || lower.contains("rom-com")) {
+                return "Rom-Com";
+            }
+            return normalized;
+        }
+
+        if (lower.equals("science fiction") || lower.equals("sci fi")) {
+            return "Sci-Fi";
+        }
+        if (lower.contains("slice-of-life")) {
+            return "Slice of Life";
+        }
+        return normalized;
     }
 
     private String trimmedProgressText(float progress) {
@@ -1370,9 +1445,13 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
 
     private void updateGenreSpinner() {
         String mediaType = spinnerManualType.getSelectedItem() != null ? spinnerManualType.getSelectedItem().toString() : "Book";
-        List<String> genres = GenreManager.getGenreListForMediaType(mediaType);
-        
-        // Create adapter for genre spinner
+        List<String> genres = new ArrayList<>(GenreManager.getGenreListForMediaType(mediaType));
+        String currentSelection = spinnerManualGenre.getSelectedItem() != null ? spinnerManualGenre.getSelectedItem().toString() : "";
+        String preferredGenre = normalizeGenreForType(mediaType, !TextUtils.isEmpty(pendingGenrePrefill) ? pendingGenrePrefill : currentSelection);
+        if (!TextUtils.isEmpty(preferredGenre) && !containsIgnoreCase(genres, preferredGenre)) {
+            genres.add(0, preferredGenre);
+        }
+
         android.widget.ArrayAdapter<String> genreAdapter = new android.widget.ArrayAdapter<>(
                 this,
                 android.R.layout.simple_spinner_item,
@@ -1380,6 +1459,12 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         );
         genreAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerManualGenre.setAdapter(genreAdapter);
+        if (!TextUtils.isEmpty(preferredGenre)) {
+            if (!setSpinnerToExactValue(spinnerManualGenre, preferredGenre)) {
+                setSpinnerToContains(spinnerManualGenre, preferredGenre);
+            }
+        }
+        pendingGenrePrefill = null;
     }
 
     private void updateManualCapacityUI() {
@@ -1445,7 +1530,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         String title = Objects.requireNonNull(etManualTitle.getText()).toString().trim();
         String type = spinnerManualType.getSelectedItem().toString();
         String status = spinnerManualStatus.getSelectedItem().toString();
-        String genre = spinnerManualGenre.getSelectedItem() != null ? spinnerManualGenre.getSelectedItem().toString() : "";
+        String genreInput = spinnerManualGenre.getSelectedItem() != null ? spinnerManualGenre.getSelectedItem().toString() : "";
         String creator = Objects.requireNonNull(etManualAuthor.getText()).toString().trim();
         String progressStr = etManualProgress.getText().toString().trim();
         String capacityStr = etManualTotal.getText().toString().trim();
@@ -1520,6 +1605,14 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         final int selectedYearAtSave = selectedReleaseYear;
         final String selectedTitleAtSave = selectedResultTitle;
         final MediaMetadataProfile selectedMetadataAtSave = selectedMetadataProfile;
+        final String metadataGenresAtSave = (selectedMetadataAtSave != null
+                && selectedTitleAtSave != null
+                && selectedTitleAtSave.equalsIgnoreCase(title))
+                ? extractMetadataGenresCsv(selectedMetadataAtSave)
+                : "";
+        final String finalGenre = !TextUtils.isEmpty(metadataGenresAtSave)
+                ? metadataGenresAtSave
+                : normalizeGenreForType(type, extractPrimaryGenre(genreInput));
 
         btnManualDone.setEnabled(false);
 
@@ -1545,7 +1638,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                     contentType = "search";
                 }
 
-                long result = dbHelper.addMedia(title, type, genre, creator, total, unit, null, finalImageUrl, finalDescription, sourceUrl, contentType);
+                long result = dbHelper.addMedia(title, type, finalGenre, creator, total, unit, null, finalImageUrl, finalDescription, sourceUrl, contentType);
 
                 if (result != -1) {
                     dbHelper.updateProgress((int) result, finalProgress, finalStatus, finalRating);
@@ -1562,7 +1655,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                         metadataProfile = buildManualMetadataProfile(
                                 title,
                                 type,
-                                genre,
+                                finalGenre,
                                 creator,
                                 total,
                                 unit,

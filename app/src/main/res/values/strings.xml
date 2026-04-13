@@ -378,6 +378,8 @@
     <string name="auto_password">Password</string>
     <string name="auto_login">Login</string>
     <string name="auto_sign_up">Sign Up</string>
+    <string name="auto_register">Register</string>
+    <string name="auto_login_or_register_to_continue">Login or Register to continue</string>
     <string name="auto_forgot_password">Forgot Password</string>
     <string name="auto_log_out_local">Log Out (Local Session)</string>
     <string name="auto_log_out_account">Log Out Account</string>

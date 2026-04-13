@@ -20,6 +20,21 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <TextView
+        android:id="@+id/text_cloud_subtitle"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="6dp"
+        android:layout_marginEnd="20dp"
+        android:fontFamily="@font/sf_pro_regular"
+        android:text="@string/auto_login_or_register_to_continue"
+        android:textColor="?attr/colorTextSecondary"
+        android:textSize="14sp"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/text_cloud_title" />
+
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
@@ -30,7 +45,7 @@
         android:padding="16dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/text_cloud_title">
+        app:layout_constraintTop_toBottomOf="@id/text_cloud_subtitle">
 
         <TextView
             android:id="@+id/text_cloud_session_status"
@@ -80,7 +95,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
-            android:text="@string/auto_sign_up"
+            android:text="@string/auto_register"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/btn_cloud_login" />

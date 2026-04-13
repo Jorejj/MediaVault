@@ -133,7 +133,8 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/screen_section_spacing_small"
             android:gravity="top"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:visibility="gone">
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="0dp"
@@ -321,6 +322,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
+            android:visibility="gone"
             app:cardBackgroundColor="@color/glass_surface_color"
             app:strokeColor="@color/glass_border_soft"
             app:strokeWidth="1dp"
@@ -434,6 +436,7 @@
             android:layout_width="match_parent"
             android:layout_height="52dp"
             android:layout_marginTop="14dp"
+            android:visibility="gone"
             android:text="@string/analyze_habits" />
 
         <TextView
@@ -442,6 +445,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
             android:layout_marginTop="10dp"
+            android:visibility="gone"
             android:text="@string/view_detailed_stats"
             android:textColor="?attr/colorTextSecondary"
             android:textSize="13sp"
@@ -453,6 +457,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
+            android:visibility="gone"
             app:cardBackgroundColor="@color/glass_surface_color"
             app:strokeColor="@color/glass_border_soft"
             app:strokeWidth="1dp"
@@ -519,7 +524,8 @@
             android:layout_marginTop="24dp"
             android:layout_marginBottom="8dp"
             android:gravity="center_vertical"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:visibility="gone">
 
             <TextView
                 android:layout_width="0dp"
@@ -551,6 +557,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="24dp"
+            android:visibility="gone"
             app:cardBackgroundColor="@color/glass_surface_color"
             app:strokeColor="@color/glass_border_soft"
             app:strokeWidth="1dp"

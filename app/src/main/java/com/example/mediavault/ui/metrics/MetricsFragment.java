@@ -15,6 +15,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
@@ -22,12 +23,18 @@ import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import com.example.mediavault.AppExecutor;
+import com.example.mediavault.BuildConfig;
 import com.example.mediavault.DailyGoalsManager;
+import com.example.mediavault.DailyProgress;
 import com.example.mediavault.DatabaseHelper;
 import com.example.mediavault.DescriptionActivity;
 import com.example.mediavault.R;
+import com.example.mediavault.receiver.DailyGoalReminderReceiver;
+import com.example.mediavault.utils.ProgressValueUtils;
 import com.example.mediavault.widget.ToastUtils;
 import com.google.android.material.tabs.TabLayout;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.textfield.TextInputEditText;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -47,6 +54,11 @@ public class MetricsFragment extends Fragment {
     private TextView txtStreakSnapshotSummary;
     private TextView[] streakDayViews;
     private ProgressBar progressBacklogHealth;
+    private TextView txtHomeWatchTime, txtHomePagesRead, txtHomeOngoingItems, txtHomeEpisodesWatched, txtHomeBooksCompleted, txtHomeAvgRating;
+    private TextView tvMetricsEditGoals, tvMetricsGoalsHeader, tvMetricsGoalsEmpty, tvMetricsCongratulations;
+    private LinearLayout layoutMetricsGoalPages, layoutMetricsGoalEpisodes, layoutMetricsGoalMinutes;
+    private TextView tvMetricsProgressPages, tvMetricsProgressEpisodes, tvMetricsProgressMinutes;
+    private ProgressBar pbMetricsGoalPages, pbMetricsGoalEpisodes, pbMetricsGoalMinutes;
 
     private String chartTextPrimaryHex = "#FFFFFF";
     private String chartTextSecondaryHex = "#D0D0D0";
@@ -56,6 +68,7 @@ public class MetricsFragment extends Fragment {
     private String chartAccentHex = "#D32F2F";
     
     private DatabaseHelper dbHelper;
+    private DailyGoalsManager goalsManager;
     private boolean isUpdateReceiverRegistered = false;
     private final BroadcastReceiver updateReceiver = new BroadcastReceiver() {
         @Override
@@ -73,6 +86,7 @@ public class MetricsFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_metrics, container, false);
         
         dbHelper = DatabaseHelper.getInstance(requireContext());
+        goalsManager = DailyGoalsManager.getInstance(requireContext());
         
         webviewMonthlyActivity = view.findViewById(R.id.webview_monthly_activity);
         webviewVaultComposition = view.findViewById(R.id.webview_vault_composition);
@@ -106,6 +120,31 @@ public class MetricsFragment extends Fragment {
                 view.findViewById(R.id.txt_streak_day_5),
                 view.findViewById(R.id.txt_streak_day_6)
         };
+
+        txtHomeWatchTime = view.findViewById(R.id.txt_home_watch_time);
+        txtHomePagesRead = view.findViewById(R.id.txt_home_pages_read);
+        txtHomeOngoingItems = view.findViewById(R.id.txt_home_ongoing_items);
+        txtHomeEpisodesWatched = view.findViewById(R.id.txt_home_episodes_watched);
+        txtHomeBooksCompleted = view.findViewById(R.id.txt_home_books_completed);
+        txtHomeAvgRating = view.findViewById(R.id.txt_home_avg_rating);
+
+        tvMetricsEditGoals = view.findViewById(R.id.tv_metrics_edit_goals);
+        tvMetricsGoalsHeader = view.findViewById(R.id.tv_metrics_goals_header);
+        tvMetricsGoalsEmpty = view.findViewById(R.id.tv_metrics_goals_empty);
+        tvMetricsCongratulations = view.findViewById(R.id.tv_metrics_congratulations);
+        layoutMetricsGoalPages = view.findViewById(R.id.layout_metrics_goal_pages);
+        layoutMetricsGoalEpisodes = view.findViewById(R.id.layout_metrics_goal_episodes);
+        layoutMetricsGoalMinutes = view.findViewById(R.id.layout_metrics_goal_minutes);
+        tvMetricsProgressPages = view.findViewById(R.id.tv_metrics_progress_pages);
+        tvMetricsProgressEpisodes = view.findViewById(R.id.tv_metrics_progress_episodes);
+        tvMetricsProgressMinutes = view.findViewById(R.id.tv_metrics_progress_minutes);
+        pbMetricsGoalPages = view.findViewById(R.id.pb_metrics_goal_pages);
+        pbMetricsGoalEpisodes = view.findViewById(R.id.pb_metrics_goal_episodes);
+        pbMetricsGoalMinutes = view.findViewById(R.id.pb_metrics_goal_minutes);
+
+        if (tvMetricsEditGoals != null) {
+            tvMetricsEditGoals.setOnClickListener(v -> showEditGoalDialog());
+        }
 
         refreshData();
         
@@ -232,6 +271,9 @@ public class MetricsFragment extends Fragment {
                 txtCountDropped.setText(String.valueOf(droppedCount));
                 txtTopGenre.setText(String.format("Top Genre: %s", topGenre));
                 txtAvgRating.setText(String.format(Locale.getDefault(), "Avg Rating: %.1f", avgRating));
+
+                updateQuickTotalsUI();
+                updateDailyGoalsCard();
 
                 updateBacklogHealthUI(completedCount, planningCount, ongoingCount);
                 renderHabitChart(finalPages, finalHours, finalEpisodes);
@@ -395,5 +437,181 @@ public class MetricsFragment extends Fragment {
 
     private void setupHabitProgressChart(int position) {
         refreshData();
+    }
+
+    private void updateQuickTotalsUI() {
+        float totalMinutes = dbHelper.getTotalMinutesWatched();
+        float totalPages = dbHelper.getTotalPagesRead();
+        float totalEpisodes = dbHelper.getTotalEpisodesWatched();
+        int totalBooks = dbHelper.getCompletedCountByType("Book");
+        int ongoingCount = dbHelper.getStatusCount("Ongoing");
+        float avgRating = dbHelper.getAverageRating();
+
+        if (txtHomeWatchTime != null) txtHomeWatchTime.setText(formatDuration((int) totalMinutes));
+        if (txtHomePagesRead != null) txtHomePagesRead.setText(String.valueOf((int) ProgressValueUtils.normalizeForUnit(totalPages, "Pages")));
+        if (txtHomeOngoingItems != null) txtHomeOngoingItems.setText(String.valueOf(ongoingCount));
+        if (txtHomeEpisodesWatched != null) txtHomeEpisodesWatched.setText(String.valueOf((int) ProgressValueUtils.normalizeForUnit(totalEpisodes, "Episodes")));
+        if (txtHomeBooksCompleted != null) txtHomeBooksCompleted.setText(String.valueOf(totalBooks));
+        if (txtHomeAvgRating != null) txtHomeAvgRating.setText(String.format(Locale.getDefault(), "%.1f", avgRating));
+    }
+
+    private String formatDuration(int totalMinutes) {
+        if (totalMinutes <= 0) {
+            return "0 mins";
+        }
+        int hours = totalMinutes / 60;
+        int mins = totalMinutes % 60;
+        if (hours == 0) return mins + " mins";
+        if (mins == 0) return hours == 1 ? "1 hour" : hours + " hours";
+        return (hours == 1 ? "1 hour " : hours + " hours ") + mins + " mins";
+    }
+
+    private void updateDailyGoalsCard() {
+        if (goalsManager == null || dbHelper == null) return;
+        String today = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+        DailyProgress progress = dbHelper.getDailyProgress(today);
+
+        boolean hasAnyGoal = false;
+        boolean allGoalsMet = true;
+
+        int goalPages = goalsManager.getGoalPages();
+        if (goalPages > 0) {
+            layoutMetricsGoalPages.setVisibility(View.VISIBLE);
+            pbMetricsGoalPages.setMax(goalPages);
+            int normalizedPages = (int) ProgressValueUtils.normalizeForUnit(progress.pagesRead, "Pages");
+            pbMetricsGoalPages.setProgress(normalizedPages);
+            tvMetricsProgressPages.setText(String.format(Locale.getDefault(), "%d/%d", normalizedPages, goalPages));
+            hasAnyGoal = true;
+            if (normalizedPages < goalPages) allGoalsMet = false;
+        } else {
+            layoutMetricsGoalPages.setVisibility(View.GONE);
+        }
+
+        int goalEpisodes = goalsManager.getGoalEpisodes();
+        if (goalEpisodes > 0) {
+            layoutMetricsGoalEpisodes.setVisibility(View.VISIBLE);
+            pbMetricsGoalEpisodes.setMax(goalEpisodes);
+            int normalizedEpisodes = (int) ProgressValueUtils.normalizeForUnit(progress.episodesWatched, "Episodes");
+            pbMetricsGoalEpisodes.setProgress(normalizedEpisodes);
+            tvMetricsProgressEpisodes.setText(String.format(Locale.getDefault(), "%d/%d", normalizedEpisodes, goalEpisodes));
+            hasAnyGoal = true;
+            if (normalizedEpisodes < goalEpisodes) allGoalsMet = false;
+        } else {
+            layoutMetricsGoalEpisodes.setVisibility(View.GONE);
+        }
+
+        int goalMinutes = goalsManager.getGoalMinutes();
+        if (goalMinutes > 0) {
+            layoutMetricsGoalMinutes.setVisibility(View.VISIBLE);
+            pbMetricsGoalMinutes.setMax(goalMinutes);
+            int normalizedMinutes = Math.max(0, Math.round(progress.minutesWatched));
+            pbMetricsGoalMinutes.setProgress(normalizedMinutes);
+            tvMetricsProgressMinutes.setText(String.format(Locale.getDefault(), "%d/%d", normalizedMinutes, goalMinutes));
+            hasAnyGoal = true;
+            if (normalizedMinutes < goalMinutes) allGoalsMet = false;
+        } else {
+            layoutMetricsGoalMinutes.setVisibility(View.GONE);
+        }
+
+        if (hasAnyGoal) {
+            tvMetricsGoalsEmpty.setVisibility(View.GONE);
+            if (allGoalsMet) {
+                tvMetricsCongratulations.setVisibility(View.VISIBLE);
+                tvMetricsGoalsHeader.setText(com.example.mediavault.R.string.auto_goal_achieved);
+                tvMetricsGoalsHeader.setTextColor(ContextCompat.getColor(requireContext(), R.color.accent_green));
+            } else {
+                tvMetricsCongratulations.setVisibility(View.GONE);
+                tvMetricsGoalsHeader.setText(com.example.mediavault.R.string.auto_today_s_progress_2);
+                tvMetricsGoalsHeader.setTextColor(ContextCompat.getColor(requireContext(), R.color.text_primary));
+            }
+        } else {
+            tvMetricsGoalsEmpty.setVisibility(View.VISIBLE);
+            tvMetricsCongratulations.setVisibility(View.GONE);
+            tvMetricsGoalsHeader.setText(com.example.mediavault.R.string.auto_daily_goals);
+        }
+    }
+
+    private void showEditGoalDialog() {
+        View dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_daily_goals, null);
+        TextInputEditText etPages = dialogView.findViewById(R.id.et_goal_pages);
+        TextInputEditText etEpisodes = dialogView.findViewById(R.id.et_goal_episodes);
+        TextInputEditText etMinutes = dialogView.findViewById(R.id.et_goal_minutes);
+        TextView tvReminderTime = dialogView.findViewById(R.id.tv_reminder_time);
+        com.google.android.material.switchmaterial.SwitchMaterial switchReminder = dialogView.findViewById(R.id.switch_reminder);
+        com.google.android.material.button.MaterialButton btnTestReminderNow = dialogView.findViewById(R.id.btn_test_reminder_now);
+
+        int currentPages = goalsManager.getGoalPages();
+        int currentEpisodes = goalsManager.getGoalEpisodes();
+        int currentMinutes = goalsManager.getGoalMinutes();
+        if (currentPages > 0) etPages.setText(String.valueOf(currentPages));
+        if (currentEpisodes > 0) etEpisodes.setText(String.valueOf(currentEpisodes));
+        if (currentMinutes > 0) etMinutes.setText(String.valueOf(currentMinutes));
+
+        final int[] reminderTime = {goalsManager.getReminderHour(), goalsManager.getReminderMinute()};
+        switchReminder.setChecked(goalsManager.isReminderEnabled());
+        SimpleDateFormat sdf = new SimpleDateFormat("h:mm a", Locale.US);
+        Calendar calendar = Calendar.getInstance();
+        calendar.set(Calendar.HOUR_OF_DAY, reminderTime[0]);
+        calendar.set(Calendar.MINUTE, reminderTime[1]);
+        tvReminderTime.setText(sdf.format(calendar.getTime()));
+        tvReminderTime.setEnabled(switchReminder.isChecked());
+        tvReminderTime.setAlpha(switchReminder.isChecked() ? 1.0f : 0.5f);
+        switchReminder.setOnCheckedChangeListener((buttonView, checked) -> {
+            tvReminderTime.setEnabled(checked);
+            tvReminderTime.setAlpha(checked ? 1.0f : 0.5f);
+        });
+        tvReminderTime.setOnClickListener(v -> {
+            if (!switchReminder.isChecked()) return;
+            new android.app.TimePickerDialog(requireContext(), (picker, hourOfDay, minute) -> {
+                reminderTime[0] = hourOfDay;
+                reminderTime[1] = minute;
+                Calendar cal = Calendar.getInstance();
+                cal.set(Calendar.HOUR_OF_DAY, hourOfDay);
+                cal.set(Calendar.MINUTE, minute);
+                tvReminderTime.setText(sdf.format(cal.getTime()));
+            }, reminderTime[0], reminderTime[1], false).show();
+        });
+        if (btnTestReminderNow != null) {
+            if (!BuildConfig.DEBUG) {
+                btnTestReminderNow.setVisibility(View.GONE);
+            } else {
+                btnTestReminderNow.setOnClickListener(v -> {
+                    Intent testIntent = new Intent(DailyGoalReminderReceiver.ACTION_TEST_REMINDER);
+                    testIntent.setClass(requireContext(), DailyGoalReminderReceiver.class);
+                    requireContext().sendBroadcast(testIntent);
+                    ToastUtils.showCustomToast(requireContext(), "Test reminder sent");
+                });
+            }
+        }
+
+        new MaterialAlertDialogBuilder(requireContext())
+                .setTitle("Set Daily Goals")
+                .setView(dialogView)
+                .setPositiveButton("Save", (dialog, which) -> {
+                    try {
+                        int pagesGoal = parseNonNegativeGoal(etPages.getText() == null ? "" : etPages.getText().toString());
+                        int episodesGoal = parseNonNegativeGoal(etEpisodes.getText() == null ? "" : etEpisodes.getText().toString());
+                        int minutesGoal = parseNonNegativeGoal(etMinutes.getText() == null ? "" : etMinutes.getText().toString());
+                        if (minutesGoal > 1440) minutesGoal = 1440;
+
+                        goalsManager.setGoalPages(pagesGoal);
+                        goalsManager.setGoalEpisodes(episodesGoal);
+                        goalsManager.setGoalMinutes(minutesGoal);
+                        goalsManager.setReminderEnabled(switchReminder.isChecked());
+                        goalsManager.setReminderTime(reminderTime[0], reminderTime[1]);
+                        DailyGoalReminderReceiver.scheduleNextReminder(requireContext(), goalsManager);
+                        refreshData();
+                        ToastUtils.showCustomToast(requireContext(), "Daily goals updated");
+                    } catch (NumberFormatException e) {
+                        ToastUtils.showCustomToast(requireContext(), "Invalid number format");
+                    }
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    private int parseNonNegativeGoal(String raw) {
+        if (raw == null || raw.trim().isEmpty()) return 0;
+        return Math.max(0, Integer.parseInt(raw.trim()));
     }
 }

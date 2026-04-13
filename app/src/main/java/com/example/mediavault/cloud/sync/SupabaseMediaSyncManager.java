@@ -49,16 +49,7 @@ public final class SupabaseMediaSyncManager {
     }
 
     public static void syncAllFromLocalAsync(Context context) {
-        Context appContext = context.getApplicationContext();
-        AppExecutor.getInstance().networkIO().execute(() -> {
-            if (!canSync(appContext)) return;
-            syncAllMediaFromLocalNow(appContext);
-            syncAllProgressLogsFromLocalNow(appContext);
-            syncAllDailyMetricsFromLocalNow(appContext);
-            syncAllMediaMetadataFromLocalNow(appContext);
-            upsertProfileSignalsNow(appContext);
-            upsertUserFeatureVectorsNow(appContext);
-        });
+        // Cloud-authoritative mode: runtime should not promote local cache to cloud in bulk.
     }
 
     public static void bootstrapCloudPrimaryAsync(Context context) {

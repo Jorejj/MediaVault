@@ -51,7 +51,7 @@ public class SupabaseAuthRepository {
                     return;
                 }
                 sessionManager.saveSession(response.body());
-                callback.onSuccess("Logged in successfully.");
+                ensureProfileExists("Logged in successfully.", callback);
             }
 
             @Override
@@ -80,7 +80,11 @@ public class SupabaseAuthRepository {
                 if (payload != null) {
                     sessionManager.saveSession(payload);
                 }
-                callback.onSuccess("Account created. Check your email if confirmation is required.");
+                if (sessionManager.isLoggedIn()) {
+                    ensureProfileExists("Account created. Check your email if confirmation is required.", callback);
+                } else {
+                    callback.onSuccess("Account created. Check your email if confirmation is required.");
+                }
             }
 
             @Override
@@ -291,5 +295,26 @@ public class SupabaseAuthRepository {
 
     private static String bearerAnon() {
         return "Bearer " + CloudConfig.getSupabaseAnonKey();
+    }
+
+    private void ensureProfileExists(String successMessage, AuthCallback callback) {
+        String userId = sessionManager.getUserId();
+        String email = sessionManager.getEmail();
+        if (userId.isEmpty() || email.isEmpty()) {
+            callback.onSuccess(successMessage);
+            return;
+        }
+        String displayName = email.contains("@") ? email.substring(0, email.indexOf('@')) : email;
+        upsertProfile(displayName, "", new AuthCallback() {
+            @Override
+            public void onSuccess(String message) {
+                callback.onSuccess(successMessage);
+            }
+
+            @Override
+            public void onError(String message) {
+                callback.onSuccess(successMessage + " (profile sync pending)");
+            }
+        });
     }
 }

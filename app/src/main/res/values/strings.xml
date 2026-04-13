@@ -387,6 +387,7 @@
     <string name="auto_display_name">Display Name</string>
     <string name="auto_avatar_url">Avatar URL</string>
     <string name="auto_save_profile">Save Profile</string>
+    <string name="auto_cloud_sync_now">Cloud Sync Now</string>
     <string name="auto_reset_password">Reset Password</string>
     <string name="auto_new_password">New Password</string>
     <string name="auto_confirm_password">Confirm Password</string>

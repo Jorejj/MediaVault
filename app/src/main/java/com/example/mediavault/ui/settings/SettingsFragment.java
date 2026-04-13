@@ -36,9 +36,11 @@ import androidx.navigation.Navigation;
 import com.example.mediavault.DatabaseHelper;
 import com.example.mediavault.DailyGoalsManager;
 import com.example.mediavault.R;
+import com.example.mediavault.cloud.CloudConfig;
 import com.example.mediavault.cloud.auth.CloudProfileActivity;
 import com.example.mediavault.cloud.auth.SupabaseAuthActivity;
 import com.example.mediavault.cloud.auth.SupabaseAuthRepository;
+import com.example.mediavault.cloud.sync.SupabaseMediaSyncManager;
 import com.example.mediavault.receiver.DailyGoalReminderReceiver;
 import com.example.mediavault.service.MediaMonitorService;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -148,6 +150,7 @@ public class SettingsFragment extends Fragment {
         View rowCloudAccount = view.findViewById(R.id.row_cloud_account);
         View rowCloudProfile = view.findViewById(R.id.row_cloud_profile);
         View rowCloudLogout = view.findViewById(R.id.row_cloud_logout);
+        View rowCloudSyncNow = view.findViewById(R.id.row_cloud_sync_now);
         View rowQrVault = view.findViewById(R.id.row_qr_vault);
         View rowClearDatabase = view.findViewById(R.id.row_clear_database);
         View rowTerms = view.findViewById(R.id.row_terms);
@@ -283,6 +286,17 @@ public class SettingsFragment extends Fragment {
                     ToastUtils.showCustomToast(requireContext(), message);
                 }
             }));
+        }
+        if (rowCloudSyncNow != null) {
+            rowCloudSyncNow.setOnClickListener(v -> {
+                if (!CloudConfig.isSupabaseEnabled()) {
+                    ToastUtils.showCustomToast(requireContext(), "Supabase is disabled.");
+                    return;
+                }
+                SupabaseMediaSyncManager.bootstrapCloudPrimaryAsync(requireContext());
+                SupabaseMediaSyncManager.syncAllFromLocalAsync(requireContext());
+                ToastUtils.showCustomToast(requireContext(), "Cloud sync started.");
+            });
         }
 
         if (rowQrVault != null) {

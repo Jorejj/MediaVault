@@ -57,13 +57,14 @@ create table if not exists public.media_library (
   engagement_score numeric not null default 0,
   skip_count integer not null default 0,
   replay_count integer not null default 0,
-  last_consumed_at timestamptz,
-  unique (user_id, lower(title), media_type)
+  last_consumed_at timestamptz
 );
 
 create index if not exists idx_media_library_user_status on public.media_library(user_id, status);
 create index if not exists idx_media_library_user_type on public.media_library(user_id, media_type);
 create index if not exists idx_media_library_user_updated on public.media_library(user_id, last_updated desc);
+create unique index if not exists uq_media_library_user_lower_title_type
+  on public.media_library(user_id, lower(title), media_type);
 
 create table if not exists public.progress_log (
   id bigint generated always as identity primary key,

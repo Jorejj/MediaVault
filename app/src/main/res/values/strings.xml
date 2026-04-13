@@ -373,4 +373,12 @@
     <string name="auto_unrestricted">Unrestricted</string>
     <string name="auto_unsupported_target">Unsupported target</string>
     <string name="auto_watched">Watched</string>
+    <string name="auto_cloud_account_supabase">Cloud Account (Supabase)</string>
+    <string name="auto_email">Email</string>
+    <string name="auto_password">Password</string>
+    <string name="auto_login">Login</string>
+    <string name="auto_sign_up">Sign Up</string>
+    <string name="auto_forgot_password">Forgot Password</string>
+    <string name="auto_log_out_local">Log Out (Local Session)</string>
+    <string name="auto_exit">Exit</string>
 </resources>

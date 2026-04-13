@@ -495,12 +495,35 @@
                     app:layout_constraintTop_toTopOf="parent" />
 
                 <RelativeLayout
-                    android:id="@+id/row_export_data"
+                    android:id="@+id/row_cloud_account"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
                     android:layout_marginTop="12dp"
                     android:background="?attr/selectableItemBackground"
                     app:layout_constraintTop_toBottomOf="@id/header_actions">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:fontFamily="@font/sf_pro_medium"
+                        android:text="@string/auto_cloud_account_supabase"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="16sp" />
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:src="@drawable/ic_arrow_forward"
+                        app:tint="?attr/colorIconTint" />
+                </RelativeLayout>
+
+                <RelativeLayout
+                    android:id="@+id/row_export_data"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:background="?attr/selectableItemBackground"
+                    app:layout_constraintTop_toBottomOf="@id/row_cloud_account">
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"

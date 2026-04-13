@@ -36,6 +36,7 @@ import androidx.navigation.Navigation;
 import com.example.mediavault.DatabaseHelper;
 import com.example.mediavault.DailyGoalsManager;
 import com.example.mediavault.R;
+import com.example.mediavault.cloud.auth.SupabaseAuthActivity;
 import com.example.mediavault.receiver.DailyGoalReminderReceiver;
 import com.example.mediavault.service.MediaMonitorService;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -142,6 +143,7 @@ public class SettingsFragment extends Fragment {
         TextView textBatteryStatus = view.findViewById(R.id.text_battery_status);
         textReminderAlertStatus = view.findViewById(R.id.text_reminder_alert_status);
         View rowExportData = view.findViewById(R.id.row_export_data);
+        View rowCloudAccount = view.findViewById(R.id.row_cloud_account);
         View rowQrVault = view.findViewById(R.id.row_qr_vault);
         View rowClearDatabase = view.findViewById(R.id.row_clear_database);
         View rowTerms = view.findViewById(R.id.row_terms);
@@ -257,6 +259,10 @@ public class SettingsFragment extends Fragment {
         // 2. Export Data Action
         if (rowExportData != null) {
             rowExportData.setOnClickListener(v -> showExportConfirmationDialog());
+        }
+
+        if (rowCloudAccount != null) {
+            rowCloudAccount.setOnClickListener(v -> startActivity(new Intent(requireContext(), SupabaseAuthActivity.class)));
         }
 
         if (rowQrVault != null) {

@@ -7,6 +7,8 @@ import android.os.Looper; // Added this import
 import android.content.SharedPreferences;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
+import com.example.mediavault.cloud.auth.CloudAccessGate;
+import com.example.mediavault.cloud.auth.SupabaseAuthActivity;
 
 @SuppressWarnings("CustomSplashScreen")
 
@@ -24,7 +26,13 @@ public class SplashActivity extends AppCompatActivity {
                 Intent intent = new Intent(SplashActivity.this, OnboardingActivity.class);
                 startActivity(intent);
             } else {
-                Intent intent = new Intent(SplashActivity.this, MainActivity.class);
+                Intent intent;
+                if (CloudAccessGate.requiresCloudLogin(this)) {
+                    intent = new Intent(SplashActivity.this, SupabaseAuthActivity.class);
+                    intent.putExtra(SupabaseAuthActivity.EXTRA_FORCE_LOGIN, true);
+                } else {
+                    intent = new Intent(SplashActivity.this, MainActivity.class);
+                }
                 startActivity(intent);
             }
             finish();

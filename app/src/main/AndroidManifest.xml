@@ -200,6 +200,11 @@
             android:theme="@style/Theme.MediaVault"
             android:configChanges="orientation|screenSize" />
 
+        <activity
+            android:name=".cloud.auth.SupabaseAuthActivity"
+            android:exported="false"
+            android:theme="@style/Theme.MediaVault" />
+
         <service
             android:name=".service.MediaMonitorService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"

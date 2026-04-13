@@ -37,4 +37,13 @@ public interface SupabaseMediaApi {
             @Query("user_id") String userIdEq,
             @Query("order") String order
     );
+
+    @Headers("Content-Type: application/json")
+    @POST("rest/v1/user_media_events")
+    Call<Void> insertMediaEvents(
+            @Header("apikey") String apikey,
+            @Header("Authorization") String authorization,
+            @Header("Prefer") String prefer,
+            @Body JsonArray payload
+    );
 }

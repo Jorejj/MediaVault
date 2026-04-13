@@ -70,6 +70,11 @@ public final class SupabaseMediaSyncManager {
         });
     }
 
+    public static void enqueueUserEvent(Context context, String eventType, double eventValue, String sourceSurface) {
+        Context appContext = context.getApplicationContext();
+        AppExecutor.getInstance().networkIO().execute(() -> insertUserEvent(appContext, eventType, eventValue, sourceSurface));
+    }
+
     private static void upsertMediaNow(Context context, int localMediaId) {
         Session session = session(context);
         if (session == null) return;
@@ -138,6 +143,30 @@ public final class SupabaseMediaSyncManager {
             row.addProperty("current_episode", cursor.getInt(cursor.getColumnIndexOrThrow(DatabaseHelper.COL_CURRENT_EPISODE)));
             return row;
         }
+    }
+
+    private static void insertUserEvent(Context context, String eventType, double eventValue, String sourceSurface) {
+        Session session = session(context);
+        if (session == null) return;
+        if (TextUtils.isEmpty(eventType)) return;
+
+        JsonObject row = new JsonObject();
+        row.addProperty("user_id", session.userId);
+        row.addProperty("event_type", eventType);
+        row.addProperty("event_value", Math.max(0d, eventValue));
+        if (!TextUtils.isEmpty(sourceSurface)) {
+            row.addProperty("source_surface", sourceSurface);
+        }
+        row.addProperty("device_platform", "android");
+
+        JsonArray payload = new JsonArray();
+        payload.add(row);
+        api().insertMediaEvents(
+                CloudConfig.getSupabaseAnonKey(),
+                "Bearer " + session.accessToken,
+                "return=minimal",
+                payload
+        ).enqueue(new NoopCallback());
     }
 
     private static JsonArray fetchCloudRows(Session session) {

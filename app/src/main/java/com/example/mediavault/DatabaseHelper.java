@@ -512,6 +512,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.close();
         if (result > 0 && result <= Integer.MAX_VALUE) {
             SupabaseMediaSyncManager.enqueueUpsertMedia(context, (int) result);
+            SupabaseMediaSyncManager.enqueueUserEvent(
+                    context,
+                    "open",
+                    1.0,
+                    "add_media:local_id=" + result
+            );
         }
         return result;
     }
@@ -696,6 +702,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.close();
         if (result > 0) {
             SupabaseMediaSyncManager.enqueueUpsertMedia(context, id);
+            SupabaseMediaSyncManager.enqueueUserEvent(
+                    context,
+                    "progress",
+                    Math.max(0f, progressAdded),
+                    "progress_update:local_id=" + id
+            );
         }
         return result > 0;
     }
@@ -770,6 +782,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.close();
         if (result > 0) {
             SupabaseMediaSyncManager.enqueueUpsertMedia(context, id);
+            SupabaseMediaSyncManager.enqueueUserEvent(
+                    context,
+                    "progress",
+                    Math.max(0f, progressAdded),
+                    "series_progress:local_id=" + id + ":s" + safeSeason + "e" + safeEpisode
+            );
         }
         return result > 0;
     }
@@ -813,6 +831,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.close();
         if (result > 0) {
             SupabaseMediaSyncManager.enqueueUpsertMedia(context, id);
+            SupabaseMediaSyncManager.enqueueUserEvent(
+                    context,
+                    "progress",
+                    Math.max(0f, progressAdded),
+                    "progress_status_mood:local_id=" + id
+            );
         }
         return result > 0;
     }
@@ -1210,6 +1234,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.close();
         if (result > 0) {
             SupabaseMediaSyncManager.enqueueUpsertMedia(context, id);
+            SupabaseMediaSyncManager.enqueueUserEvent(
+                    context,
+                    isFavorite ? "favorite" : "unfavorite",
+                    1.0,
+                    "metadata_toggle:local_id=" + id
+            );
         }
         return result > 0;
     }
@@ -1250,6 +1280,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.close();
         if (updatedRows > 0) {
             SupabaseMediaSyncManager.enqueueUpsertMedia(context, mediaId);
+            SupabaseMediaSyncManager.enqueueUserEvent(
+                    context,
+                    "progress",
+                    1.0,
+                    "quick_plus:local_id=" + mediaId
+            );
         }
         return updatedRows > 0;
     }

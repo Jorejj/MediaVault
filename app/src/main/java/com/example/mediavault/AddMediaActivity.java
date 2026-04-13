@@ -79,6 +79,9 @@ import java.util.Locale;
 public class AddMediaActivity extends AppCompatActivity implements MediaSearchAdapter.OnItemClickListener {
 
     private static final String TAG = "AddMediaDB_Error";
+    private static final String EXTRA_PREFILL_AUTO_PICK_RESULT = "PREFILL_AUTO_PICK_RESULT";
+    private static final String EXTRA_PREFILL_MATCH_TITLE = "PREFILL_MATCH_TITLE";
+    private static final String EXTRA_PREFILL_MATCH_TYPE = "PREFILL_MATCH_TYPE";
     private static final String ANILIST_LIGHT_NOVEL_QUERY =
             "query ($search: String) { " +
                     "Page(page: 1, perPage: 10) { " +
@@ -134,6 +137,10 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
     private boolean trackerForceManual;
     private String trackerPrefillSourceUrl;
     private String pendingGenrePrefill;
+    private boolean prefillAutoPickResult;
+    private boolean prefillAutoPickPending;
+    private String prefillMatchTitle;
+    private String prefillMatchType;
 
     private final ActivityResultLauncher<Intent> imagePickerLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -170,6 +177,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
     private void handleTrackerIntent() {
         Intent intent = getIntent();
         boolean webNovelTracker = false;
+        String prefillTypeHint = null;
         if (intent != null) {
             launchedFromTracker = intent.getBooleanExtra("FROM_TRACKER", false);
             trackerDetectedPackage = intent.getStringExtra("TRACKER_PACKAGE");
@@ -178,7 +186,11 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
             trackerDetectedTotalCount = intent.getIntExtra("PREFILL_TOTAL_COUNT", 0);
             trackerDetectedDescription = intent.getStringExtra("PREFILL_DESCRIPTION");
             trackerPrefillSourceUrl = intent.getStringExtra("PREFILL_SOURCE_URL");
-            String prefillTypeHint = intent.getStringExtra("PREFILL_TYPE_HINT");
+            prefillTypeHint = intent.getStringExtra("PREFILL_TYPE_HINT");
+            prefillAutoPickResult = intent.getBooleanExtra(EXTRA_PREFILL_AUTO_PICK_RESULT, false);
+            prefillAutoPickPending = prefillAutoPickResult;
+            prefillMatchTitle = intent.getStringExtra(EXTRA_PREFILL_MATCH_TITLE);
+            prefillMatchType = intent.getStringExtra(EXTRA_PREFILL_MATCH_TYPE);
             String inferredTrackerType = !TextUtils.isEmpty(prefillTypeHint)
                     ? prefillTypeHint
                     : inferTrackerMediaType(trackerDetectedPackage);
@@ -205,6 +217,9 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
             if (!TextUtils.isEmpty(trackerDetectedDescription) && TextUtils.isEmpty(etManualDescription.getText())) {
                 etManualDescription.setText(trackerDetectedDescription.trim());
             }
+        }
+        if (!launchedFromTracker && !TextUtils.isEmpty(prefillTypeHint)) {
+            applyTrackerTypeDefaults(prefillTypeHint);
         }
         if (intent != null && intent.hasExtra("PREFILL_TITLE")) {
             String prefillTitle = intent.getStringExtra("PREFILL_TITLE");
@@ -404,7 +419,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         rvApiResults.setVisibility(View.GONE);
         tvNoResults.setVisibility(View.GONE);
         btnApiSearchSubmit.setEnabled(false);
-        searchAdapter.setResults(new ArrayList<>());
+        setSearchResults(new ArrayList<>());
 
         if (target.contains("Anime")) {
             searchAnime(query);
@@ -425,6 +440,99 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
             tvNoResults.setVisibility(View.VISIBLE);
             tvNoResults.setText(com.example.mediavault.R.string.auto_unsupported_target);
         }
+    }
+
+    private void setSearchResults(List<MediaSearchResult> results) {
+        searchAdapter.setResults(results);
+        autoPickPrefilledResult(results);
+    }
+
+    private void autoPickPrefilledResult(List<MediaSearchResult> results) {
+        if (!prefillAutoPickPending || results == null || results.isEmpty()) {
+            return;
+        }
+        MediaSearchResult best = pickBestPrefillResult(results);
+        if (best == null) {
+            return;
+        }
+        prefillAutoPickPending = false;
+        onItemClick(best);
+    }
+
+    private MediaSearchResult pickBestPrefillResult(List<MediaSearchResult> results) {
+        if (results == null || results.isEmpty()) {
+            return null;
+        }
+        String titleHint = !TextUtils.isEmpty(prefillMatchTitle)
+                ? prefillMatchTitle
+                : String.valueOf(etApiSearch.getText());
+        Object selectedTarget = spinnerApiTarget.getSelectedItem();
+        String typeHint = !TextUtils.isEmpty(prefillMatchType)
+                ? prefillMatchType
+                : (selectedTarget == null ? "" : selectedTarget.toString());
+        String normalizedTitleHint = normalizeTitle(titleHint);
+        String normalizedTypeHint = normalizeType(typeHint);
+
+        MediaSearchResult best = results.get(0);
+        int bestScore = Integer.MIN_VALUE;
+        for (MediaSearchResult candidate : results) {
+            if (candidate == null) continue;
+            int score = 0;
+            String normalizedCandidateTitle = normalizeTitle(candidate.getTitle());
+            if (!normalizedTitleHint.isEmpty() && !normalizedCandidateTitle.isEmpty()) {
+                if (normalizedCandidateTitle.equals(normalizedTitleHint)) {
+                    score += 120;
+                } else if (normalizedCandidateTitle.contains(normalizedTitleHint)
+                        || normalizedTitleHint.contains(normalizedCandidateTitle)) {
+                    score += 80;
+                } else {
+                    String[] hintTokens = normalizedTitleHint.split(" ");
+                    int overlap = 0;
+                    for (String token : hintTokens) {
+                        if (!token.isEmpty() && normalizedCandidateTitle.contains(token)) {
+                            overlap++;
+                        }
+                    }
+                    score += overlap * 10;
+                }
+            }
+            String normalizedCandidateType = normalizeType(candidate.getType());
+            if (!normalizedTypeHint.isEmpty() && !normalizedCandidateType.isEmpty()) {
+                if (normalizedCandidateType.equals(normalizedTypeHint)) {
+                    score += 40;
+                } else if (normalizedCandidateType.contains(normalizedTypeHint)
+                        || normalizedTypeHint.contains(normalizedCandidateType)) {
+                    score += 25;
+                }
+            }
+            if (score > bestScore) {
+                bestScore = score;
+                best = candidate;
+            }
+        }
+        return best;
+    }
+
+    private static String normalizeTitle(String value) {
+        if (value == null) {
+            return "";
+        }
+        String normalized = value.trim().toLowerCase(Locale.ROOT);
+        return normalized.replaceAll("[^a-z0-9 ]", " ").replaceAll("\\s+", " ").trim();
+    }
+
+    private static String normalizeType(String value) {
+        if (value == null) {
+            return "";
+        }
+        String normalized = value.trim().toLowerCase(Locale.ROOT);
+        if (normalized.contains("light/web") || normalized.contains("novel")) return "book";
+        if (normalized.contains("book")) return "book";
+        if (normalized.contains("manga")) return "manga";
+        if (normalized.contains("anime")) return "anime";
+        if (normalized.contains("movie")) return "movie";
+        if (normalized.contains("series") || normalized.contains("tv")) return "series";
+        return normalized;
     }
 
     private void searchAnime(String query) {
@@ -475,7 +583,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                     return;
                 }
                 List<MediaSearchResult> mergedResults = mergeApiAndProviderResults(aggregatedResults, query, "Book");
-                searchAdapter.setResults(mergedResults);
+                setSearchResults(mergedResults);
                 showSuccessSnackbar(buildCoverageMessage(aggregatedResults.size(), mergedResults.size() - aggregatedResults.size()));
             }
         };
@@ -786,7 +894,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                     results.add(result);
                 }
                 List<MediaSearchResult> mergedResults = mergeApiAndProviderResults(results, query, type);
-                searchAdapter.setResults(mergedResults);
+                setSearchResults(mergedResults);
                 showSuccessSnackbar(buildCoverageMessage(results.size(), mergedResults.size() - results.size()));
             } else {
                 showProviderCoverageFallback(query, type);
@@ -847,7 +955,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                             results.add(result);
                         }
                         List<MediaSearchResult> mergedResults = mergeApiAndProviderResults(results, query, "Book");
-                        searchAdapter.setResults(mergedResults);
+                        setSearchResults(mergedResults);
                         showSuccessSnackbar(buildCoverageMessage(results.size(), mergedResults.size() - results.size()));
                     } else {
                         showProviderCoverageFallback(query, "Book");
@@ -899,7 +1007,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                                     rvApiResults.setVisibility(View.VISIBLE);
                                     String mediaType = "Movie".equals(type) ? "Movie" : "Series";
                                     List<MediaSearchResult> mergedResults = mergeApiAndProviderResults(results, query, mediaType);
-                                    searchAdapter.setResults(mergedResults);
+                                    setSearchResults(mergedResults);
                                     showSuccessSnackbar(buildCoverageMessage(results.size(), mergedResults.size() - results.size()));
                                 }
                             });
@@ -1037,7 +1145,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         btnApiSearchSubmit.setEnabled(true);
         rvApiResults.setVisibility(View.VISIBLE);
         tvNoResults.setVisibility(View.GONE);
-        searchAdapter.setResults(fallbackResults);
+        setSearchResults(fallbackResults);
         Snackbar.make(
                 coordinatorLayout,
                 "API had limited coverage. Using provider fallback links.",

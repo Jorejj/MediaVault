@@ -6,7 +6,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.database.Cursor;
-import android.net.Uri;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -545,22 +544,30 @@ public class HomeFragment extends Fragment {
         if (context == null) {
             return;
         }
-        if (item.getId() <= 0) {
-            String sourceUrl = item.getSourceUrl();
-            if (sourceUrl != null && !sourceUrl.trim().isEmpty()) {
-                Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(sourceUrl));
-                startActivity(browserIntent);
-                return;
-            }
-            addRecommendationToLibrary(item);
+        if (item.getId() > 0) {
+            Intent intent = new Intent(context, DescriptionActivity.class);
+            intent.putExtra(DescriptionActivity.EXTRA_MEDIA_ID, item.getId());
+            startActivity(intent);
             return;
         }
-        Intent intent = new Intent(context, DescriptionActivity.class);
-        intent.putExtra(DescriptionActivity.EXTRA_MEDIA_ID, item.getId());
-        startActivity(intent);
+        int existingMediaId = findExistingMediaId(item);
+        if (existingMediaId > 0) {
+            Intent intent = new Intent(context, DescriptionActivity.class);
+            intent.putExtra(DescriptionActivity.EXTRA_MEDIA_ID, existingMediaId);
+            startActivity(intent);
+            return;
+        }
+        launchAddMediaWithAutoFetch(item, true);
     }
 
     private void addRecommendationToLibrary(@NonNull com.example.mediavault.ui.library.MediaItem item) {
+        launchAddMediaWithAutoFetch(item, false);
+    }
+
+    private void launchAddMediaWithAutoFetch(
+            @NonNull com.example.mediavault.ui.library.MediaItem item,
+            boolean fromOpenAction
+    ) {
         Context context = getContext();
         if (context == null) {
             return;
@@ -573,13 +580,63 @@ public class HomeFragment extends Fragment {
         String typeHint = toTypeHint(item.getType());
         if (!typeHint.isEmpty()) {
             intent.putExtra("PREFILL_TYPE_HINT", typeHint);
+            intent.putExtra("PREFILL_MATCH_TYPE", typeHint);
         }
         String sourceUrl = item.getSourceUrl();
         if (sourceUrl != null && !sourceUrl.trim().isEmpty()) {
             intent.putExtra("PREFILL_SOURCE_URL", sourceUrl.trim());
         }
+        intent.putExtra("PREFILL_AUTO_PICK_RESULT", true);
+        intent.putExtra("PREFILL_MATCH_TITLE", title);
         startActivity(intent);
-        ToastUtils.showCustomToast(context, "Review and save to add it to your library.");
+        if (fromOpenAction) {
+            ToastUtils.showCustomToast(context, "Not in your library yet. We pre-filled details so you can review it.");
+        } else {
+            ToastUtils.showCustomToast(context, "Fetched details pre-filled. Review and save to add it.");
+        }
+    }
+
+    private int findExistingMediaId(@NonNull com.example.mediavault.ui.library.MediaItem item) {
+        if (dbHelper == null) {
+            return -1;
+        }
+        String title = item.getTitle() == null ? "" : item.getTitle().trim();
+        if (title.isEmpty()) {
+            return -1;
+        }
+        String targetType = toTypeHint(item.getType());
+        int fallbackId = -1;
+        try (Cursor cursor = dbHelper.getMediaByTitle(title)) {
+            if (cursor == null || !cursor.moveToFirst()) {
+                return -1;
+            }
+            int idIndex = cursor.getColumnIndex(DatabaseHelper.COL_ID);
+            int typeIndex = cursor.getColumnIndex(DatabaseHelper.COL_MEDIA_TYPE);
+            int statusIndex = cursor.getColumnIndex(DatabaseHelper.COL_STATUS);
+            do {
+                if (statusIndex >= 0) {
+                    String status = cursor.getString(statusIndex);
+                    if ("Recently Deleted".equalsIgnoreCase(status)) {
+                        continue;
+                    }
+                }
+                int mediaId = idIndex >= 0 ? cursor.getInt(idIndex) : -1;
+                if (mediaId <= 0) {
+                    continue;
+                }
+                if (fallbackId <= 0) {
+                    fallbackId = mediaId;
+                }
+                if (typeIndex < 0 || targetType.isEmpty()) {
+                    return mediaId;
+                }
+                String storedType = cursor.getString(typeIndex);
+                if (storedType != null && storedType.equalsIgnoreCase(targetType)) {
+                    return mediaId;
+                }
+            } while (cursor.moveToNext());
+        }
+        return fallbackId;
     }
 
     private static String toTypeHint(String rawType) {

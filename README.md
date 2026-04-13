@@ -16,3 +16,21 @@ Binge Calculator (Statistics): Access a dedicated dashboard that analyzes your h
 Shake-to-Decide: Stuck in a "backlog paralysis"? Physically shake your device to let the built-in accelerometer randomly pick your next title from your "Plan to Watch" list.
 
 Advanced Filtering: Quickly navigate your library by filtering by Genre, Status (Planning, Ongoing, Completed), or Rating
+
+## Supabase Foundation (Cloud Migration)
+
+This project now includes Supabase foundation assets without changing existing local SQLite behavior yet.
+
+1. SQL schema: `app/src/main/assets/supabase/schema_v1.sql`
+2. RLS policies: `app/src/main/assets/supabase/rls_policies_v1.sql`
+3. App config gate: `com.example.mediavault.cloud.CloudConfig`
+
+Add to `local.properties` to prepare cloud integration:
+
+```properties
+SUPABASE_URL=https://<your-project-ref>.supabase.co
+SUPABASE_ANON_KEY=<your-anon-key>
+SUPABASE_ENABLED=false
+```
+
+Keep `SUPABASE_ENABLED=false` until app auth + sync wiring is complete.

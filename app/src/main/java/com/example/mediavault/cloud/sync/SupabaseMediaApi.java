@@ -73,7 +73,8 @@ public interface SupabaseMediaApi {
             @Query("select") String select,
             @Query(value = "media_library.user_id", encoded = true) String mediaLibraryUserIdEq,
             @Query("order") String order,
-            @Query("limit") String limit
+            @Query("limit") String limit,
+            @Query("offset") String offset
     );
 
     @GET("rest/v1/progress_log")

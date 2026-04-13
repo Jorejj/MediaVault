@@ -419,19 +419,36 @@ public final class SupabaseMediaSyncManager {
     }
 
     private static JsonArray fetchCloudProgressLogRows(Session session) {
+        final int pageSize = 1000;
+        int offset = 0;
+        JsonArray merged = new JsonArray();
         try {
-            Response<JsonArray> response = api().getProgressLogByUser(
-                    CloudConfig.getSupabaseAnonKey(),
-                    "Bearer " + session.accessToken,
-                    "progress_added,log_date,media_library!inner(local_media_id)",
-                    "eq." + session.userId,
-                    "log_date.desc",
-                    "10000"
-            ).execute();
-            if (!response.isSuccessful()) {
-                return null;
+            while (true) {
+                Response<JsonArray> response = api().getProgressLogByUser(
+                        CloudConfig.getSupabaseAnonKey(),
+                        "Bearer " + session.accessToken,
+                        "progress_added,log_date,media_library!inner(local_media_id)",
+                        "eq." + session.userId,
+                        "log_date.desc",
+                        String.valueOf(pageSize),
+                        String.valueOf(offset)
+                ).execute();
+                if (!response.isSuccessful()) {
+                    return null;
+                }
+                JsonArray page = response.body() == null ? new JsonArray() : response.body();
+                if (page.size() == 0) {
+                    break;
+                }
+                for (int i = 0; i < page.size(); i++) {
+                    merged.add(page.get(i));
+                }
+                if (page.size() < pageSize) {
+                    break;
+                }
+                offset += page.size();
             }
-            return response.body() == null ? new JsonArray() : response.body();
+            return merged;
         } catch (IOException ignored) {
             return null;
         }

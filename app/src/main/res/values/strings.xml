@@ -93,6 +93,8 @@
     <string name="auto_about_mediavault">About MediaVault</string>
     <string name="auto_accessibility_service">Accessibility Service</string>
     <string name="auto_account_and_data">Account &amp; Data</string>
+    <string name="auto_account">Account</string>
+    <string name="auto_data">Data</string>
     <string name="auto_add">Add</string>
     <string name="auto_add_app">Add App</string>
     <string name="auto_add_collection">Add collection</string>
@@ -373,7 +375,7 @@
     <string name="auto_unrestricted">Unrestricted</string>
     <string name="auto_unsupported_target">Unsupported target</string>
     <string name="auto_watched">Watched</string>
-    <string name="auto_cloud_account_supabase">Cloud Account (Supabase)</string>
+    <string name="auto_cloud_account_supabase">Cloud Account</string>
     <string name="auto_email">Email</string>
     <string name="auto_password">Password</string>
     <string name="auto_login">Login</string>
@@ -402,8 +404,8 @@
     <string name="auto_account_profile">Account Profile</string>
     <string name="auto_user_id">User ID</string>
     <string name="auto_role">Role</string>
-    <string name="auto_display_name">Display Name</string>
-    <string name="auto_avatar_url">Avatar URL</string>
+    <string name="auto_display_name">Name</string>
+    <string name="auto_avatar_url">Profile Photo URL (optional)</string>
     <string name="auto_save_profile">Save Profile</string>
     <string name="auto_cloud_sync_now">Cloud Sync Now</string>
     <string name="auto_reset_password">Reset Password</string>

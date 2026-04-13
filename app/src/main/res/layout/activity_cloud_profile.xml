@@ -44,76 +44,42 @@
                 android:background="@drawable/glass_card_bg"
                 android:padding="16dp">
 
+                <ImageView
+                    android:id="@+id/image_profile_avatar"
+                    android:layout_width="72dp"
+                    android:layout_height="72dp"
+                    android:contentDescription="@string/auto_account_profile"
+                    android:src="@drawable/ic_new_logo"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent" />
+
                 <TextView
                     android:id="@+id/label_profile_email"
-                    android:layout_width="wrap_content"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:gravity="center"
                     android:fontFamily="@font/sf_pro_medium"
                     android:text="@string/auto_email"
                     android:textColor="?attr/colorOnSurface"
                     android:textSize="13sp"
+                    app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent" />
+                    app:layout_constraintTop_toBottomOf="@id/image_profile_avatar" />
 
                 <TextView
                     android:id="@+id/text_profile_email"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="4dp"
+                    android:gravity="center"
                     android:fontFamily="@font/sf_pro_regular"
                     android:textColor="?attr/colorOnSurface"
                     android:textSize="15sp"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/label_profile_email" />
-
-                <TextView
-                    android:id="@+id/label_profile_user_id"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:fontFamily="@font/sf_pro_medium"
-                    android:text="@string/auto_user_id"
-                    android:textColor="?attr/colorOnSurface"
-                    android:textSize="13sp"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/text_profile_email" />
-
-                <TextView
-                    android:id="@+id/text_profile_user_id"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:fontFamily="@font/sf_pro_regular"
-                    android:textColor="?attr/colorOnSurface"
-                    android:textSize="13sp"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/label_profile_user_id" />
-
-                <TextView
-                    android:id="@+id/label_profile_role"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
-                    android:fontFamily="@font/sf_pro_medium"
-                    android:text="@string/auto_role"
-                    android:textColor="?attr/colorOnSurface"
-                    android:textSize="13sp"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/text_profile_user_id" />
-
-                <TextView
-                    android:id="@+id/text_profile_role"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="4dp"
-                    android:fontFamily="@font/sf_pro_regular"
-                    android:textColor="?attr/colorOnSurface"
-                    android:textSize="15sp"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toBottomOf="@id/label_profile_role" />
             </androidx.constraintlayout.widget.ConstraintLayout>
 
             <androidx.constraintlayout.widget.ConstraintLayout

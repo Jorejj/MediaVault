@@ -16,8 +16,6 @@ import com.google.gson.JsonObject;
 public class CloudProfileActivity extends AppCompatActivity {
     private SupabaseAuthRepository authRepository;
     private TextView textEmail;
-    private TextView textUserId;
-    private TextView textRole;
     private EditText editDisplayName;
     private EditText editAvatarUrl;
 
@@ -30,8 +28,6 @@ public class CloudProfileActivity extends AppCompatActivity {
         authRepository = new SupabaseAuthRepository(this);
 
         textEmail = findViewById(R.id.text_profile_email);
-        textUserId = findViewById(R.id.text_profile_user_id);
-        textRole = findViewById(R.id.text_profile_role);
         editDisplayName = findViewById(R.id.edit_profile_display_name);
         editAvatarUrl = findViewById(R.id.edit_profile_avatar_url);
 
@@ -69,13 +65,10 @@ public class CloudProfileActivity extends AppCompatActivity {
             return;
         }
         textEmail.setText(session.getEmail());
-        textUserId.setText(session.getUserId());
 
         authRepository.fetchProfile(new SupabaseAuthRepository.ProfileCallback() {
             @Override
             public void onSuccess(JsonObject profile) {
-                String role = profile.has("role") && !profile.get("role").isJsonNull() ? profile.get("role").getAsString() : "user";
-                textRole.setText(role);
                 if (profile.has("display_name") && !profile.get("display_name").isJsonNull()) {
                     editDisplayName.setText(profile.get("display_name").getAsString());
                 }
@@ -86,7 +79,6 @@ public class CloudProfileActivity extends AppCompatActivity {
 
             @Override
             public void onError(String message) {
-                textRole.setText("user");
                 ToastUtils.showCustomToast(CloudProfileActivity.this, message);
             }
         });

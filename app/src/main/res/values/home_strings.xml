@@ -1,11 +1,19 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="auto_home_what_to_watch_next">What to watch next</string>
+    <string name="auto_home_what_to_read_next">What to read next</string>
+    <string name="auto_home_recommendation_subtitle_default">Finding your best match from your library.</string>
+    <string name="auto_home_recommendation_subtitle_watch">Best matches based on your watching habits.</string>
+    <string name="auto_home_recommendation_subtitle_read">Best matches based on your reading habits.</string>
+    <string name="auto_home_recommendation_empty">Add media to unlock smart recommendations.</string>
     <string name="auto_finding_your_best_pick">Finding your best pick...</string>
     <string name="auto_status_loading">Loading...</string>
     <string name="auto_progress_placeholder">--</string>
     <string name="auto_open_details">Open Details</string>
     <string name="auto_refresh_pick">Refresh Pick</string>
+    <string name="auto_watch_now">Watch now</string>
+    <string name="auto_read_now">Read now</string>
+    <string name="auto_add_to_library_short">Add to library</string>
     <string name="auto_no_ongoing_titles_yet">No ongoing titles yet</string>
     <string name="auto_add_media_to_get_smart_home_picks">Add media to get smart home picks.</string>
     <string name="auto_untitled">Untitled</string>

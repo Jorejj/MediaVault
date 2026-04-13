@@ -39,7 +39,6 @@ import com.example.mediavault.R;
 import com.example.mediavault.cloud.CloudConfig;
 import com.example.mediavault.cloud.auth.CloudAuthNavigator;
 import com.example.mediavault.cloud.auth.CloudProfileActivity;
-import com.example.mediavault.cloud.auth.SupabaseAuthActivity;
 import com.example.mediavault.cloud.auth.SupabaseAuthRepository;
 import com.example.mediavault.cloud.sync.SupabaseMediaSyncManager;
 import com.example.mediavault.receiver.DailyGoalReminderReceiver;
@@ -148,7 +147,6 @@ public class SettingsFragment extends Fragment {
         TextView textBatteryStatus = view.findViewById(R.id.text_battery_status);
         textReminderAlertStatus = view.findViewById(R.id.text_reminder_alert_status);
         View rowExportData = view.findViewById(R.id.row_export_data);
-        View rowCloudAccount = view.findViewById(R.id.row_cloud_account);
         View rowCloudProfile = view.findViewById(R.id.row_cloud_profile);
         View rowCloudLogout = view.findViewById(R.id.row_cloud_logout);
         View rowCloudSyncNow = view.findViewById(R.id.row_cloud_sync_now);
@@ -269,9 +267,6 @@ public class SettingsFragment extends Fragment {
             rowExportData.setOnClickListener(v -> showExportConfirmationDialog());
         }
 
-        if (rowCloudAccount != null) {
-            rowCloudAccount.setOnClickListener(v -> startActivity(new Intent(requireContext(), SupabaseAuthActivity.class)));
-        }
         if (rowCloudProfile != null) {
             rowCloudProfile.setOnClickListener(v -> startActivity(new Intent(requireContext(), CloudProfileActivity.class)));
         }

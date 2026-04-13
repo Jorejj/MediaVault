@@ -57,6 +57,88 @@
             android:orientation="vertical"
             android:padding="16dp">
 
+            <!-- Account Section -->
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                android:background="@drawable/glass_card_bg"
+                android:padding="16dp">
+
+                <TextView
+                    android:id="@+id/header_account"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/sf_pro_bold"
+                    android:text="@string/auto_account"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="18sp"
+                    app:layout_constraintTop_toTopOf="parent" />
+
+                <RelativeLayout
+                    android:id="@+id/row_cloud_profile"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="12dp"
+                    android:background="?attr/selectableItemBackground"
+                    app:layout_constraintTop_toBottomOf="@id/header_account">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:fontFamily="@font/sf_pro_medium"
+                        android:text="@string/auto_account_profile"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="16sp" />
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:src="@drawable/ic_arrow_forward"
+                        app:tint="?attr/colorIconTint" />
+                </RelativeLayout>
+
+                <RelativeLayout
+                    android:id="@+id/row_cloud_sync_now"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:background="?attr/selectableItemBackground"
+                    app:layout_constraintTop_toBottomOf="@id/row_cloud_profile">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:fontFamily="@font/sf_pro_medium"
+                        android:text="@string/auto_cloud_sync_now"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="16sp" />
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:src="@drawable/ic_arrow_forward"
+                        app:tint="?attr/colorIconTint" />
+                </RelativeLayout>
+
+                <RelativeLayout
+                    android:id="@+id/row_cloud_logout"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:background="?attr/selectableItemBackground"
+                    app:layout_constraintTop_toBottomOf="@id/row_cloud_sync_now">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:fontFamily="@font/sf_pro_medium"
+                        android:text="@string/auto_log_out_account"
+                        android:textColor="#FF4D4D"
+                        android:textSize="16sp" />
+                </RelativeLayout>
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
             <!-- General Settings Card -->
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
@@ -473,7 +555,7 @@
                 </RelativeLayout>
             </androidx.constraintlayout.widget.ConstraintLayout>
 
-            <!-- Account & Data Section -->
+            <!-- Data Section -->
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -486,103 +568,18 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:fontFamily="@font/sf_pro_bold"
-                    android:text="@string/auto_account_and_data"
+                    android:text="@string/auto_data"
                     android:textColor="?attr/colorOnSurface"
                     android:textSize="18sp"
                     app:layout_constraintTop_toTopOf="parent" />
 
                 <RelativeLayout
-                    android:id="@+id/row_cloud_account"
+                    android:id="@+id/row_export_data"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
                     android:layout_marginTop="12dp"
                     android:background="?attr/selectableItemBackground"
                     app:layout_constraintTop_toBottomOf="@id/header_actions">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_centerVertical="true"
-                        android:fontFamily="@font/sf_pro_medium"
-                        android:text="@string/auto_cloud_account_supabase"
-                        android:textColor="?attr/colorOnSurface"
-                        android:textSize="16sp" />
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true"
-                        android:src="@drawable/ic_arrow_forward"
-                        app:tint="?attr/colorIconTint" />
-                </RelativeLayout>
-
-                <RelativeLayout
-                    android:id="@+id/row_cloud_profile"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:background="?attr/selectableItemBackground"
-                    app:layout_constraintTop_toBottomOf="@id/row_cloud_account">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_centerVertical="true"
-                        android:fontFamily="@font/sf_pro_medium"
-                        android:text="@string/auto_account_profile"
-                        android:textColor="?attr/colorOnSurface"
-                        android:textSize="16sp" />
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true"
-                        android:src="@drawable/ic_arrow_forward"
-                        app:tint="?attr/colorIconTint" />
-                </RelativeLayout>
-
-                <RelativeLayout
-                    android:id="@+id/row_cloud_logout"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:background="?attr/selectableItemBackground"
-                    app:layout_constraintTop_toBottomOf="@id/row_cloud_profile">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_centerVertical="true"
-                        android:fontFamily="@font/sf_pro_medium"
-                        android:text="@string/auto_log_out_account"
-                        android:textColor="#FF4D4D"
-                        android:textSize="16sp" />
-                </RelativeLayout>
-
-                <RelativeLayout
-                    android:id="@+id/row_cloud_sync_now"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:background="?attr/selectableItemBackground"
-                    app:layout_constraintTop_toBottomOf="@id/row_cloud_logout">
-                    <TextView
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_centerVertical="true"
-                        android:fontFamily="@font/sf_pro_medium"
-                        android:text="@string/auto_cloud_sync_now"
-                        android:textColor="?attr/colorOnSurface"
-                        android:textSize="16sp" />
-                    <ImageView
-                        android:layout_width="20dp"
-                        android:layout_height="20dp"
-                        android:layout_alignParentEnd="true"
-                        android:layout_centerVertical="true"
-                        android:src="@drawable/ic_arrow_forward"
-                        app:tint="?attr/colorIconTint" />
-                </RelativeLayout>
-
-                <RelativeLayout
-                    android:id="@+id/row_export_data"
-                    android:layout_width="match_parent"
-                    android:layout_height="56dp"
-                    android:background="?attr/selectableItemBackground"
-                    app:layout_constraintTop_toBottomOf="@id/row_cloud_sync_now">
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"

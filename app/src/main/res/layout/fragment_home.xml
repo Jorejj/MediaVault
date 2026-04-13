@@ -146,6 +146,7 @@
                 android:padding="16dp">
 
                 <TextView
+                    android:id="@+id/text_home_recommendation_title"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:fontFamily="@font/sf_pro_heavy"
@@ -154,256 +155,78 @@
                     android:textSize="18sp" />
 
                 <TextView
-                    android:id="@+id/text_home_pick_title"
-                    android:layout_width="match_parent"
+                    android:id="@+id/text_home_recommendation_subtitle"
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:fontFamily="@font/sf_pro_bold"
-                    android:text="@string/auto_finding_your_best_pick"
-                    android:textColor="?attr/colorTextPrimary"
-                    android:textSize="16sp" />
-
-                <TextView
-                    android:id="@+id/text_home_pick_meta"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
+                    android:layout_marginTop="6dp"
                     android:fontFamily="@font/sf_pro_regular"
-                    android:text="@string/auto_status_loading"
+                    android:text="@string/auto_home_recommendation_subtitle_default"
                     android:textColor="?attr/colorTextSecondary"
                     android:textSize="13sp" />
 
-                <TextView
-                    android:id="@+id/text_home_pick_progress"
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/recycler_home_recommendations"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:fontFamily="@font/sf_pro_medium"
-                    android:text="@string/auto_progress_placeholder"
-                    android:textColor="?attr/colorTextPrimary"
-                    android:textSize="13sp" />
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
+                    android:layout_height="352dp"
                     android:layout_marginTop="12dp"
-                    android:orientation="horizontal">
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_home_open_pick"
-                        android:layout_width="0dp"
-                        android:layout_height="44dp"
-                        android:layout_weight="1"
-                        android:text="@string/auto_open_details"
-                        android:textAllCaps="false"
-                        android:textSize="13sp"
-                        app:backgroundTint="@color/vault_red_primary"
-                        app:cornerRadius="14dp" />
-
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btn_home_refresh_pick"
-                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
-                        android:layout_width="0dp"
-                        android:layout_height="44dp"
-                        android:layout_marginStart="10dp"
-                        android:layout_weight="1"
-                        android:text="@string/auto_refresh_pick"
-                        android:textAllCaps="false"
-                        android:textSize="13sp"
-                        app:cornerRadius="14dp"
-                        app:strokeColor="@color/vault_red_primary" />
-                </LinearLayout>
+                    android:clipToPadding="false"
+                    android:overScrollMode="never"
+                    android:paddingStart="16dp"
+                    android:paddingEnd="16dp"
+                    tools:listitem="@layout/item_home_recommendation_card" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <LinearLayout
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_shake"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/screen_section_spacing_small"
-            android:gravity="top"
-            android:orientation="horizontal">
+            android:clickable="true"
+            android:focusable="true"
+            app:cardBackgroundColor="@color/glass_surface_color"
+            app:strokeColor="@color/glass_border_soft"
+            app:strokeWidth="1dp"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="0dp">
 
-            <com.google.android.material.card.MaterialCardView
-                android:layout_width="0dp"
-                android:layout_height="220dp"
-                android:layout_weight="1"
-                app:cardBackgroundColor="@color/glass_surface_color"
-                app:strokeColor="@color/glass_border_soft"
-                app:strokeWidth="1dp"
-                app:cardCornerRadius="24dp"
-                app:cardElevation="0dp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:padding="16dp">
 
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:orientation="vertical"
-                    android:padding="14dp">
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:gravity="center_vertical"
-                        android:orientation="horizontal"
-                        android:layout_marginBottom="8dp">
-
-                        <ImageView
-                            android:layout_width="18dp"
-                            android:layout_height="18dp"
-                            android:src="@drawable/ic_chart"
-                            app:tint="?attr/colorTextPrimary" />
-
-                        <TextView
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="6dp"
-                            style="@style/TextSectionTitle"
-                            android:text="@string/binge_calculator"
-                            android:textSize="18sp" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="0dp"
-                        android:layout_weight="1"
-                        android:gravity="center_vertical"
-                        android:orientation="vertical">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal">
-                            <ImageView
-                                android:layout_width="14dp"
-                                android:layout_height="14dp"
-                                android:src="@drawable/ic_watch"
-                                app:tint="?attr/colorTextSecondary" />
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="6dp"
-                                android:text="@string/auto_watch_time"
-                                android:textColor="?attr/colorTextSecondary"
-                                android:textSize="11sp" />
-                        </LinearLayout>
-                        <TextView
-                            android:id="@+id/tv_watch_time"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            style="@style/TextStatValue"
-                            android:text="@string/auto_s_0"
-                            android:textSize="20sp" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="0dp"
-                        android:layout_weight="1"
-                        android:gravity="center_vertical"
-                        android:orientation="vertical">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal">
-                            <ImageView
-                                android:layout_width="14dp"
-                                android:layout_height="14dp"
-                                android:src="@drawable/ic_library"
-                                app:tint="?attr/colorTextSecondary" />
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="6dp"
-                                android:text="@string/pages_read"
-                                android:textColor="?attr/colorTextSecondary"
-                                android:textSize="11sp" />
-                        </LinearLayout>
-                        <TextView
-                            android:id="@+id/tv_pages_read"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            style="@style/TextStatValue"
-                            android:text="@string/auto_s_0"
-                            android:textSize="20sp" />
-                    </LinearLayout>
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="0dp"
-                        android:layout_weight="1"
-                        android:gravity="center_vertical"
-                        android:orientation="vertical">
-
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:gravity="center_vertical"
-                            android:orientation="horizontal">
-                            <ImageView
-                                android:layout_width="14dp"
-                                android:layout_height="14dp"
-                                android:src="@drawable/ic_clock"
-                                app:tint="@color/ongoing_red" />
-                            <TextView
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_marginStart="6dp"
-                                android:text="@string/auto_ongoing_titles"
-                                android:textColor="@color/ongoing_red"
-                                android:textSize="11sp" />
-                        </LinearLayout>
-                        <TextView
-                            android:id="@+id/tv_ongoing_items"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            style="@style/TextStatValue"
-                            android:text="@string/auto_s_0"
-                            android:textColor="@color/ongoing_red"
-                            android:textSize="20sp" />
-                    </LinearLayout>
-                </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-
-            <com.google.android.material.card.MaterialCardView
-                android:id="@+id/card_shake"
-                android:layout_width="0dp"
-                android:layout_height="220dp"
-                android:layout_marginStart="@dimen/screen_section_spacing_small"
-                android:layout_weight="0.65"
-                android:clickable="true"
-                android:focusable="true"
-                app:cardBackgroundColor="@color/glass_surface_color"
-                app:strokeColor="@color/glass_border_soft"
-                app:strokeWidth="1dp"
-                app:cardCornerRadius="24dp"
-                app:cardElevation="0dp">
+                <ImageView
+                    android:id="@+id/iv_shake_illustration"
+                    android:layout_width="52dp"
+                    android:layout_height="52dp"
+                    android:src="@drawable/ic_shake" />
 
                 <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:gravity="center"
-                    android:orientation="vertical"
-                    android:paddingHorizontal="12dp">
-
-                    <ImageView
-                        android:id="@+id/iv_shake_illustration"
-                        android:layout_width="56dp"
-                        android:layout_height="56dp"
-                        android:src="@drawable/ic_shake" />
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/screen_section_spacing_small"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
                         style="@style/TextSectionTitle"
-                        android:gravity="center"
-                        android:text="@string/auto_shake_to_ndecide"
-                        android:textSize="16sp" />
+                        android:text="@string/auto_shake_to_decide"
+                        android:textSize="18sp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        style="@style/TextBody"
+                        android:text="@string/shake_to_decide_desc"
+                        android:textSize="12sp" />
                 </LinearLayout>
-            </com.google.android.material.card.MaterialCardView>
-        </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"

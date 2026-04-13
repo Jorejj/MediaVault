@@ -75,6 +75,22 @@ public final class SupabaseMediaSyncManager {
         AppExecutor.getInstance().networkIO().execute(() -> insertUserEvent(appContext, eventType, eventValue, sourceSurface));
     }
 
+    public static void enqueueProgressLog(Context context, int localMediaId, double progressAdded, String logDate) {
+        if (localMediaId <= 0 || progressAdded <= 0d) return;
+        Context appContext = context.getApplicationContext();
+        AppExecutor.getInstance().networkIO().execute(
+                () -> insertProgressLog(appContext, localMediaId, progressAdded, logDate)
+        );
+    }
+
+    public static void enqueueUpsertDailyMetrics(Context context, String date) {
+        if (TextUtils.isEmpty(date)) return;
+        Context appContext = context.getApplicationContext();
+        AppExecutor.getInstance().networkIO().execute(
+                () -> upsertDailyMetricsNow(appContext, date)
+        );
+    }
+
     private static void upsertMediaNow(Context context, int localMediaId) {
         Session session = session(context);
         if (session == null) return;
@@ -169,6 +185,34 @@ public final class SupabaseMediaSyncManager {
         ).enqueue(new NoopCallback());
     }
 
+    private static void insertProgressLog(Context context, int localMediaId, double progressAdded, String logDate) {
+        Session session = session(context);
+        if (session == null) return;
+        if (progressAdded <= 0d) return;
+
+        String cloudMediaId = fetchCloudMediaId(session, localMediaId);
+        if (TextUtils.isEmpty(cloudMediaId)) {
+            return;
+        }
+
+        JsonObject row = new JsonObject();
+        row.addProperty("user_id", session.userId);
+        row.addProperty("media_id", cloudMediaId);
+        row.addProperty("progress_added", progressAdded);
+        if (!TextUtils.isEmpty(logDate)) {
+            row.addProperty("log_date", logDate);
+        }
+
+        JsonArray payload = new JsonArray();
+        payload.add(row);
+        api().insertProgressLogs(
+                CloudConfig.getSupabaseAnonKey(),
+                "Bearer " + session.accessToken,
+                "return=minimal",
+                payload
+        ).enqueue(new NoopCallback());
+    }
+
     private static JsonArray fetchCloudRows(Session session) {
         try {
             Response<JsonArray> response = api().getMediaByUser(
@@ -184,6 +228,75 @@ public final class SupabaseMediaSyncManager {
             return response.body() == null ? new JsonArray() : response.body();
         } catch (IOException ignored) {
             return null;
+        }
+    }
+
+    private static String fetchCloudMediaId(Session session, int localMediaId) {
+        try {
+            Response<JsonArray> response = api().getMediaIdByLocalId(
+                    CloudConfig.getSupabaseAnonKey(),
+                    "Bearer " + session.accessToken,
+                    "id",
+                    "eq." + session.userId,
+                    "eq." + localMediaId,
+                    "1"
+            ).execute();
+            if (!response.isSuccessful() || response.body() == null || response.body().size() == 0) {
+                return null;
+            }
+            JsonObject first = response.body().get(0).getAsJsonObject();
+            return strValue(first, "id");
+        } catch (IOException ignored) {
+            return null;
+        }
+    }
+
+    private static void upsertDailyMetricsNow(Context context, String date) {
+        Session session = session(context);
+        if (session == null) return;
+        if (TextUtils.isEmpty(date)) return;
+
+        JsonObject row = loadLocalDailyMetricsAsJson(context, session.userId, date);
+        if (row == null) return;
+
+        JsonArray payload = new JsonArray();
+        payload.add(row);
+        api().upsertDailyMetrics(
+                CloudConfig.getSupabaseAnonKey(),
+                "Bearer " + session.accessToken,
+                "resolution=merge-duplicates,return=minimal",
+                payload
+        ).enqueue(new NoopCallback());
+    }
+
+    private static JsonObject loadLocalDailyMetricsAsJson(Context context, String userId, String date) {
+        DatabaseHelper helper = DatabaseHelper.getInstance(context);
+        SQLiteDatabase db = helper.getReadableDatabase();
+        try (Cursor cursor = db.query(
+                DatabaseHelper.TABLE_DAILY_METRICS,
+                new String[]{
+                        DatabaseHelper.COL_DAILY_DATE,
+                        DatabaseHelper.COL_DAILY_CHAPTERS,
+                        DatabaseHelper.COL_DAILY_EPISODES,
+                        DatabaseHelper.COL_DAILY_GOAL_MET
+                },
+                DatabaseHelper.COL_DAILY_DATE + "=?",
+                new String[]{date},
+                null,
+                null,
+                null,
+                "1"
+        )) {
+            if (cursor == null || !cursor.moveToFirst()) return null;
+
+            JsonObject row = new JsonObject();
+            row.addProperty("user_id", userId);
+            row.addProperty("date", strValue(cursor, DatabaseHelper.COL_DAILY_DATE));
+            row.addProperty("chapters_read", intValue(cursor, DatabaseHelper.COL_DAILY_CHAPTERS, 0));
+            row.addProperty("episodes_watched", intValue(cursor, DatabaseHelper.COL_DAILY_EPISODES, 0));
+            row.addProperty("minutes_watched", 0);
+            row.addProperty("goal_met", intValue(cursor, DatabaseHelper.COL_DAILY_GOAL_MET, 0) == 1);
+            return row;
         }
     }
 
@@ -247,6 +360,18 @@ public final class SupabaseMediaSyncManager {
         int index = cursor.getColumnIndex(column);
         if (index < 0 || cursor.isNull(index)) return;
         row.addProperty(key, cursor.getDouble(index));
+    }
+
+    private static String strValue(Cursor cursor, String column) {
+        int index = cursor.getColumnIndex(column);
+        if (index < 0 || cursor.isNull(index)) return null;
+        return cursor.getString(index);
+    }
+
+    private static int intValue(Cursor cursor, String column, int fallback) {
+        int index = cursor.getColumnIndex(column);
+        if (index < 0 || cursor.isNull(index)) return fallback;
+        return cursor.getInt(index);
     }
 
     private static String strValue(JsonObject obj, String key) {

@@ -38,9 +38,37 @@ public interface SupabaseMediaApi {
             @Query("order") String order
     );
 
+    @GET("rest/v1/media_library")
+    Call<JsonArray> getMediaIdByLocalId(
+            @Header("apikey") String apikey,
+            @Header("Authorization") String authorization,
+            @Query("select") String select,
+            @Query("user_id") String userIdEq,
+            @Query("local_media_id") String localMediaIdEq,
+            @Query("limit") String limit
+    );
+
     @Headers("Content-Type: application/json")
     @POST("rest/v1/user_media_events")
     Call<Void> insertMediaEvents(
+            @Header("apikey") String apikey,
+            @Header("Authorization") String authorization,
+            @Header("Prefer") String prefer,
+            @Body JsonArray payload
+    );
+
+    @Headers("Content-Type: application/json")
+    @POST("rest/v1/progress_log")
+    Call<Void> insertProgressLogs(
+            @Header("apikey") String apikey,
+            @Header("Authorization") String authorization,
+            @Header("Prefer") String prefer,
+            @Body JsonArray payload
+    );
+
+    @Headers("Content-Type: application/json")
+    @POST("rest/v1/daily_metrics?on_conflict=user_id,date")
+    Call<Void> upsertDailyMetrics(
             @Header("apikey") String apikey,
             @Header("Authorization") String authorization,
             @Header("Prefer") String prefer,

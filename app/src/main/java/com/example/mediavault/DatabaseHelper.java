@@ -1948,6 +1948,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         logValues.put(COL_LOG_MEDIA_ID, mediaId);
         logValues.put(COL_PROGRESS_ADDED, delta);
         db.insert(TABLE_PROGRESS_LOG, null, logValues);
+        SupabaseMediaSyncManager.enqueueProgressLog(context, mediaId, delta, getDateOffset(0));
     }
 
     private void logProgressDeltaAtDate(SQLiteDatabase db, int mediaId, float delta, String date) {
@@ -1959,6 +1960,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         logValues.put(COL_PROGRESS_ADDED, delta);
         logValues.put(COL_LOG_DATE, date);
         db.insert(TABLE_PROGRESS_LOG, null, logValues);
+        SupabaseMediaSyncManager.enqueueProgressLog(context, mediaId, delta, date);
     }
 
     private void seedProgressHistory(SQLiteDatabase db, int mediaId, float progress) {

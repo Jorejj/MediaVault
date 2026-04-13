@@ -16,6 +16,7 @@ import androidx.work.WorkerParameters;
 import com.example.mediavault.AppExecutor;
 import com.example.mediavault.DailyGoalsManager;
 import com.example.mediavault.DatabaseHelper;
+import com.example.mediavault.cloud.sync.SupabaseMediaSyncManager;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -53,6 +54,7 @@ public class DailyResetWorker extends Worker {
                     String dateStr = sdf.format(cal.getTime());
                     db.execSQL("INSERT OR IGNORE INTO " + DatabaseHelper.TABLE_DAILY_METRICS + 
                             " (" + DatabaseHelper.COL_DAILY_DATE + ") VALUES (?)", new String[]{dateStr});
+                    SupabaseMediaSyncManager.enqueueUpsertDailyMetrics(context, dateStr);
                     cal.add(Calendar.DATE, -1);
                 }
 

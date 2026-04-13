@@ -35,3 +35,12 @@ SUPABASE_ENABLED=false
 ```
 
 Keep `SUPABASE_ENABLED=false` until app auth + sync wiring is complete.
+
+## Admin Website Starter
+
+A lightweight admin starter is included at `admin/`.
+
+1. Open `admin/index.html` in a browser.
+2. Enter Supabase Project URL + anon key and save config.
+3. Login with an admin user (role `admin` in `profiles`).
+4. Use dashboard refresh to view profile/media/event overview.

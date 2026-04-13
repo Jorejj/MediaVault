@@ -56,11 +56,7 @@ public class SupabaseAuthActivity extends AppCompatActivity {
         buttonLogin.setOnClickListener(v -> attemptLogin());
         buttonSignup.setOnClickListener(v -> attemptSignup());
         buttonForgot.setOnClickListener(v -> attemptForgotPassword());
-        buttonLogout.setOnClickListener(v -> {
-            authRepository.signOutLocal();
-            refreshSessionStatus();
-            ToastUtils.showCustomToast(this, "Logged out locally.");
-        });
+        buttonLogout.setOnClickListener(v -> authRepository.signOut(new UiAuthCallback()));
 
         applySupabaseAvailabilityState();
         refreshSessionStatus();

@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MediaVault Admin</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <main class="container">
+    <h1>MediaVault Admin</h1>
+
+    <section class="card">
+      <h2>Supabase Config</h2>
+      <div class="grid">
+        <label>Project URL<input id="projectUrl" type="text" placeholder="https://xxxx.supabase.co" /></label>
+        <label>Anon Key<input id="anonKey" type="text" placeholder="eyJ..." /></label>
+      </div>
+      <button id="saveConfigBtn" class="btn">Save Config</button>
+      <p class="hint">Config is stored in browser localStorage.</p>
+    </section>
+
+    <section class="card">
+      <h2>Admin Login</h2>
+      <div class="grid">
+        <label>Email<input id="email" type="email" /></label>
+        <label>Password<input id="password" type="password" /></label>
+      </div>
+      <div class="row">
+        <button id="loginBtn" class="btn">Login</button>
+        <button id="logoutBtn" class="btn btn-secondary">Logout</button>
+      </div>
+      <p id="authStatus" class="status"></p>
+    </section>
+
+    <section class="card">
+      <h2>Overview</h2>
+      <div class="kpis">
+        <div><span id="kpiUsers">-</span><small>Users</small></div>
+        <div><span id="kpiMedia">-</span><small>Media Rows</small></div>
+        <div><span id="kpiEvents">-</span><small>Events</small></div>
+      </div>
+      <button id="refreshBtn" class="btn">Refresh Dashboard</button>
+    </section>
+
+    <section class="card">
+      <h2>Recent Profiles</h2>
+      <pre id="profilesOutput" class="output"></pre>
+    </section>
+
+    <section class="card">
+      <h2>Recent Media</h2>
+      <pre id="mediaOutput" class="output"></pre>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="./app.js"></script>
+</body>
+</html>

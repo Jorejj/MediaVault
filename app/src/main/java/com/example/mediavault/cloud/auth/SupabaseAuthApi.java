@@ -32,4 +32,11 @@ public interface SupabaseAuthApi {
             @Header("Authorization") String authorization,
             @Body JsonObject body
     );
+
+    @Headers("Content-Type: application/json")
+    @POST("auth/v1/logout")
+    Call<Void> signOut(
+            @Header("apikey") String apikey,
+            @Header("Authorization") String authorization
+    );
 }

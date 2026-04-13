@@ -380,5 +380,12 @@
     <string name="auto_sign_up">Sign Up</string>
     <string name="auto_forgot_password">Forgot Password</string>
     <string name="auto_log_out_local">Log Out (Local Session)</string>
+    <string name="auto_log_out_account">Log Out Account</string>
+    <string name="auto_account_profile">Account Profile</string>
+    <string name="auto_user_id">User ID</string>
+    <string name="auto_role">Role</string>
+    <string name="auto_display_name">Display Name</string>
+    <string name="auto_avatar_url">Avatar URL</string>
+    <string name="auto_save_profile">Save Profile</string>
     <string name="auto_exit">Exit</string>
 </resources>

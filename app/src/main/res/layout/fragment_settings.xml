@@ -519,11 +519,50 @@
                 </RelativeLayout>
 
                 <RelativeLayout
-                    android:id="@+id/row_export_data"
+                    android:id="@+id/row_cloud_profile"
                     android:layout_width="match_parent"
                     android:layout_height="56dp"
                     android:background="?attr/selectableItemBackground"
                     app:layout_constraintTop_toBottomOf="@id/row_cloud_account">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:fontFamily="@font/sf_pro_medium"
+                        android:text="@string/auto_account_profile"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textSize="16sp" />
+                    <ImageView
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_alignParentEnd="true"
+                        android:layout_centerVertical="true"
+                        android:src="@drawable/ic_arrow_forward"
+                        app:tint="?attr/colorIconTint" />
+                </RelativeLayout>
+
+                <RelativeLayout
+                    android:id="@+id/row_cloud_logout"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:background="?attr/selectableItemBackground"
+                    app:layout_constraintTop_toBottomOf="@id/row_cloud_profile">
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_centerVertical="true"
+                        android:fontFamily="@font/sf_pro_medium"
+                        android:text="@string/auto_log_out_account"
+                        android:textColor="#FF4D4D"
+                        android:textSize="16sp" />
+                </RelativeLayout>
+
+                <RelativeLayout
+                    android:id="@+id/row_export_data"
+                    android:layout_width="match_parent"
+                    android:layout_height="56dp"
+                    android:background="?attr/selectableItemBackground"
+                    app:layout_constraintTop_toBottomOf="@id/row_cloud_logout">
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"

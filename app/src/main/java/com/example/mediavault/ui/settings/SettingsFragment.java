@@ -36,7 +36,9 @@ import androidx.navigation.Navigation;
 import com.example.mediavault.DatabaseHelper;
 import com.example.mediavault.DailyGoalsManager;
 import com.example.mediavault.R;
+import com.example.mediavault.cloud.auth.CloudProfileActivity;
 import com.example.mediavault.cloud.auth.SupabaseAuthActivity;
+import com.example.mediavault.cloud.auth.SupabaseAuthRepository;
 import com.example.mediavault.receiver.DailyGoalReminderReceiver;
 import com.example.mediavault.service.MediaMonitorService;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -144,6 +146,8 @@ public class SettingsFragment extends Fragment {
         textReminderAlertStatus = view.findViewById(R.id.text_reminder_alert_status);
         View rowExportData = view.findViewById(R.id.row_export_data);
         View rowCloudAccount = view.findViewById(R.id.row_cloud_account);
+        View rowCloudProfile = view.findViewById(R.id.row_cloud_profile);
+        View rowCloudLogout = view.findViewById(R.id.row_cloud_logout);
         View rowQrVault = view.findViewById(R.id.row_qr_vault);
         View rowClearDatabase = view.findViewById(R.id.row_clear_database);
         View rowTerms = view.findViewById(R.id.row_terms);
@@ -263,6 +267,22 @@ public class SettingsFragment extends Fragment {
 
         if (rowCloudAccount != null) {
             rowCloudAccount.setOnClickListener(v -> startActivity(new Intent(requireContext(), SupabaseAuthActivity.class)));
+        }
+        if (rowCloudProfile != null) {
+            rowCloudProfile.setOnClickListener(v -> startActivity(new Intent(requireContext(), CloudProfileActivity.class)));
+        }
+        if (rowCloudLogout != null) {
+            rowCloudLogout.setOnClickListener(v -> new SupabaseAuthRepository(requireContext()).signOut(new SupabaseAuthRepository.AuthCallback() {
+                @Override
+                public void onSuccess(String message) {
+                    ToastUtils.showCustomToast(requireContext(), message);
+                }
+
+                @Override
+                public void onError(String message) {
+                    ToastUtils.showCustomToast(requireContext(), message);
+                }
+            }));
         }
 
         if (rowQrVault != null) {

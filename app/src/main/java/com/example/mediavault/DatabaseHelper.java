@@ -1532,6 +1532,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
             ContentValues values = toMetadataContentValues(mediaId, merged);
             long result = db.insertWithOnConflict(TABLE_MEDIA_METADATA, null, values, SQLiteDatabase.CONFLICT_REPLACE);
+            if (result != -1) {
+                SupabaseMediaSyncManager.enqueueUpsertMedia(context, mediaId);
+                SupabaseMediaSyncManager.enqueueUpsertMediaMetadata(context, mediaId);
+            }
             return result != -1;
         } finally {
             if (cursor != null) {

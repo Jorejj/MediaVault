@@ -16,6 +16,46 @@
         android:paddingTop="@dimen/screen_padding_vertical"
         android:paddingBottom="@dimen/screen_bottom_spacing">
 
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/screen_section_spacing_small">
+
+            <ImageView
+                android:id="@+id/iv_logo"
+                android:layout_width="@dimen/top_logo_size"
+                android:layout_height="@dimen/top_logo_size"
+                android:src="@drawable/mediavault_logo"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/screen_section_spacing_small"
+                android:orientation="vertical"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@id/iv_logo"
+                app:layout_constraintTop_toTopOf="parent">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    style="@style/TextScreenTitle"
+                    android:text="@string/mediavault"
+                    android:textSize="24sp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    style="@style/TextBody"
+                    android:text="@string/auto_your_universal_media_hub"
+                    android:textSize="14sp" />
+            </LinearLayout>
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
         <!-- Service Status Banner (shown when permissions missing) -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_service_status"
@@ -65,46 +105,6 @@
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
-
-        <androidx.constraintlayout.widget.ConstraintLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/screen_section_spacing">
-
-            <ImageView
-                android:id="@+id/iv_logo"
-                android:layout_width="@dimen/top_logo_size"
-                android:layout_height="@dimen/top_logo_size"
-                android:src="@drawable/mediavault_logo"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintStart_toStartOf="parent"
-                app:layout_constraintTop_toTopOf="parent" />
-
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="@dimen/screen_section_spacing_small"
-                android:orientation="vertical"
-                app:layout_constraintBottom_toBottomOf="parent"
-                app:layout_constraintEnd_toEndOf="parent"
-                app:layout_constraintStart_toEndOf="@id/iv_logo"
-                app:layout_constraintTop_toTopOf="parent">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    style="@style/TextScreenTitle"
-                    android:text="@string/mediavault"
-                    android:textSize="24sp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    style="@style/TextBody"
-                    android:text="@string/auto_your_universal_media_hub"
-                    android:textSize="14sp" />
-            </LinearLayout>
-        </androidx.constraintlayout.widget.ConstraintLayout>
 
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
@@ -221,8 +221,7 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="@dimen/screen_section_spacing_small"
             android:gravity="top"
-            android:orientation="horizontal"
-            android:visibility="gone">
+            android:orientation="horizontal">
 
             <com.google.android.material.card.MaterialCardView
                 android:layout_width="0dp"

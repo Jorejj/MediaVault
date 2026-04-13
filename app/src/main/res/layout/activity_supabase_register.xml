@@ -174,7 +174,7 @@
                         android:digits="0123456789"
                         android:fontFamily="@font/sf_pro_medium"
                         android:gravity="center"
-                        android:hint="@string/auto_verification_code"
+                        android:hint="______"
                         android:inputType="number"
                         android:letterSpacing="0.4"
                         android:maxLength="6"

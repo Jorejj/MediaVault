@@ -13,6 +13,7 @@ public class SupabaseSessionManager {
     private static final String KEY_USER_ID = "user_id";
     private static final String KEY_EMAIL = "email";
     private static final String KEY_DEBUG_SESSION = "debug_session";
+    private static final String KEY_KEEP_SIGNED_IN = "keep_signed_in";
 
     private final SharedPreferences preferences;
 
@@ -58,7 +59,14 @@ public class SupabaseSessionManager {
     }
 
     public void clearSession() {
-        preferences.edit().clear().apply();
+        preferences.edit()
+                .remove(KEY_ACCESS_TOKEN)
+                .remove(KEY_REFRESH_TOKEN)
+                .remove(KEY_EXPIRES_AT)
+                .remove(KEY_USER_ID)
+                .remove(KEY_EMAIL)
+                .remove(KEY_DEBUG_SESSION)
+                .apply();
     }
 
     public boolean isLoggedIn() {
@@ -80,5 +88,13 @@ public class SupabaseSessionManager {
 
     public String getAccessToken() {
         return preferences.getString(KEY_ACCESS_TOKEN, "");
+    }
+
+    public void setKeepSignedIn(boolean keepSignedIn) {
+        preferences.edit().putBoolean(KEY_KEEP_SIGNED_IN, keepSignedIn).apply();
+    }
+
+    public boolean shouldKeepSignedIn() {
+        return preferences.getBoolean(KEY_KEEP_SIGNED_IN, true);
     }
 }

@@ -12,6 +12,10 @@ public final class CloudAccessGate {
             return false;
         }
         SupabaseSessionManager sessionManager = new SupabaseSessionManager(context);
+        if (!sessionManager.shouldKeepSignedIn()) {
+            sessionManager.clearSession();
+            return true;
+        }
         return !sessionManager.isLoggedIn();
     }
 }

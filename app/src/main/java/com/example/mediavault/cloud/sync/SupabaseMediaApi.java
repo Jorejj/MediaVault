@@ -35,7 +35,9 @@ public interface SupabaseMediaApi {
             @Header("Authorization") String authorization,
             @Query("select") String select,
             @Query("user_id") String userIdEq,
-            @Query("order") String order
+            @Query("order") String order,
+            @Query("limit") String limit,
+            @Query("offset") String offset
     );
 
     @GET("rest/v1/media_library")
@@ -140,6 +142,8 @@ public interface SupabaseMediaApi {
             @Header("Authorization") String authorization,
             @Query("select") String select,
             @Query(value = "media_library.user_id", encoded = true) String mediaLibraryUserIdEq,
-            @Query("order") String order
+            @Query("order") String order,
+            @Query("limit") String limit,
+            @Query("offset") String offset
     );
 }

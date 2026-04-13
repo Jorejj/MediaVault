@@ -298,8 +298,7 @@ public class SettingsFragment extends Fragment {
                     return;
                 }
                 SupabaseMediaSyncManager.bootstrapCloudPrimaryAsync(requireContext());
-                SupabaseMediaSyncManager.syncAllFromLocalAsync(requireContext());
-                ToastUtils.showCustomToast(requireContext(), "Cloud sync started.");
+                ToastUtils.showCustomToast(requireContext(), "Cloud refresh started.");
             });
         }
 
@@ -339,7 +338,13 @@ public class SettingsFragment extends Fragment {
 
         // 10. Vault Management (Seed Data)
         if (rowVault != null) {
-            rowVault.setOnClickListener(v -> showSeedDataDialog());
+            rowVault.setOnClickListener(v -> {
+                if (CloudConfig.isSupabaseEnabled()) {
+                    ToastUtils.showCustomToast(requireContext(), "Vault seed is disabled in cloud mode.");
+                    return;
+                }
+                showSeedDataDialog();
+            });
         }
 
         // 8. Navigation to About Page

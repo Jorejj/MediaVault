@@ -17,9 +17,9 @@ Shake-to-Decide: Stuck in a "backlog paralysis"? Physically shake your device to
 
 Advanced Filtering: Quickly navigate your library by filtering by Genre, Status (Planning, Ongoing, Completed), or Rating
 
-## Supabase Foundation (Cloud Migration)
+## Supabase Cloud Mode
 
-This project now includes Supabase foundation assets without changing existing local SQLite behavior yet.
+This project now runs in cloud-authoritative mode when Supabase is enabled. Local SQLite remains as an on-device cache, while auth and primary data authority come from Supabase.
 
 1. Run this one-shot SQL in Supabase SQL Editor: `app/src/main/assets/supabase/setup_final.sql`
 2. App config gate: `com.example.mediavault.cloud.CloudConfig`
@@ -29,10 +29,13 @@ Add to `local.properties`:
 ```properties
 SUPABASE_URL=https://<your-project-ref>.supabase.co
 SUPABASE_ANON_KEY=<your-anon-key>
-SUPABASE_ENABLED=false
+SUPABASE_ENABLED=true
 ```
 
-Keep `SUPABASE_ENABLED=false` until app auth + sync wiring is complete.
+Cloud mode behavior:
+1. Login is required before entering the app.
+2. Startup refresh mirrors Supabase to local cache.
+3. Demo seeding is disabled in cloud mode.
 
 Forgot password deep-link setup:
 

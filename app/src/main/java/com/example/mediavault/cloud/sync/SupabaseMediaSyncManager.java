@@ -71,7 +71,7 @@ public final class SupabaseMediaSyncManager {
                 return;
             }
             if (cloudRows.size() == 0) {
-                syncAllFromLocalAsync(appContext);
+                clearLocalCloudCache(appContext);
                 return;
             }
             applyCloudRowsToLocalCache(appContext, cloudRows);
@@ -88,6 +88,22 @@ public final class SupabaseMediaSyncManager {
                 applyCloudMetadataToLocalCache(appContext, metadataRows);
             }
         });
+    }
+
+    private static void clearLocalCloudCache(Context context) {
+        DatabaseHelper helper = DatabaseHelper.getInstance(context);
+        SQLiteDatabase db = helper.getWritableDatabase();
+        db.beginTransaction();
+        try {
+            db.delete(DatabaseHelper.TABLE_PROGRESS_LOG, null, null);
+            db.delete(DatabaseHelper.TABLE_MEDIA_METADATA, null, null);
+            db.delete(DatabaseHelper.TABLE_DAILY_METRICS, null, null);
+            db.delete(DatabaseHelper.TABLE_MEDIA, null, null);
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+            db.close();
+        }
     }
 
     public static void enqueueUserEvent(Context context, String eventType, double eventValue, String sourceSurface) {
@@ -363,18 +379,36 @@ public final class SupabaseMediaSyncManager {
     }
 
     private static JsonArray fetchCloudRows(Session session) {
+        final int pageSize = 1000;
+        int offset = 0;
+        JsonArray merged = new JsonArray();
         try {
-            Response<JsonArray> response = api().getMediaByUser(
-                    CloudConfig.getSupabaseAnonKey(),
-                    "Bearer " + session.accessToken,
-                    "*",
-                    "eq." + session.userId,
-                    "last_updated.desc"
-            ).execute();
-            if (!response.isSuccessful()) {
-                return null;
+            while (true) {
+                Response<JsonArray> response = api().getMediaByUser(
+                        CloudConfig.getSupabaseAnonKey(),
+                        "Bearer " + session.accessToken,
+                        "*",
+                        "eq." + session.userId,
+                        "last_updated.desc",
+                        String.valueOf(pageSize),
+                        String.valueOf(offset)
+                ).execute();
+                if (!response.isSuccessful()) {
+                    return null;
+                }
+                JsonArray page = response.body() == null ? new JsonArray() : response.body();
+                if (page.size() == 0) {
+                    break;
+                }
+                for (int i = 0; i < page.size(); i++) {
+                    merged.add(page.get(i));
+                }
+                if (page.size() < pageSize) {
+                    break;
+                }
+                offset += page.size();
             }
-            return response.body() == null ? new JsonArray() : response.body();
+            return merged;
         } catch (IOException ignored) {
             return null;
         }
@@ -460,18 +494,36 @@ public final class SupabaseMediaSyncManager {
     }
 
     private static JsonArray fetchCloudMetadataRows(Session session) {
+        final int pageSize = 1000;
+        int offset = 0;
+        JsonArray merged = new JsonArray();
         try {
-            Response<JsonArray> response = api().getMediaMetadataByUser(
-                    CloudConfig.getSupabaseAnonKey(),
-                    "Bearer " + session.accessToken,
-                    "canonical_title,normalized_title,alt_titles_json,provider_id,provider_slug,canonical_url,metadata_source,metadata_media_type,metadata_sub_type,metadata_language,metadata_region,metadata_status,metadata_release_year,metadata_total_count,metadata_unit,genres_json,tags_json,external_ids_json,metadata_rating,metadata_popularity,provider_features_json,metadata_confidence,metadata_priority,metadata_updated_at,media_library!inner(local_media_id)",
-                    "eq." + session.userId,
-                    "metadata_updated_at.desc"
-            ).execute();
-            if (!response.isSuccessful()) {
-                return null;
+            while (true) {
+                Response<JsonArray> response = api().getMediaMetadataByUser(
+                        CloudConfig.getSupabaseAnonKey(),
+                        "Bearer " + session.accessToken,
+                        "canonical_title,normalized_title,alt_titles_json,provider_id,provider_slug,canonical_url,metadata_source,metadata_media_type,metadata_sub_type,metadata_language,metadata_region,metadata_status,metadata_release_year,metadata_total_count,metadata_unit,genres_json,tags_json,external_ids_json,metadata_rating,metadata_popularity,provider_features_json,metadata_confidence,metadata_priority,metadata_updated_at,media_library!inner(local_media_id)",
+                        "eq." + session.userId,
+                        "metadata_updated_at.desc",
+                        String.valueOf(pageSize),
+                        String.valueOf(offset)
+                ).execute();
+                if (!response.isSuccessful()) {
+                    return null;
+                }
+                JsonArray page = response.body() == null ? new JsonArray() : response.body();
+                if (page.size() == 0) {
+                    break;
+                }
+                for (int i = 0; i < page.size(); i++) {
+                    merged.add(page.get(i));
+                }
+                if (page.size() < pageSize) {
+                    break;
+                }
+                offset += page.size();
             }
-            return response.body() == null ? new JsonArray() : response.body();
+            return merged;
         } catch (IOException ignored) {
             return null;
         }

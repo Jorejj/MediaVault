@@ -23,6 +23,7 @@ import java.util.Set;
 
 import com.example.mediavault.utils.ProgressValueUtils;
 import com.example.mediavault.api.MediaMetadataProfile;
+import com.example.mediavault.cloud.CloudConfig;
 import com.example.mediavault.cloud.sync.SupabaseMediaSyncManager;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
@@ -1350,6 +1351,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     public void seedDatabase() {
+        if (CloudConfig.isSupabaseEnabled()) {
+            return;
+        }
         SQLiteDatabase db = this.getWritableDatabase();
         
         // Clear existing data to ensure clean state

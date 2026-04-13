@@ -37,6 +37,7 @@ import com.example.mediavault.DatabaseHelper;
 import com.example.mediavault.DailyGoalsManager;
 import com.example.mediavault.R;
 import com.example.mediavault.cloud.CloudConfig;
+import com.example.mediavault.cloud.auth.CloudAuthNavigator;
 import com.example.mediavault.cloud.auth.CloudProfileActivity;
 import com.example.mediavault.cloud.auth.SupabaseAuthActivity;
 import com.example.mediavault.cloud.auth.SupabaseAuthRepository;
@@ -279,6 +280,9 @@ public class SettingsFragment extends Fragment {
                 @Override
                 public void onSuccess(String message) {
                     ToastUtils.showCustomToast(requireContext(), message);
+                    if (CloudConfig.isSupabaseEnabled()) {
+                        CloudAuthNavigator.openForcedLogin(requireContext());
+                    }
                 }
 
                 @Override

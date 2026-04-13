@@ -8,6 +8,7 @@ import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.example.mediavault.R;
+import com.example.mediavault.cloud.CloudConfig;
 import com.example.mediavault.utils.ThemeUtils;
 import com.example.mediavault.widget.ToastUtils;
 import com.google.gson.JsonObject;
@@ -44,7 +45,11 @@ public class CloudProfileActivity extends AppCompatActivity {
             @Override
             public void onSuccess(String message) {
                 ToastUtils.showCustomToast(CloudProfileActivity.this, message);
-                finish();
+                if (CloudConfig.isSupabaseEnabled()) {
+                    CloudAuthNavigator.openForcedLogin(CloudProfileActivity.this);
+                } else {
+                    finish();
+                }
             }
 
             @Override

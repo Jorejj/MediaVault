@@ -34,6 +34,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.example.mediavault.DatabaseHelper;
 import com.example.mediavault.DescriptionActivity;
 import com.example.mediavault.R;
+import com.example.mediavault.api.MediaSearchManager;
 import com.example.mediavault.widget.ToastUtils;
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
@@ -55,6 +56,7 @@ import java.util.Map;
 public class LibraryFragment extends Fragment {
 
     private DatabaseHelper dbHelper;
+    private MediaSearchManager mediaSearchManager;
     private MediaAdapter adapter;
     private List<MediaItem> allMediaItems;
     private List<MediaItem> filteredItems;
@@ -106,6 +108,7 @@ public class LibraryFragment extends Fragment {
         View view = inflater.inflate(R.layout.fragment_library, container, false);
 
         dbHelper = DatabaseHelper.getInstance(requireContext());
+        mediaSearchManager = new MediaSearchManager();
         recyclerView = view.findViewById(R.id.library_recycler_view);
         recyclerView.setLayoutManager(new GridLayoutManager(getContext(), 2));
 
@@ -728,6 +731,9 @@ public class LibraryFragment extends Fragment {
             isReceiverRegistered = true;
         }
         refreshLibrary();
+        if (mediaSearchManager != null) {
+            mediaSearchManager.autoFetchAllMissingImages(requireContext().getApplicationContext());
+        }
     }
 
     @Override

@@ -14,8 +14,10 @@
 
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
-            android:layout_height="180dp">
-            
+            android:layout_height="180dp"
+            android:background="@drawable/glass_poster_border"
+            android:padding="1dp">
+             
             <ImageView
                 android:id="@+id/media_poster"
                 android:layout_width="match_parent"
@@ -35,10 +37,10 @@
                 
             <ImageView
                 android:id="@+id/btn_more_options"
-                android:layout_width="48dp"
-                android:layout_height="48dp"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
                 android:layout_margin="8dp"
-                android:padding="12dp"
+                android:padding="8dp"
                 android:src="@drawable/ic_more_vert"
                 android:background="@drawable/rating_pill_bg"
                 android:elevation="4dp"

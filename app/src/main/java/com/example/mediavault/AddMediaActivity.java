@@ -1814,6 +1814,8 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                     AppExecutor.getInstance().mainThread().execute(() -> {
                         // Successfully added - redirect immediately
                         Toast.makeText(AddMediaActivity.this, "✓ Successfully added to MediaVault!", Toast.LENGTH_SHORT).show();
+                        Intent updateIntent = new Intent(DescriptionActivity.ACTION_MEDIA_UPDATED);
+                        sendBroadcast(updateIntent);
                         setResult(RESULT_OK);
                         finish();
                     });

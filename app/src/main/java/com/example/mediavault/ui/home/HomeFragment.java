@@ -500,6 +500,7 @@ public class HomeFragment extends Fragment {
         for (com.example.mediavault.ui.library.MediaItem item : items) {
             if (item == null) continue;
             if ("Recently Deleted".equalsIgnoreCase(item.getStatus())) continue;
+            if ("Dropped".equalsIgnoreCase(item.getStatus())) continue;
             String title = item.getTitle() == null ? "" : item.getTitle().trim().toLowerCase(Locale.ROOT);
             if (title.isEmpty()) continue;
             if (!seenTitles.add(title)) continue;
@@ -776,9 +777,46 @@ public class HomeFragment extends Fragment {
             return java.util.Collections.emptyList();
         }
 
-        boolean readingFocus = isReadingFocus(localItems);
-        String focusGenre = extractTopGenre(localItems, readingFocus);
-        java.util.List<String> queries = buildApiQueries(localItems, focusGenre, readingFocus);
+        java.util.List<com.example.mediavault.ui.library.MediaItem> seedItems = new java.util.ArrayList<>();
+        int activeSeedCount = 0;
+        int planningSeedCount = 0;
+        int completedSeedCount = 0;
+        for (com.example.mediavault.ui.library.MediaItem item : localItems) {
+            if (item == null) continue;
+            String status = normalizeStatus(item.getStatus());
+            if (isDroppedOrHiddenStatus(status)) continue;
+            if (isActiveSeedStatus(status)) {
+                seedItems.add(item);
+                activeSeedCount++;
+            } else if (isPlanningStatus(status)) {
+                seedItems.add(item);
+                planningSeedCount++;
+            } else if ("completed".equals(status)) {
+                completedSeedCount++;
+            }
+        }
+        if (seedItems.isEmpty() && completedSeedCount > 0) {
+            for (com.example.mediavault.ui.library.MediaItem item : localItems) {
+                if (item == null) continue;
+                String status = normalizeStatus(item.getStatus());
+                if (!isDroppedOrHiddenStatus(status) && "completed".equals(status)) {
+                    seedItems.add(item);
+                }
+            }
+        }
+        if (seedItems.isEmpty()) {
+            return java.util.Collections.emptyList();
+        }
+
+        boolean planningOnly = activeSeedCount == 0 && planningSeedCount > 0;
+        boolean completedOnly = activeSeedCount == 0 && planningSeedCount == 0;
+        int queryLimit = planningOnly ? 1 : (completedOnly ? 2 : 3);
+        int perSourceLimit = planningOnly ? 3 : (completedOnly ? 5 : 8);
+        int maxRelatedItems = planningOnly ? 6 : (completedOnly ? 10 : 18);
+
+        boolean readingFocus = isReadingFocus(seedItems);
+        String focusGenre = extractTopGenre(seedItems, readingFocus);
+        java.util.List<String> queries = buildApiQueries(seedItems, focusGenre, readingFocus, queryLimit);
         if (queries.isEmpty()) {
             return java.util.Collections.emptyList();
         }
@@ -786,47 +824,84 @@ public class HomeFragment extends Fragment {
         java.util.List<UniversalMediaResult> apiResults = new java.util.ArrayList<>();
         for (String query : queries) {
             if (readingFocus) {
-                collectApiResults(apiResults, new GoogleBooksStrategy(), query, 8);
-                collectApiResults(apiResults, new MangaDexStrategy(), query, 8);
+                collectApiResults(apiResults, new GoogleBooksStrategy(), query, perSourceLimit);
+                collectApiResults(apiResults, new MangaDexStrategy(), query, perSourceLimit);
             } else {
-                collectApiResults(apiResults, new AniListAnimeStrategy(), query, 8);
+                collectApiResults(apiResults, new AniListAnimeStrategy(), query, perSourceLimit);
                 if (!BuildConfig.TMDB_API_KEY.isEmpty() || !BuildConfig.OMDB_API_KEY.isEmpty()) {
                     try {
                         java.util.List<UniversalMediaResult> movies =
                                 new MovieSearchWaterfall(BuildConfig.TMDB_API_KEY, BuildConfig.OMDB_API_KEY)
                                         .searchMovies(query);
-                        appendLimited(apiResults, movies, 8);
+                        appendLimited(apiResults, movies, perSourceLimit);
                     } catch (Exception ignored) {
                     }
                 }
             }
         }
-        return mapApiResultsToMediaItems(apiResults);
+        return mapApiResultsToMediaItems(apiResults, maxRelatedItems);
     }
 
     private static java.util.List<String> buildApiQueries(
             java.util.List<com.example.mediavault.ui.library.MediaItem> items,
             String focusGenre,
-            boolean readingFocus
+            boolean readingFocus,
+            int maxQueries
     ) {
         java.util.LinkedHashSet<String> queries = new java.util.LinkedHashSet<>();
-        for (com.example.mediavault.ui.library.MediaItem item : items) {
-            if (item == null || item.getTitle() == null) continue;
-            if (readingFocus && !isReadingType(item.getType())) continue;
-            if (!readingFocus && !isWatchingType(item.getType())) continue;
-            String title = item.getTitle().trim();
-            if (!title.isEmpty()) {
-                queries.add(title);
-            }
-            if (queries.size() >= 2) break;
-        }
-        if (!focusGenre.isEmpty()) {
+        addQueriesForStatuses(items, queries, readingFocus, maxQueries, "ongoing", "discover", "paused");
+        addQueriesForStatuses(items, queries, readingFocus, maxQueries, "planning");
+        addQueriesForStatuses(items, queries, readingFocus, maxQueries, "completed");
+        if (!focusGenre.isEmpty() && queries.size() < maxQueries) {
             queries.add(focusGenre + (readingFocus ? " novel manga" : " movie anime"));
         }
         if (queries.isEmpty()) {
             queries.add(readingFocus ? "popular books" : "popular movies anime");
         }
         return new java.util.ArrayList<>(queries);
+    }
+
+    private static void addQueriesForStatuses(
+            java.util.List<com.example.mediavault.ui.library.MediaItem> items,
+            java.util.LinkedHashSet<String> queries,
+            boolean readingFocus,
+            int maxQueries,
+            String... statuses
+    ) {
+        if (queries.size() >= maxQueries) return;
+        java.util.HashSet<String> allowed = new java.util.HashSet<>();
+        for (String status : statuses) {
+            if (status != null) {
+                allowed.add(status.toLowerCase(Locale.ROOT));
+            }
+        }
+        for (com.example.mediavault.ui.library.MediaItem item : items) {
+            if (queries.size() >= maxQueries) break;
+            if (item == null || item.getTitle() == null) continue;
+            String normalizedStatus = normalizeStatus(item.getStatus());
+            if (!allowed.contains(normalizedStatus)) continue;
+            if (readingFocus && !isReadingType(item.getType())) continue;
+            if (!readingFocus && !isWatchingType(item.getType())) continue;
+            String title = item.getTitle().trim();
+            if (title.isEmpty()) continue;
+            queries.add(title);
+        }
+    }
+
+    private static String normalizeStatus(String status) {
+        return status == null ? "" : status.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private static boolean isDroppedOrHiddenStatus(String status) {
+        return "dropped".equals(status) || "recently deleted".equals(status);
+    }
+
+    private static boolean isActiveSeedStatus(String status) {
+        return "ongoing".equals(status) || "paused".equals(status) || "discover".equals(status);
+    }
+
+    private static boolean isPlanningStatus(String status) {
+        return "planning".equals(status);
     }
 
     private static void collectApiResults(
@@ -858,11 +933,13 @@ public class HomeFragment extends Fragment {
     }
 
     private static java.util.List<com.example.mediavault.ui.library.MediaItem> mapApiResultsToMediaItems(
-            java.util.List<UniversalMediaResult> apiResults
+            java.util.List<UniversalMediaResult> apiResults,
+            int maxItems
     ) {
         if (apiResults == null || apiResults.isEmpty()) {
             return java.util.Collections.emptyList();
         }
+        int boundedMax = Math.max(1, maxItems);
         java.util.ArrayList<com.example.mediavault.ui.library.MediaItem> mapped = new java.util.ArrayList<>();
         java.util.HashSet<String> seen = new java.util.HashSet<>();
         int syntheticId = -10_000;
@@ -902,7 +979,7 @@ public class HomeFragment extends Fragment {
                     sourceUrl,
                     "discover"
             ));
-            if (mapped.size() >= 24) break;
+            if (mapped.size() >= boundedMax) break;
         }
         return mapped;
     }

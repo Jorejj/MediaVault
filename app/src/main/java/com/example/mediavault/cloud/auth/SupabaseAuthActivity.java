@@ -11,6 +11,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.example.mediavault.MainActivity;
 import com.example.mediavault.R;
 import com.example.mediavault.cloud.CloudConfig;
+import com.example.mediavault.cloud.sync.SupabaseMediaSyncManager;
 import com.example.mediavault.utils.ThemeUtils;
 import com.example.mediavault.widget.ToastUtils;
 
@@ -132,6 +133,7 @@ public class SupabaseAuthActivity extends AppCompatActivity {
         @Override
         public void onSuccess(String message) {
             refreshSessionStatus();
+            SupabaseMediaSyncManager.syncAllFromLocalAsync(SupabaseAuthActivity.this);
             ToastUtils.showCustomToast(SupabaseAuthActivity.this, message);
             if (forceLogin) {
                 Intent intent = new Intent(SupabaseAuthActivity.this, MainActivity.class);

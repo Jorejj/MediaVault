@@ -24,6 +24,7 @@ This project now includes Supabase foundation assets without changing existing l
 1. SQL schema: `app/src/main/assets/supabase/schema_v1.sql`
 2. RLS policies: `app/src/main/assets/supabase/rls_policies_v1.sql`
 3. App config gate: `com.example.mediavault.cloud.CloudConfig`
+4. If you already applied an older schema, run `app/src/main/assets/supabase/schema_patch_v1_1.sql`
 
 Add to `local.properties` to prepare cloud integration:
 

@@ -26,6 +26,7 @@ create table if not exists public.profiles (
 create table if not exists public.media_library (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
+  local_media_id integer,
   api_id text,
   title text not null,
   description text,
@@ -63,6 +64,8 @@ create table if not exists public.media_library (
 create index if not exists idx_media_library_user_status on public.media_library(user_id, status);
 create index if not exists idx_media_library_user_type on public.media_library(user_id, media_type);
 create index if not exists idx_media_library_user_updated on public.media_library(user_id, last_updated desc);
+create unique index if not exists uq_media_library_user_local_media_id
+  on public.media_library(user_id, local_media_id);
 create unique index if not exists uq_media_library_user_lower_title_type
   on public.media_library(user_id, lower(title), media_type);
 

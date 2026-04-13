@@ -129,7 +129,7 @@ public class SupabaseAuthActivity extends AppCompatActivity {
         @Override
         public void onSuccess(String message) {
             refreshSessionStatus();
-            SupabaseMediaSyncManager.syncAllFromLocalAsync(SupabaseAuthActivity.this);
+            SupabaseMediaSyncManager.bootstrapCloudPrimaryAsync(SupabaseAuthActivity.this);
             ToastUtils.showCustomToast(SupabaseAuthActivity.this, message);
             if (forceLogin) {
                 Intent intent = new Intent(SupabaseAuthActivity.this, MainActivity.class);

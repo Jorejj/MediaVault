@@ -9,6 +9,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
 import com.example.mediavault.cloud.auth.CloudAccessGate;
 import com.example.mediavault.cloud.auth.SupabaseAuthActivity;
+import com.example.mediavault.cloud.sync.SupabaseMediaSyncManager;
 
 @SuppressWarnings("CustomSplashScreen")
 
@@ -31,6 +32,7 @@ public class SplashActivity extends AppCompatActivity {
                     intent = new Intent(SplashActivity.this, SupabaseAuthActivity.class);
                     intent.putExtra(SupabaseAuthActivity.EXTRA_FORCE_LOGIN, true);
                 } else {
+                    SupabaseMediaSyncManager.bootstrapCloudPrimaryAsync(this);
                     intent = new Intent(SplashActivity.this, MainActivity.class);
                 }
                 startActivity(intent);

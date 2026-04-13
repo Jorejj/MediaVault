@@ -1,5 +1,6 @@
 package com.example.mediavault.cloud.sync;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -13,6 +14,8 @@ import com.example.mediavault.cloud.CloudConfig;
 import com.example.mediavault.cloud.auth.SupabaseSessionManager;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+
+import java.io.IOException;
 
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -47,6 +50,23 @@ public final class SupabaseMediaSyncManager {
                     upsertMediaNow(appContext, localId);
                 } while (cursor.moveToNext());
             }
+        });
+    }
+
+    public static void bootstrapCloudPrimaryAsync(Context context) {
+        Context appContext = context.getApplicationContext();
+        AppExecutor.getInstance().networkIO().execute(() -> {
+            Session session = session(appContext);
+            if (session == null) return;
+            JsonArray cloudRows = fetchCloudRows(session);
+            if (cloudRows == null) {
+                return;
+            }
+            if (cloudRows.size() == 0) {
+                syncAllFromLocalAsync(appContext);
+                return;
+            }
+            applyCloudRowsToLocalCache(appContext, cloudRows);
         });
     }
 
@@ -120,6 +140,72 @@ public final class SupabaseMediaSyncManager {
         }
     }
 
+    private static JsonArray fetchCloudRows(Session session) {
+        try {
+            Response<JsonArray> response = api().getMediaByUser(
+                    CloudConfig.getSupabaseAnonKey(),
+                    "Bearer " + session.accessToken,
+                    "*",
+                    "eq." + session.userId,
+                    "last_updated.desc"
+            ).execute();
+            if (!response.isSuccessful()) {
+                return null;
+            }
+            return response.body() == null ? new JsonArray() : response.body();
+        } catch (IOException ignored) {
+            return null;
+        }
+    }
+
+    private static void applyCloudRowsToLocalCache(Context context, JsonArray rows) {
+        DatabaseHelper helper = DatabaseHelper.getInstance(context);
+        SQLiteDatabase db = helper.getWritableDatabase();
+        db.beginTransaction();
+        try {
+            db.delete(DatabaseHelper.TABLE_MEDIA, null, null);
+            for (int i = 0; i < rows.size(); i++) {
+                if (!rows.get(i).isJsonObject()) continue;
+                JsonObject obj = rows.get(i).getAsJsonObject();
+                ContentValues v = new ContentValues();
+                Integer localId = intValue(obj, "local_media_id");
+                if (localId != null && localId > 0) {
+                    v.put(DatabaseHelper.COL_ID, localId);
+                }
+                v.put(DatabaseHelper.COL_API_ID, strValue(obj, "api_id"));
+                v.put(DatabaseHelper.COL_TITLE, nonEmpty(strValue(obj, "title"), "Untitled"));
+                v.put(DatabaseHelper.COL_DESCRIPTION, strValue(obj, "description"));
+                v.put(DatabaseHelper.COL_CREATOR, strValue(obj, "creator"));
+                v.put(DatabaseHelper.COL_MEDIA_TYPE, nonEmpty(strValue(obj, "media_type"), "Movie"));
+                v.put(DatabaseHelper.COL_GENRE, strValue(obj, "genre"));
+                v.put(DatabaseHelper.COL_IMAGE_PATH, strValue(obj, "image_path"));
+                v.put(DatabaseHelper.COL_CURRENT_PROGRESS, dblValue(obj, "current_progress", 0d));
+                v.put(DatabaseHelper.COL_PREVIOUS_PROGRESS, dblValue(obj, "previous_progress", 0d));
+                v.put(DatabaseHelper.COL_TOTAL_COUNT, intValue(obj, "total_count") != null ? intValue(obj, "total_count") : 1);
+                v.put(DatabaseHelper.COL_UNIT, nonEmpty(strValue(obj, "capacity_unit"), "Episodes"));
+                v.put(DatabaseHelper.COL_RUNTIME, strValue(obj, "runtime"));
+                v.put(DatabaseHelper.COL_STATUS, nonEmpty(strValue(obj, "status"), "Planning"));
+                v.put(DatabaseHelper.COL_RATING, dblValue(obj, "user_rating", 0d));
+                v.put(DatabaseHelper.COL_REVIEW, strValue(obj, "personal_review"));
+                v.put(DatabaseHelper.COL_JOURNAL, strValue(obj, "memory_journal"));
+                v.put(DatabaseHelper.COL_MOOD, strValue(obj, "finish_mood"));
+                v.put(DatabaseHelper.COL_PRIORITY, nonEmpty(strValue(obj, "priority_level"), "Medium"));
+                v.put(DatabaseHelper.COL_DATE_ADDED, strValue(obj, "date_added"));
+                v.put(DatabaseHelper.COL_LAST_UPDATED, strValue(obj, "last_updated"));
+                v.put(DatabaseHelper.COL_IS_FAVORITE, boolValue(obj, "is_favorite") ? 1 : 0);
+                v.put(DatabaseHelper.COL_SOURCE_URL, strValue(obj, "source_url"));
+                v.put(DatabaseHelper.COL_CONTENT_TYPE, strValue(obj, "content_type"));
+                v.put(DatabaseHelper.COL_CURRENT_SEASON, intValue(obj, "current_season") != null ? intValue(obj, "current_season") : 1);
+                v.put(DatabaseHelper.COL_CURRENT_EPISODE, intValue(obj, "current_episode") != null ? intValue(obj, "current_episode") : 1);
+                db.insertWithOnConflict(DatabaseHelper.TABLE_MEDIA, null, v, SQLiteDatabase.CONFLICT_REPLACE);
+            }
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+            db.close();
+        }
+    }
+
     private static void putString(JsonObject row, String key, Cursor cursor, String column) {
         int index = cursor.getColumnIndex(column);
         if (index < 0 || cursor.isNull(index)) return;
@@ -132,6 +218,43 @@ public final class SupabaseMediaSyncManager {
         int index = cursor.getColumnIndex(column);
         if (index < 0 || cursor.isNull(index)) return;
         row.addProperty(key, cursor.getDouble(index));
+    }
+
+    private static String strValue(JsonObject obj, String key) {
+        if (!obj.has(key) || obj.get(key).isJsonNull()) return null;
+        String value = obj.get(key).getAsString();
+        return value == null || value.trim().isEmpty() ? null : value;
+    }
+
+    private static Integer intValue(JsonObject obj, String key) {
+        if (!obj.has(key) || obj.get(key).isJsonNull()) return null;
+        try {
+            return obj.get(key).getAsInt();
+        } catch (NumberFormatException | UnsupportedOperationException | ClassCastException ignored) {
+            return null;
+        }
+    }
+
+    private static double dblValue(JsonObject obj, String key, double fallback) {
+        if (!obj.has(key) || obj.get(key).isJsonNull()) return fallback;
+        try {
+            return obj.get(key).getAsDouble();
+        } catch (NumberFormatException | UnsupportedOperationException | ClassCastException ignored) {
+            return fallback;
+        }
+    }
+
+    private static boolean boolValue(JsonObject obj, String key) {
+        if (!obj.has(key) || obj.get(key).isJsonNull()) return false;
+        try {
+            return obj.get(key).getAsBoolean();
+        } catch (UnsupportedOperationException | ClassCastException ignored) {
+            return false;
+        }
+    }
+
+    private static String nonEmpty(String value, String fallback) {
+        return value == null || value.trim().isEmpty() ? fallback : value;
     }
 
     private static boolean canSync(Context context) {

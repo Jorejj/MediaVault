@@ -21,12 +21,10 @@ Advanced Filtering: Quickly navigate your library by filtering by Genre, Status 
 
 This project now includes Supabase foundation assets without changing existing local SQLite behavior yet.
 
-1. SQL schema: `app/src/main/assets/supabase/schema_v1.sql`
-2. RLS policies: `app/src/main/assets/supabase/rls_policies_v1.sql`
-3. App config gate: `com.example.mediavault.cloud.CloudConfig`
-4. If you already applied an older schema, run `app/src/main/assets/supabase/schema_patch_v1_1.sql`
+1. Run this one-shot SQL in Supabase SQL Editor: `app/src/main/assets/supabase/setup_final.sql`
+2. App config gate: `com.example.mediavault.cloud.CloudConfig`
 
-Add to `local.properties` to prepare cloud integration:
+Add to `local.properties`:
 
 ```properties
 SUPABASE_URL=https://<your-project-ref>.supabase.co

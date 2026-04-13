@@ -117,6 +117,42 @@ public class SupabaseAuthRepository {
         });
     }
 
+    public void resetPasswordWithAccessToken(String accessToken, String newPassword, AuthCallback callback) {
+        if (!CloudConfig.isSupabaseEnabled()) {
+            callback.onError("Supabase is disabled.");
+            return;
+        }
+        if (accessToken == null || accessToken.trim().isEmpty()) {
+            callback.onError("Missing recovery access token.");
+            return;
+        }
+        if (newPassword == null || newPassword.trim().length() < 6) {
+            callback.onError("Password must be at least 6 characters.");
+            return;
+        }
+        JsonObject body = new JsonObject();
+        body.addProperty("password", newPassword.trim());
+        authApi().updateUserPassword(
+                apiKey(),
+                "Bearer " + accessToken.trim(),
+                body
+        ).enqueue(new Callback<JsonObject>() {
+            @Override
+            public void onResponse(@NonNull Call<JsonObject> call, @NonNull Response<JsonObject> response) {
+                if (!response.isSuccessful()) {
+                    callback.onError("Reset failed (" + response.code() + ").");
+                    return;
+                }
+                callback.onSuccess("Password updated. Please log in.");
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<JsonObject> call, @NonNull Throwable throwable) {
+                callback.onError("Reset failed: " + throwable.getMessage());
+            }
+        });
+    }
+
     public void signOutLocal() {
         sessionManager.clearSession();
     }

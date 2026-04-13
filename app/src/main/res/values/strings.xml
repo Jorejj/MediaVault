@@ -387,5 +387,12 @@
     <string name="auto_display_name">Display Name</string>
     <string name="auto_avatar_url">Avatar URL</string>
     <string name="auto_save_profile">Save Profile</string>
+    <string name="auto_reset_password">Reset Password</string>
+    <string name="auto_new_password">New Password</string>
+    <string name="auto_confirm_password">Confirm Password</string>
+    <string name="auto_update_password">Update Password</string>
+    <string name="auto_back_to_login">Back to Login</string>
+    <string name="auto_reset_link_invalid">Invalid or expired reset link.</string>
+    <string name="auto_reset_link_valid">Set your new password.</string>
     <string name="auto_exit">Exit</string>
 </resources>

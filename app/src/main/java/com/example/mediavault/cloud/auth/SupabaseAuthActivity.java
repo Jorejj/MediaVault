@@ -112,7 +112,7 @@ public class SupabaseAuthActivity extends AppCompatActivity {
             ToastUtils.showCustomToast(this, "Email is required.");
             return;
         }
-        authRepository.sendPasswordReset(email, "", new UiAuthCallback());
+        authRepository.sendPasswordReset(email, "mediavault://auth/reset", new UiAuthCallback());
     }
 
     private String readEmail() {

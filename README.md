@@ -34,6 +34,11 @@ SUPABASE_ENABLED=false
 
 Keep `SUPABASE_ENABLED=false` until app auth + sync wiring is complete.
 
+Forgot password deep-link setup:
+
+1. In Supabase Auth settings, set redirect URL to `mediavault://auth/reset`
+2. Android app handles this deep link in `SupabasePasswordResetActivity`
+
 ## Admin Website Starter
 
 A lightweight admin starter is included at `admin/`.

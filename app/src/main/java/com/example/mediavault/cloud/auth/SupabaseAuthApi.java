@@ -7,6 +7,7 @@ import retrofit2.http.Body;
 import retrofit2.http.Header;
 import retrofit2.http.Headers;
 import retrofit2.http.POST;
+import retrofit2.http.PUT;
 
 public interface SupabaseAuthApi {
     @Headers("Content-Type: application/json")
@@ -38,5 +39,13 @@ public interface SupabaseAuthApi {
     Call<Void> signOut(
             @Header("apikey") String apikey,
             @Header("Authorization") String authorization
+    );
+
+    @Headers("Content-Type: application/json")
+    @PUT("auth/v1/user")
+    Call<JsonObject> updateUserPassword(
+            @Header("apikey") String apikey,
+            @Header("Authorization") String authorization,
+            @Body JsonObject body
     );
 }

@@ -128,6 +128,94 @@
                 />
         </com.google.android.material.card.MaterialCardView>
 
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_home_what_to_watch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="@color/glass_surface_color"
+            app:cardCornerRadius="24dp"
+            app:cardElevation="0dp"
+            app:strokeColor="@color/glass_border_soft"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/sf_pro_heavy"
+                    android:text="@string/auto_home_what_to_watch_next"
+                    android:textColor="?attr/colorTextPrimary"
+                    android:textSize="18sp" />
+
+                <TextView
+                    android:id="@+id/text_home_pick_title"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    android:fontFamily="@font/sf_pro_bold"
+                    android:text="@string/auto_finding_your_best_pick"
+                    android:textColor="?attr/colorTextPrimary"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:id="@+id/text_home_pick_meta"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:fontFamily="@font/sf_pro_regular"
+                    android:text="@string/auto_status_loading"
+                    android:textColor="?attr/colorTextSecondary"
+                    android:textSize="13sp" />
+
+                <TextView
+                    android:id="@+id/text_home_pick_progress"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="8dp"
+                    android:fontFamily="@font/sf_pro_medium"
+                    android:text="@string/auto_progress_placeholder"
+                    android:textColor="?attr/colorTextPrimary"
+                    android:textSize="13sp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_home_open_pick"
+                        android:layout_width="0dp"
+                        android:layout_height="44dp"
+                        android:layout_weight="1"
+                        android:text="@string/auto_open_details"
+                        android:textAllCaps="false"
+                        android:textSize="13sp"
+                        app:backgroundTint="@color/vault_red_primary"
+                        app:cornerRadius="14dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btn_home_refresh_pick"
+                        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+                        android:layout_width="0dp"
+                        android:layout_height="44dp"
+                        android:layout_marginStart="10dp"
+                        android:layout_weight="1"
+                        android:text="@string/auto_refresh_pick"
+                        android:textAllCaps="false"
+                        android:textSize="13sp"
+                        app:cornerRadius="14dp"
+                        app:strokeColor="@color/vault_red_primary" />
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

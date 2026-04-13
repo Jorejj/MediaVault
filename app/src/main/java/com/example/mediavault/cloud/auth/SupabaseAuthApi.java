@@ -27,6 +27,22 @@ public interface SupabaseAuthApi {
     );
 
     @Headers("Content-Type: application/json")
+    @POST("auth/v1/verify")
+    Call<JsonObject> verifyEmailOtp(
+            @Header("apikey") String apikey,
+            @Header("Authorization") String authorization,
+            @Body JsonObject body
+    );
+
+    @Headers("Content-Type: application/json")
+    @POST("auth/v1/otp")
+    Call<JsonObject> sendEmailOtp(
+            @Header("apikey") String apikey,
+            @Header("Authorization") String authorization,
+            @Body JsonObject body
+    );
+
+    @Headers("Content-Type: application/json")
     @POST("auth/v1/recover")
     Call<JsonObject> sendPasswordRecovery(
             @Header("apikey") String apikey,

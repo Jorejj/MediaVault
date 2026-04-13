@@ -2,6 +2,7 @@ package com.example.mediavault.cloud.auth;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -22,10 +23,12 @@ public class SupabaseAuthActivity extends AppCompatActivity {
     private EditText editEmail;
     private EditText editPassword;
     private TextView textSessionStatus;
+    private TextView textRegisterLink;
+    private View dividerAuthActions;
     private Button buttonLogin;
-    private Button buttonSignup;
     private Button buttonForgot;
     private Button buttonLogout;
+    private Button buttonClose;
     private boolean forceLogin;
 
     @Override
@@ -40,12 +43,13 @@ public class SupabaseAuthActivity extends AppCompatActivity {
         editEmail = findViewById(R.id.edit_cloud_email);
         editPassword = findViewById(R.id.edit_cloud_password);
         textSessionStatus = findViewById(R.id.text_cloud_session_status);
+        textRegisterLink = findViewById(R.id.text_register_link);
+        dividerAuthActions = findViewById(R.id.divider_auth_actions);
         buttonLogin = findViewById(R.id.btn_cloud_login);
-        buttonSignup = findViewById(R.id.btn_cloud_signup);
         buttonForgot = findViewById(R.id.btn_cloud_forgot);
         buttonLogout = findViewById(R.id.btn_cloud_logout);
+        buttonClose = findViewById(R.id.btn_cloud_close);
 
-        Button buttonClose = findViewById(R.id.btn_cloud_close);
         if (forceLogin) {
             buttonClose.setText(R.string.auto_exit);
             buttonClose.setOnClickListener(v -> finishAffinity());
@@ -54,9 +58,9 @@ public class SupabaseAuthActivity extends AppCompatActivity {
         }
 
         buttonLogin.setOnClickListener(v -> attemptLogin());
-        buttonSignup.setOnClickListener(v -> attemptSignup());
         buttonForgot.setOnClickListener(v -> attemptForgotPassword());
         buttonLogout.setOnClickListener(v -> authRepository.signOut(new UiAuthCallback()));
+        textRegisterLink.setOnClickListener(v -> openRegisterPage());
 
         applySupabaseAvailabilityState();
         refreshSessionStatus();
@@ -65,8 +69,8 @@ public class SupabaseAuthActivity extends AppCompatActivity {
     private void applySupabaseAvailabilityState() {
         boolean enabled = CloudConfig.isSupabaseEnabled();
         buttonLogin.setEnabled(enabled);
-        buttonSignup.setEnabled(enabled);
         buttonForgot.setEnabled(enabled);
+        textRegisterLink.setEnabled(enabled);
         buttonLogout.setEnabled(true);
         if (!enabled) {
             textSessionStatus.setText("Supabase disabled. Configure local.properties and set SUPABASE_ENABLED=true.");
@@ -77,13 +81,16 @@ public class SupabaseAuthActivity extends AppCompatActivity {
 
     private void refreshSessionStatus() {
         SupabaseSessionManager session = authRepository.getSessionManager();
-        if (session.isLoggedIn()) {
+        boolean loggedIn = session.isLoggedIn();
+        if (loggedIn) {
             textSessionStatus.setText("Logged in as: " + session.getEmail() + "\nUser ID: " + session.getUserId());
-        } else {
-            if (CloudConfig.isSupabaseEnabled()) {
-                textSessionStatus.setText("Not logged in.");
-            }
+        } else if (CloudConfig.isSupabaseEnabled()) {
+            textSessionStatus.setText("Not logged in.");
         }
+        buttonLogout.setVisibility(loggedIn ? View.VISIBLE : View.GONE);
+        boolean showClose = loggedIn && !forceLogin;
+        buttonClose.setVisibility(showClose ? View.VISIBLE : View.GONE);
+        dividerAuthActions.setVisibility((loggedIn || showClose) ? View.VISIBLE : View.GONE);
     }
 
     private void attemptLogin() {
@@ -96,16 +103,6 @@ public class SupabaseAuthActivity extends AppCompatActivity {
         authRepository.signIn(email, password, new UiAuthCallback());
     }
 
-    private void attemptSignup() {
-        String email = readEmail();
-        String password = readPassword();
-        if (email.isEmpty() || password.isEmpty()) {
-            ToastUtils.showCustomToast(this, "Email and password are required.");
-            return;
-        }
-        authRepository.signUp(email, password, new UiAuthCallback());
-    }
-
     private void attemptForgotPassword() {
         String email = readEmail();
         if (email.isEmpty()) {
@@ -113,6 +110,12 @@ public class SupabaseAuthActivity extends AppCompatActivity {
             return;
         }
         authRepository.sendPasswordReset(email, "mediavault://auth/reset", new UiAuthCallback());
+    }
+
+    private void openRegisterPage() {
+        Intent intent = new Intent(this, SupabaseRegisterActivity.class);
+        intent.putExtra(EXTRA_FORCE_LOGIN, forceLogin);
+        startActivity(intent);
     }
 
     private String readEmail() {

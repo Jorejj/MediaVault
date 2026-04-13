@@ -1172,6 +1172,7 @@ public final class SupabaseMediaSyncManager {
     private static Session session(Context context) {
         if (!CloudConfig.isSupabaseEnabled()) return null;
         SupabaseSessionManager sessionManager = new SupabaseSessionManager(context);
+        if (sessionManager.isDebugSession()) return null;
         String userId = sessionManager.getUserId();
         String accessToken = sessionManager.getAccessToken();
         if (TextUtils.isEmpty(userId) || TextUtils.isEmpty(accessToken)) return null;

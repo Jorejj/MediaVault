@@ -15,6 +15,9 @@ import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 public class SupabaseAuthRepository {
+    private static final String DEBUG_USERNAME = "user123";
+    private static final String DEBUG_PASSWORD = "123456";
+
     public interface AuthCallback {
         void onSuccess(String message);
         void onError(String message);
@@ -36,13 +39,20 @@ public class SupabaseAuthRepository {
     }
 
     public void signIn(String email, String password, AuthCallback callback) {
+        String normalizedEmail = email == null ? "" : email.trim();
+        String normalizedPassword = password == null ? "" : password.trim();
+        if (DEBUG_USERNAME.equalsIgnoreCase(normalizedEmail) && DEBUG_PASSWORD.equals(normalizedPassword)) {
+            sessionManager.saveDebugSession(DEBUG_USERNAME);
+            callback.onSuccess("Logged in with debug account.");
+            return;
+        }
         if (!CloudConfig.isSupabaseEnabled()) {
             callback.onError("Supabase is disabled. Set SUPABASE_ENABLED=true and configure keys.");
             return;
         }
         JsonObject body = new JsonObject();
-        body.addProperty("email", email);
-        body.addProperty("password", password);
+        body.addProperty("email", normalizedEmail);
+        body.addProperty("password", normalizedPassword);
         authApi().signInWithPassword(apiKey(), bearerAnon(), body).enqueue(new Callback<JsonObject>() {
             @Override
             public void onResponse(@NonNull Call<JsonObject> call, @NonNull Response<JsonObject> response) {
@@ -76,20 +86,127 @@ public class SupabaseAuthRepository {
                     callback.onError("Sign up failed (" + response.code() + ").");
                     return;
                 }
-                JsonObject payload = response.body();
-                if (payload != null) {
-                    sessionManager.saveSession(payload);
-                }
-                if (sessionManager.isLoggedIn()) {
-                    ensureProfileExists("Account created. Check your email if confirmation is required.", callback);
-                } else {
-                    callback.onSuccess("Account created. Check your email if confirmation is required.");
-                }
+                sendSignupOtp(email, callback);
             }
 
             @Override
             public void onFailure(@NonNull Call<JsonObject> call, @NonNull Throwable throwable) {
                 callback.onError("Sign up request failed: " + throwable.getMessage());
+            }
+        });
+    }
+
+    public void requestRegisterOtp(String email, AuthCallback callback) {
+        if (!CloudConfig.isSupabaseEnabled()) {
+            callback.onError("Supabase is disabled. Set SUPABASE_ENABLED=true and configure keys.");
+            return;
+        }
+        JsonObject otpBody = new JsonObject();
+        otpBody.addProperty("email", email == null ? "" : email.trim());
+        otpBody.addProperty("create_user", true);
+        authApi().sendEmailOtp(apiKey(), bearerAnon(), otpBody).enqueue(new Callback<JsonObject>() {
+            @Override
+            public void onResponse(@NonNull Call<JsonObject> call, @NonNull Response<JsonObject> response) {
+                sessionManager.clearSession();
+                if (!response.isSuccessful()) {
+                    callback.onError("Could not send verification code (" + response.code() + ").");
+                    return;
+                }
+                callback.onSuccess("Verification code sent. Check your email.");
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<JsonObject> call, @NonNull Throwable throwable) {
+                sessionManager.clearSession();
+                callback.onError("Could not send verification code: " + throwable.getMessage());
+            }
+        });
+    }
+
+    public void verifyRegisterCodeAndActivate(String email, String code, String password, AuthCallback callback) {
+        verifyRegisterCodeWithType(email, code, password, "email", true, callback);
+    }
+
+    private void verifyRegisterCodeWithType(String email, String code, String password, String type, boolean allowFallback, AuthCallback callback) {
+        if (!CloudConfig.isSupabaseEnabled()) {
+            callback.onError("Supabase is disabled. Set SUPABASE_ENABLED=true and configure keys.");
+            return;
+        }
+        JsonObject body = new JsonObject();
+        body.addProperty("type", type);
+        body.addProperty("email", email);
+        body.addProperty("token", code);
+        authApi().verifyEmailOtp(apiKey(), bearerAnon(), body).enqueue(new Callback<JsonObject>() {
+            @Override
+            public void onResponse(@NonNull Call<JsonObject> call, @NonNull Response<JsonObject> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    if (allowFallback) {
+                        verifyRegisterCodeWithType(email, code, password, "signup", false, callback);
+                        return;
+                    }
+                    callback.onError("Verification failed (" + response.code() + "). Check the code and try again.");
+                    return;
+                }
+                sessionManager.saveSession(response.body());
+                if (!sessionManager.isLoggedIn()) {
+                    callback.onError("Verification succeeded but no session was returned.");
+                    return;
+                }
+                updatePasswordForCurrentSession(password, new AuthCallback() {
+                    @Override
+                    public void onSuccess(String message) {
+                        ensureProfileExists("Registration complete.", callback);
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        callback.onError(message);
+                    }
+                });
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<JsonObject> call, @NonNull Throwable throwable) {
+                callback.onError("Verification request failed: " + throwable.getMessage());
+            }
+        });
+    }
+
+    public void verifySignUpCode(String email, String code, AuthCallback callback) {
+        verifySignUpCodeWithType(email, code, "signup", true, callback);
+    }
+
+    private void verifySignUpCodeWithType(String email, String code, String type, boolean allowFallback, AuthCallback callback) {
+        if (!CloudConfig.isSupabaseEnabled()) {
+            callback.onError("Supabase is disabled. Set SUPABASE_ENABLED=true and configure keys.");
+            return;
+        }
+        JsonObject body = new JsonObject();
+        body.addProperty("type", type);
+        body.addProperty("email", email);
+        body.addProperty("token", code);
+        authApi().verifyEmailOtp(apiKey(), bearerAnon(), body).enqueue(new Callback<JsonObject>() {
+            @Override
+            public void onResponse(@NonNull Call<JsonObject> call, @NonNull Response<JsonObject> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    if (allowFallback) {
+                        verifySignUpCodeWithType(email, code, "email", false, callback);
+                        return;
+                    }
+                    callback.onError("Verification failed (" + response.code() + "). Check the code and try again.");
+                    return;
+                }
+                sessionManager.saveSession(response.body());
+                if (!sessionManager.isLoggedIn()) {
+                    callback.onError("Verification succeeded but no session was returned.");
+                    return;
+                }
+                ensureProfileExists("Email verified. Account is now active.", callback);
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<JsonObject> call, @NonNull Throwable throwable) {
+                callback.onError("Verification request failed: " + throwable.getMessage());
             }
         });
     }
@@ -295,6 +412,59 @@ public class SupabaseAuthRepository {
 
     private static String bearerAnon() {
         return "Bearer " + CloudConfig.getSupabaseAnonKey();
+    }
+
+    private void sendSignupOtp(String email, AuthCallback callback) {
+        JsonObject otpBody = new JsonObject();
+        otpBody.addProperty("email", email);
+        otpBody.addProperty("create_user", false);
+        authApi().sendEmailOtp(apiKey(), bearerAnon(), otpBody).enqueue(new Callback<JsonObject>() {
+            @Override
+            public void onResponse(@NonNull Call<JsonObject> call, @NonNull Response<JsonObject> response) {
+                sessionManager.clearSession();
+                if (!response.isSuccessful()) {
+                    callback.onError("Account created but verification code email failed (" + response.code() + ").");
+                    return;
+                }
+                callback.onSuccess("Verification code sent. Check your email.");
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<JsonObject> call, @NonNull Throwable throwable) {
+                sessionManager.clearSession();
+                callback.onError("Account created but code email failed: " + throwable.getMessage());
+            }
+        });
+    }
+
+    private void updatePasswordForCurrentSession(String password, AuthCallback callback) {
+        String token = sessionManager.getAccessToken();
+        if (token == null || token.trim().isEmpty()) {
+            callback.onError("Missing session token after verification.");
+            return;
+        }
+        String normalizedPassword = password == null ? "" : password.trim();
+        if (normalizedPassword.length() < 6) {
+            callback.onError("Password must be at least 6 characters.");
+            return;
+        }
+        JsonObject body = new JsonObject();
+        body.addProperty("password", normalizedPassword);
+        authApi().updateUserPassword(apiKey(), "Bearer " + token.trim(), body).enqueue(new Callback<JsonObject>() {
+            @Override
+            public void onResponse(@NonNull Call<JsonObject> call, @NonNull Response<JsonObject> response) {
+                if (!response.isSuccessful()) {
+                    callback.onError("Failed to finalize account password (" + response.code() + ").");
+                    return;
+                }
+                callback.onSuccess("Password set.");
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<JsonObject> call, @NonNull Throwable throwable) {
+                callback.onError("Failed to finalize account password: " + throwable.getMessage());
+            }
+        });
     }
 
     private void ensureProfileExists(String successMessage, AuthCallback callback) {

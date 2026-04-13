@@ -12,6 +12,7 @@ public class SupabaseSessionManager {
     private static final String KEY_EXPIRES_AT = "expires_at";
     private static final String KEY_USER_ID = "user_id";
     private static final String KEY_EMAIL = "email";
+    private static final String KEY_DEBUG_SESSION = "debug_session";
 
     private final SharedPreferences preferences;
 
@@ -22,6 +23,7 @@ public class SupabaseSessionManager {
     public void saveSession(JsonObject payload) {
         if (payload == null) return;
         SharedPreferences.Editor editor = preferences.edit();
+        editor.putBoolean(KEY_DEBUG_SESSION, false);
         if (payload.has("access_token") && !payload.get("access_token").isJsonNull()) {
             editor.putString(KEY_ACCESS_TOKEN, payload.get("access_token").getAsString());
         }
@@ -43,6 +45,18 @@ public class SupabaseSessionManager {
         editor.apply();
     }
 
+    public void saveDebugSession(String username) {
+        String userValue = username == null || username.trim().isEmpty() ? "user123" : username.trim();
+        preferences.edit()
+                .putString(KEY_ACCESS_TOKEN, "debug-session-token")
+                .putString(KEY_REFRESH_TOKEN, "")
+                .putLong(KEY_EXPIRES_AT, Long.MAX_VALUE)
+                .putString(KEY_USER_ID, "debug-user")
+                .putString(KEY_EMAIL, userValue + "@debug.local")
+                .putBoolean(KEY_DEBUG_SESSION, true)
+                .apply();
+    }
+
     public void clearSession() {
         preferences.edit().clear().apply();
     }
@@ -50,6 +64,10 @@ public class SupabaseSessionManager {
     public boolean isLoggedIn() {
         String token = preferences.getString(KEY_ACCESS_TOKEN, null);
         return token != null && !token.trim().isEmpty();
+    }
+
+    public boolean isDebugSession() {
+        return preferences.getBoolean(KEY_DEBUG_SESSION, false);
     }
 
     public String getUserId() {

@@ -50,6 +50,10 @@ public class HomeFragment extends Fragment {
     private androidx.viewpager2.widget.ViewPager2 pagerSpotlight;
     private SpotlightAdapter spotlightAdapter;
     private java.util.List<com.example.mediavault.ui.library.MediaItem> spotlightItems;
+    private TextView textHomePickTitle, textHomePickMeta, textHomePickProgress;
+    private com.google.android.material.button.MaterialButton btnHomeOpenPick, btnHomeRefreshPick;
+    private int currentHomePickMediaId = -1;
+    private int homePickIndex = 0;
     
     // Service Status Banner
     private View cardServiceStatus;
@@ -102,6 +106,11 @@ public class HomeFragment extends Fragment {
         tvBooksCompleted = view.findViewById(R.id.tv_books_completed);
         tvOngoingItems = view.findViewById(R.id.tv_ongoing_items);
         tvAvgRating = view.findViewById(R.id.tv_avg_rating);
+        textHomePickTitle = view.findViewById(R.id.text_home_pick_title);
+        textHomePickMeta = view.findViewById(R.id.text_home_pick_meta);
+        textHomePickProgress = view.findViewById(R.id.text_home_pick_progress);
+        btnHomeOpenPick = view.findViewById(R.id.btn_home_open_pick);
+        btnHomeRefreshPick = view.findViewById(R.id.btn_home_refresh_pick);
         
         pagerSpotlight = view.findViewById(R.id.pager_spotlight);
         
@@ -136,6 +145,12 @@ public class HomeFragment extends Fragment {
         updateStreakUI();
         scheduleDailyReminder();
         setupServiceStatusBanner();
+        if (btnHomeOpenPick != null) {
+            btnHomeOpenPick.setOnClickListener(v -> openCurrentPick());
+        }
+        if (btnHomeRefreshPick != null) {
+            btnHomeRefreshPick.setOnClickListener(v -> rotatePick());
+        }
         
         tvEditGoals.setOnClickListener(v -> showEditGoalDialog());
         
@@ -402,8 +417,75 @@ public class HomeFragment extends Fragment {
                 if (spotlightAdapter != null) {
                     spotlightAdapter.notifyDataSetChanged();
                 }
+                updateHomePickCard(spotlightItems);
             });
         });
+    }
+
+    private void updateHomePickCard(java.util.List<com.example.mediavault.ui.library.MediaItem> items) {
+        if (!isAdded() || textHomePickTitle == null || textHomePickMeta == null || textHomePickProgress == null) {
+            return;
+        }
+
+        java.util.List<com.example.mediavault.ui.library.MediaItem> validItems = new java.util.ArrayList<>();
+        for (com.example.mediavault.ui.library.MediaItem item : items) {
+            if (item != null && item.getId() > 0) {
+                validItems.add(item);
+            }
+        }
+
+        if (validItems.isEmpty()) {
+            currentHomePickMediaId = -1;
+            textHomePickTitle.setText(R.string.auto_no_ongoing_titles_yet);
+            textHomePickMeta.setText(R.string.auto_add_media_to_get_smart_home_picks);
+            textHomePickProgress.setText(R.string.auto_progress_placeholder);
+            if (btnHomeOpenPick != null) btnHomeOpenPick.setEnabled(false);
+            if (btnHomeRefreshPick != null) btnHomeRefreshPick.setEnabled(false);
+            return;
+        }
+
+        homePickIndex = Math.floorMod(homePickIndex, validItems.size());
+        com.example.mediavault.ui.library.MediaItem pick = validItems.get(homePickIndex);
+        currentHomePickMediaId = pick.getId();
+
+        String title = pick.getTitle() == null || pick.getTitle().trim().isEmpty()
+                ? getString(R.string.auto_untitled)
+                : pick.getTitle().trim();
+        textHomePickTitle.setText(title);
+        textHomePickMeta.setText(pick.getSubtitle());
+
+        int current = Math.max(0, Math.round(pick.getCurrentProgress()));
+        int total = Math.max(0, pick.getTotalCount());
+        String unit = pick.getUnit() == null ? "" : pick.getUnit();
+        if (total > 0) {
+            textHomePickProgress.setText(String.format(Locale.getDefault(), "%d / %d %s", current, total, unit));
+        } else {
+            textHomePickProgress.setText(String.format(Locale.getDefault(), "%d %s", current, unit));
+        }
+
+        if (btnHomeOpenPick != null) btnHomeOpenPick.setEnabled(true);
+        if (btnHomeRefreshPick != null) btnHomeRefreshPick.setEnabled(validItems.size() > 1);
+    }
+
+    private void rotatePick() {
+        if (spotlightItems == null || spotlightItems.isEmpty()) {
+            return;
+        }
+        homePickIndex++;
+        updateHomePickCard(spotlightItems);
+    }
+
+    private void openCurrentPick() {
+        Context context = getContext();
+        if (currentHomePickMediaId <= 0 || context == null) {
+            if (context != null) {
+                ToastUtils.showCustomToast(context, "No recommendation available yet.");
+            }
+            return;
+        }
+        Intent intent = new Intent(context, DescriptionActivity.class);
+        intent.putExtra(DescriptionActivity.EXTRA_MEDIA_ID, currentHomePickMediaId);
+        startActivity(intent);
     }
 
     @Override

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="auto_home_what_to_watch_next">What to watch next</string>
+    <string name="auto_finding_your_best_pick">Finding your best pick...</string>
+    <string name="auto_status_loading">Loading...</string>
+    <string name="auto_progress_placeholder">--</string>
+    <string name="auto_open_details">Open Details</string>
+    <string name="auto_refresh_pick">Refresh Pick</string>
+    <string name="auto_no_ongoing_titles_yet">No ongoing titles yet</string>
+    <string name="auto_add_media_to_get_smart_home_picks">Add media to get smart home picks.</string>
+    <string name="auto_untitled">Untitled</string>
+</resources>

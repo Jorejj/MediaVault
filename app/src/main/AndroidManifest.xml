@@ -206,6 +206,16 @@
             android:theme="@style/Theme.MediaVault" />
 
         <activity
+            android:name=".cloud.auth.SupabaseRegisterActivity"
+            android:exported="false"
+            android:theme="@style/Theme.MediaVault" />
+
+        <activity
+            android:name=".cloud.auth.SupabaseRegisterSuccessActivity"
+            android:exported="false"
+            android:theme="@style/Theme.MediaVault" />
+
+        <activity
             android:name=".cloud.auth.CloudProfileActivity"
             android:exported="false"
             android:theme="@style/Theme.MediaVault" />

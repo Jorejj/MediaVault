@@ -36,11 +36,25 @@ Cloud mode behavior:
 1. Login is required before entering the app.
 2. Startup refresh mirrors Supabase to local cache.
 3. Demo seeding is disabled in cloud mode.
+4. Register requires email code verification before login/session activation.
 
 Forgot password deep-link setup:
 
 1. In Supabase Auth settings, set redirect URL to `mediavault://auth/reset`
 2. Android app handles this deep link in `SupabasePasswordResetActivity`
+
+Register verification setup:
+
+1. In Supabase Auth email settings, enable email OTP.
+2. If Supabase emails are sending a link instead of a code, update the Magic Link / Email OTP template to use the OTP token variable (`{{ .Token }}`) instead of `{{ .ConfirmationURL }}`.
+3. App uses OTP-first registration (`/auth/v1/otp`), then verifies code and finalizes password before showing account-created success screen.
+4. Supabase hosted projects commonly use 6-digit email OTP; the app accepts 4-8 digits to avoid hard failures.
+
+Temporary debug login:
+
+1. Username: `user123`
+2. Password: `123456`
+3. This creates a local debug session (no cloud sync) so you can enter the app quickly for UI/debug testing.
 
 ## Admin Website Starter
 

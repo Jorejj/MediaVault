@@ -18,6 +18,7 @@ import com.example.mediavault.widget.ToastUtils;
 
 public class SupabaseAuthActivity extends AppCompatActivity {
     public static final String EXTRA_FORCE_LOGIN = "extra_force_login";
+    private static final long EMAIL_COOLDOWN_MS = 60_000L;
 
     private SupabaseAuthRepository authRepository;
     private EditText editEmail;
@@ -30,6 +31,7 @@ public class SupabaseAuthActivity extends AppCompatActivity {
     private Button buttonLogout;
     private Button buttonClose;
     private boolean forceLogin;
+    private long nextForgotRequestAt = 0L;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,7 +61,7 @@ public class SupabaseAuthActivity extends AppCompatActivity {
 
         buttonLogin.setOnClickListener(v -> attemptLogin());
         buttonForgot.setOnClickListener(v -> attemptForgotPassword());
-        buttonLogout.setOnClickListener(v -> authRepository.signOut(new UiAuthCallback()));
+        buttonLogout.setOnClickListener(v -> attemptLogout());
         textRegisterLink.setOnClickListener(v -> openRegisterPage());
 
         applySupabaseAvailabilityState();
@@ -68,12 +70,9 @@ public class SupabaseAuthActivity extends AppCompatActivity {
 
     private void applySupabaseAvailabilityState() {
         boolean enabled = CloudConfig.isSupabaseEnabled();
-        buttonLogin.setEnabled(enabled);
-        buttonForgot.setEnabled(enabled);
-        textRegisterLink.setEnabled(enabled);
         buttonLogout.setEnabled(true);
         if (!enabled) {
-            textSessionStatus.setText("Supabase disabled. Configure local.properties and set SUPABASE_ENABLED=true.");
+            textSessionStatus.setText("Supabase is currently disabled. Configure SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_ENABLED=true in local.properties.");
         } else if (forceLogin) {
             textSessionStatus.setText("Login is required before entering the app.");
         }
@@ -100,16 +99,74 @@ public class SupabaseAuthActivity extends AppCompatActivity {
             ToastUtils.showCustomToast(this, "Email and password are required.");
             return;
         }
-        authRepository.signIn(email, password, new UiAuthCallback());
+        authRepository.signIn(email, password, new SupabaseAuthRepository.AuthCallback() {
+            @Override
+            public void onSuccess(String message) {
+                refreshSessionStatus();
+                SupabaseMediaSyncManager.bootstrapCloudPrimaryAsync(SupabaseAuthActivity.this);
+                ToastUtils.showCustomToast(SupabaseAuthActivity.this, message);
+                if (forceLogin) {
+                    Intent intent = new Intent(SupabaseAuthActivity.this, MainActivity.class);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    startActivity(intent);
+                    finish();
+                }
+            }
+
+            @Override
+            public void onError(String message) {
+                ToastUtils.showCustomToast(SupabaseAuthActivity.this, message);
+            }
+        });
     }
 
     private void attemptForgotPassword() {
+        long now = System.currentTimeMillis();
+        if (now < nextForgotRequestAt) {
+            long seconds = Math.max(1L, (nextForgotRequestAt - now + 999L) / 1000L);
+            ToastUtils.showCustomToast(this, "Please wait " + seconds + "s before requesting another reset email.");
+            return;
+        }
         String email = readEmail();
         if (email.isEmpty()) {
             ToastUtils.showCustomToast(this, "Email is required.");
             return;
         }
-        authRepository.sendPasswordReset(email, "mediavault://auth/reset", new UiAuthCallback());
+        nextForgotRequestAt = now + EMAIL_COOLDOWN_MS;
+        buttonForgot.setEnabled(false);
+        buttonForgot.postDelayed(() -> buttonForgot.setEnabled(true), EMAIL_COOLDOWN_MS);
+        authRepository.sendPasswordReset(email, "mediavault://auth/reset", new SupabaseAuthRepository.AuthCallback() {
+            @Override
+            public void onSuccess(String message) {
+                ToastUtils.showCustomToast(SupabaseAuthActivity.this, message);
+            }
+
+            @Override
+            public void onError(String message) {
+                ToastUtils.showCustomToast(SupabaseAuthActivity.this, message);
+            }
+        });
+    }
+
+    private void attemptLogout() {
+        authRepository.signOut(new SupabaseAuthRepository.AuthCallback() {
+            @Override
+            public void onSuccess(String message) {
+                refreshSessionStatus();
+                ToastUtils.showCustomToast(SupabaseAuthActivity.this, message);
+                if (!forceLogin) {
+                    Intent intent = new Intent(SupabaseAuthActivity.this, SupabaseAuthActivity.class);
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                    startActivity(intent);
+                    finish();
+                }
+            }
+
+            @Override
+            public void onError(String message) {
+                ToastUtils.showCustomToast(SupabaseAuthActivity.this, message);
+            }
+        });
     }
 
     private void openRegisterPage() {
@@ -126,26 +183,6 @@ public class SupabaseAuthActivity extends AppCompatActivity {
     private String readPassword() {
         CharSequence text = editPassword.getText();
         return text == null ? "" : text.toString().trim();
-    }
-
-    private class UiAuthCallback implements SupabaseAuthRepository.AuthCallback {
-        @Override
-        public void onSuccess(String message) {
-            refreshSessionStatus();
-            SupabaseMediaSyncManager.bootstrapCloudPrimaryAsync(SupabaseAuthActivity.this);
-            ToastUtils.showCustomToast(SupabaseAuthActivity.this, message);
-            if (forceLogin) {
-                Intent intent = new Intent(SupabaseAuthActivity.this, MainActivity.class);
-                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-                startActivity(intent);
-                finish();
-            }
-        }
-
-        @Override
-        public void onError(String message) {
-            ToastUtils.showCustomToast(SupabaseAuthActivity.this, message);
-        }
     }
 
     @Override

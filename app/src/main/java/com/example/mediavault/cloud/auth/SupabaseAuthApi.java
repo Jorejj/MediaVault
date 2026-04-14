@@ -8,6 +8,7 @@ import retrofit2.http.Header;
 import retrofit2.http.Headers;
 import retrofit2.http.POST;
 import retrofit2.http.PUT;
+import retrofit2.http.Query;
 
 public interface SupabaseAuthApi {
     @Headers("Content-Type: application/json")
@@ -47,6 +48,7 @@ public interface SupabaseAuthApi {
     Call<JsonObject> sendPasswordRecovery(
             @Header("apikey") String apikey,
             @Header("Authorization") String authorization,
+            @Query("redirect_to") String redirectTo,
             @Body JsonObject body
     );
 

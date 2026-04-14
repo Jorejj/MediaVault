@@ -8,6 +8,8 @@ import com.example.mediavault.cloud.CloudConfig;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
+import java.io.IOException;
+
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -47,7 +49,7 @@ public class SupabaseAuthRepository {
             return;
         }
         if (!CloudConfig.isSupabaseEnabled()) {
-            callback.onError("Supabase is disabled. Set SUPABASE_ENABLED=true and configure keys.");
+            callback.onError("Supabase is currently disabled. Configure SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_ENABLED=true in local.properties.");
             return;
         }
         JsonObject body = new JsonObject();
@@ -73,17 +75,18 @@ public class SupabaseAuthRepository {
 
     public void signUp(String email, String password, AuthCallback callback) {
         if (!CloudConfig.isSupabaseEnabled()) {
-            callback.onError("Supabase is disabled. Set SUPABASE_ENABLED=true and configure keys.");
+            callback.onError("Supabase is currently disabled. Configure SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_ENABLED=true in local.properties.");
             return;
         }
         JsonObject body = new JsonObject();
         body.addProperty("email", email);
         body.addProperty("password", password);
+        body.addProperty("email_redirect_to", "mediavault://auth/register-confirm");
         authApi().signUp(apiKey(), bearerAnon(), body).enqueue(new Callback<JsonObject>() {
             @Override
             public void onResponse(@NonNull Call<JsonObject> call, @NonNull Response<JsonObject> response) {
                 if (!response.isSuccessful()) {
-                    callback.onError("Sign up failed (" + response.code() + ").");
+                    callback.onError(authError("Sign up", response));
                     return;
                 }
                 sendSignupOtp(email, callback);
@@ -98,18 +101,19 @@ public class SupabaseAuthRepository {
 
     public void requestRegisterOtp(String email, AuthCallback callback) {
         if (!CloudConfig.isSupabaseEnabled()) {
-            callback.onError("Supabase is disabled. Set SUPABASE_ENABLED=true and configure keys.");
+            callback.onError("Supabase is currently disabled. Configure SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_ENABLED=true in local.properties.");
             return;
         }
         JsonObject otpBody = new JsonObject();
         otpBody.addProperty("email", email == null ? "" : email.trim());
         otpBody.addProperty("create_user", true);
+        otpBody.addProperty("email_redirect_to", "mediavault://auth/register-confirm");
         authApi().sendEmailOtp(apiKey(), bearerAnon(), otpBody).enqueue(new Callback<JsonObject>() {
             @Override
             public void onResponse(@NonNull Call<JsonObject> call, @NonNull Response<JsonObject> response) {
                 sessionManager.clearSession();
                 if (!response.isSuccessful()) {
-                    callback.onError("Could not send verification code (" + response.code() + ").");
+                    callback.onError(authError("Verification code request", response));
                     return;
                 }
                 callback.onSuccess("Verification code sent. Check your email.");
@@ -127,9 +131,54 @@ public class SupabaseAuthRepository {
         verifyRegisterCodeWithType(email, code, password, "email", true, callback);
     }
 
+    public void verifyRegisterLinkAndActivate(String tokenHash, String type, String password, AuthCallback callback) {
+        if (!CloudConfig.isSupabaseEnabled()) {
+            callback.onError("Supabase is currently disabled. Configure SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_ENABLED=true in local.properties.");
+            return;
+        }
+        String normalizedHash = tokenHash == null ? "" : tokenHash.trim();
+        if (normalizedHash.isEmpty()) {
+            callback.onError("Missing verification token.");
+            return;
+        }
+        JsonObject body = new JsonObject();
+        body.addProperty("token_hash", normalizedHash);
+        body.addProperty("type", normalizeVerifyType(type));
+        authApi().verifyEmailOtp(apiKey(), bearerAnon(), body).enqueue(new Callback<JsonObject>() {
+            @Override
+            public void onResponse(@NonNull Call<JsonObject> call, @NonNull Response<JsonObject> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    callback.onError("Verification failed (" + response.code() + ").");
+                    return;
+                }
+                sessionManager.saveSession(response.body());
+                if (!sessionManager.isLoggedIn()) {
+                    callback.onError("Verification succeeded but no session was returned.");
+                    return;
+                }
+                updatePasswordForCurrentSession(password, new AuthCallback() {
+                    @Override
+                    public void onSuccess(String message) {
+                        ensureProfileExists("Registration complete.", callback);
+                    }
+
+                    @Override
+                    public void onError(String message) {
+                        callback.onError(message);
+                    }
+                });
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<JsonObject> call, @NonNull Throwable throwable) {
+                callback.onError("Verification request failed: " + throwable.getMessage());
+            }
+        });
+    }
+
     private void verifyRegisterCodeWithType(String email, String code, String password, String type, boolean allowFallback, AuthCallback callback) {
         if (!CloudConfig.isSupabaseEnabled()) {
-            callback.onError("Supabase is disabled. Set SUPABASE_ENABLED=true and configure keys.");
+            callback.onError("Supabase is currently disabled. Configure SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_ENABLED=true in local.properties.");
             return;
         }
         JsonObject body = new JsonObject();
@@ -178,7 +227,7 @@ public class SupabaseAuthRepository {
 
     private void verifySignUpCodeWithType(String email, String code, String type, boolean allowFallback, AuthCallback callback) {
         if (!CloudConfig.isSupabaseEnabled()) {
-            callback.onError("Supabase is disabled. Set SUPABASE_ENABLED=true and configure keys.");
+            callback.onError("Supabase is currently disabled. Configure SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_ENABLED=true in local.properties.");
             return;
         }
         JsonObject body = new JsonObject();
@@ -213,19 +262,18 @@ public class SupabaseAuthRepository {
 
     public void sendPasswordReset(String email, String redirectTo, AuthCallback callback) {
         if (!CloudConfig.isSupabaseEnabled()) {
-            callback.onError("Supabase is disabled. Set SUPABASE_ENABLED=true and configure keys.");
+            callback.onError("Supabase is currently disabled. Configure SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_ENABLED=true in local.properties.");
             return;
         }
         JsonObject body = new JsonObject();
         body.addProperty("email", email);
-        if (redirectTo != null && !redirectTo.trim().isEmpty()) {
-            body.addProperty("redirect_to", redirectTo);
-        }
-        authApi().sendPasswordRecovery(apiKey(), bearerAnon(), body).enqueue(new Callback<JsonObject>() {
+        String normalizedRedirect = redirectTo == null ? "" : redirectTo.trim();
+        String redirectParam = normalizedRedirect.isEmpty() ? null : normalizedRedirect;
+        authApi().sendPasswordRecovery(apiKey(), bearerAnon(), redirectParam, body).enqueue(new Callback<JsonObject>() {
             @Override
             public void onResponse(@NonNull Call<JsonObject> call, @NonNull Response<JsonObject> response) {
                 if (!response.isSuccessful()) {
-                    callback.onError("Password reset request failed (" + response.code() + ").");
+                    callback.onError(authError("Password reset request", response));
                     return;
                 }
                 callback.onSuccess("Password reset email sent.");
@@ -240,7 +288,7 @@ public class SupabaseAuthRepository {
 
     public void resetPasswordWithAccessToken(String accessToken, String newPassword, AuthCallback callback) {
         if (!CloudConfig.isSupabaseEnabled()) {
-            callback.onError("Supabase is disabled.");
+            callback.onError("Supabase is currently disabled. Configure SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_ENABLED=true in local.properties.");
             return;
         }
         if (accessToken == null || accessToken.trim().isEmpty()) {
@@ -414,16 +462,52 @@ public class SupabaseAuthRepository {
         return "Bearer " + CloudConfig.getSupabaseAnonKey();
     }
 
+    private static String normalizeVerifyType(String type) {
+        if (type == null) {
+            return "signup";
+        }
+        String normalized = type.trim().toLowerCase();
+        if ("email".equals(normalized) || "signup".equals(normalized)) {
+            return normalized;
+        }
+        return "signup";
+    }
+
+    private static String authError(String action, Response<?> response) {
+        if (response != null && response.code() == 429) {
+            String retryAfter = response.headers().get("Retry-After");
+            if (retryAfter != null && !retryAfter.trim().isEmpty()) {
+                return action + " rate limit exceeded. Wait " + retryAfter.trim() + " seconds, then try again.";
+            }
+            return action + " rate limit exceeded. Wait about 60 seconds, then try again.";
+        }
+        return action + " failed (" + (response == null ? "?" : response.code()) + "): " + extractErrorBody(response);
+    }
+
+    private static String extractErrorBody(Response<?> response) {
+        if (response == null || response.errorBody() == null) {
+            return "unknown error";
+        }
+        try {
+            String raw = response.errorBody().string();
+            if (raw == null || raw.trim().isEmpty()) {
+                return "unknown error";
+            }
+            return raw.trim();
+        } catch (IOException e) {
+            return "unknown error";
+        }
+    }
+
     private void sendSignupOtp(String email, AuthCallback callback) {
         JsonObject otpBody = new JsonObject();
-        otpBody.addProperty("email", email);
+        otpBody.addProperty("email", email == null ? "" : email.trim());
         otpBody.addProperty("create_user", false);
         authApi().sendEmailOtp(apiKey(), bearerAnon(), otpBody).enqueue(new Callback<JsonObject>() {
             @Override
             public void onResponse(@NonNull Call<JsonObject> call, @NonNull Response<JsonObject> response) {
-                sessionManager.clearSession();
                 if (!response.isSuccessful()) {
-                    callback.onError("Account created but verification code email failed (" + response.code() + ").");
+                    callback.onError(authError("Verification code request", response));
                     return;
                 }
                 callback.onSuccess("Verification code sent. Check your email.");
@@ -431,8 +515,7 @@ public class SupabaseAuthRepository {
 
             @Override
             public void onFailure(@NonNull Call<JsonObject> call, @NonNull Throwable throwable) {
-                sessionManager.clearSession();
-                callback.onError("Account created but code email failed: " + throwable.getMessage());
+                callback.onError("Could not send verification code: " + throwable.getMessage());
             }
         });
     }

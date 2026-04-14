@@ -19,51 +19,57 @@
             android:layout_height="wrap_content"
             android:gravity="center_horizontal"
             android:orientation="vertical"
-            android:paddingStart="22dp"
-            android:paddingTop="36dp"
-            android:paddingEnd="22dp"
-            android:paddingBottom="24dp">
+            android:paddingStart="@dimen/screen_padding_horizontal"
+            android:paddingTop="32dp"
+            android:paddingEnd="@dimen/screen_padding_horizontal"
+            android:paddingBottom="20dp">
 
-            <ImageView
-                android:layout_width="72dp"
-                android:layout_height="72dp"
-                android:contentDescription="@string/app_name"
-                android:src="@drawable/mediavault_logo" />
+            <FrameLayout
+                android:layout_width="88dp"
+                android:layout_height="88dp"
+                android:background="@drawable/glass_pill_bg"
+                android:foregroundGravity="center"
+                android:padding="18dp">
+
+                <ImageView
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:contentDescription="@string/app_name"
+                    android:src="@drawable/mediavault_logo" />
+            </FrameLayout>
 
             <TextView
                 android:id="@+id/text_cloud_title"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="18dp"
-                android:fontFamily="@font/sf_pro_bold"
+                android:layout_marginTop="20dp"
+                style="@style/TextScreenTitle"
                 android:gravity="center"
                 android:text="@string/auto_welcome_back"
-                android:textColor="?attr/colorOnSurface"
-                android:textSize="28sp" />
+                android:textSize="30sp" />
 
             <TextView
                 android:id="@+id/text_cloud_subtitle"
-                android:layout_width="match_parent"
+                android:layout_width="280dp"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:fontFamily="@font/sf_pro_regular"
+                android:layout_marginTop="6dp"
+                style="@style/TextBody"
                 android:gravity="center"
                 android:text="@string/auto_auth_subtitle"
-                android:textColor="?attr/colorTextSecondary"
-                android:textSize="14sp" />
+                android:textSize="13sp" />
 
             <androidx.constraintlayout.widget.ConstraintLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="20dp"
+                android:layout_marginTop="22dp"
                 android:background="@drawable/glass_card_bg"
-                android:padding="18dp">
+                android:padding="20dp">
 
                 <TextView
                     android:id="@+id/text_cloud_session_status"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:fontFamily="@font/sf_pro_regular"
+                    style="@style/TextCaption"
                     android:textColor="?attr/colorTextSecondary"
                     android:textSize="13sp"
                     app:layout_constraintEnd_toEndOf="parent"
@@ -75,10 +81,18 @@
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="12dp"
+                    android:layout_marginTop="14dp"
                     android:hint="@string/auto_email"
-                    app:boxBackgroundMode="outline"
-                    app:boxStrokeColor="@color/vault_red_primary"
+                    app:boxBackgroundColor="@color/glass_surface_color"
+                    app:boxBackgroundMode="filled"
+                    app:boxCornerRadiusBottomEnd="14dp"
+                    app:boxCornerRadiusBottomStart="14dp"
+                    app:boxCornerRadiusTopEnd="14dp"
+                    app:boxCornerRadiusTopStart="14dp"
+                    app:boxStrokeColor="?attr/colorPrimary"
+                    app:boxStrokeWidth="1dp"
+                    app:boxStrokeWidthFocused="1.5dp"
+                    app:hintTextColor="?attr/colorTextSecondary"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/text_cloud_session_status">
@@ -98,11 +112,19 @@
                     style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
+                    android:layout_marginTop="12dp"
                     android:hint="@string/auto_password"
-                    app:boxBackgroundMode="outline"
-                    app:boxStrokeColor="@color/vault_red_primary"
+                    app:boxBackgroundColor="@color/glass_surface_color"
+                    app:boxBackgroundMode="filled"
+                    app:boxCornerRadiusBottomEnd="14dp"
+                    app:boxCornerRadiusBottomStart="14dp"
+                    app:boxCornerRadiusTopEnd="14dp"
+                    app:boxCornerRadiusTopStart="14dp"
+                    app:boxStrokeColor="?attr/colorPrimary"
+                    app:boxStrokeWidth="1dp"
+                    app:boxStrokeWidthFocused="1.5dp"
                     app:endIconMode="password_toggle"
+                    app:hintTextColor="?attr/colorTextSecondary"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/layout_cloud_email">
@@ -119,15 +141,13 @@
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_cloud_login"
+                    style="@style/BlueButton"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="14dp"
-                    android:backgroundTint="@color/vault_red_primary"
+                    android:layout_marginTop="18dp"
+                    android:minHeight="52dp"
                     android:text="@string/auto_login"
-                    android:textAllCaps="false"
-                    android:textColor="@color/white"
                     android:textSize="15sp"
-                    app:cornerRadius="14dp"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/layout_cloud_password" />
@@ -136,13 +156,13 @@
                     android:id="@+id/text_register_link"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:fontFamily="@font/sf_pro_regular"
+                    android:layout_marginTop="12dp"
+                    android:fontFamily="@font/sf_pro_medium"
                     android:gravity="center"
-                    android:padding="4dp"
+                    android:padding="2dp"
                     android:text="@string/auto_not_registered_register_here"
-                    android:textColor="@color/vault_red_dark"
-                    android:textSize="14sp"
+                    android:textColor="?attr/colorPrimary"
+                    android:textSize="13sp"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/btn_cloud_login" />
@@ -152,10 +172,11 @@
                     style="@style/Widget.MaterialComponents.Button.TextButton"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="2dp"
+                    android:layout_marginTop="0dp"
                     android:text="@string/auto_forgot_password"
                     android:textAllCaps="false"
-                    android:textColor="@color/vault_red_dark"
+                    android:textSize="13sp"
+                    android:textColor="?attr/colorTextSecondary"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintTop_toBottomOf="@id/text_register_link" />

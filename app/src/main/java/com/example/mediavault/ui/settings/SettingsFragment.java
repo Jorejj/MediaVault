@@ -275,9 +275,7 @@ public class SettingsFragment extends Fragment {
                 @Override
                 public void onSuccess(String message) {
                     ToastUtils.showCustomToast(requireContext(), message);
-                    if (CloudConfig.isSupabaseEnabled()) {
-                        CloudAuthNavigator.openForcedLogin(requireContext());
-                    }
+                    CloudAuthNavigator.openForcedLogin(requireContext());
                 }
 
                 @Override

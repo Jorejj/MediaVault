@@ -36,6 +36,11 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public final class SupabaseMediaSyncManager {
     private SupabaseMediaSyncManager() {}
 
+    public interface CloudClearCallback {
+        void onSuccess();
+        void onError(String message);
+    }
+
     public static void enqueueUpsertMedia(Context context, int localMediaId) {
         if (localMediaId <= 0) return;
         Context appContext = context.getApplicationContext();
@@ -81,6 +86,23 @@ public final class SupabaseMediaSyncManager {
         });
     }
 
+    public static void clearAllUserCloudDataAsync(Context context, @NonNull CloudClearCallback callback) {
+        Context appContext = context.getApplicationContext();
+        AppExecutor.getInstance().networkIO().execute(() -> {
+            Session session = session(appContext);
+            if (session == null) {
+                postCloudClearError(callback, "Cloud session not found. Please log in and try again.");
+                return;
+            }
+            String error = clearAllUserCloudDataNow(session);
+            if (error == null) {
+                AppExecutor.getInstance().mainThread().execute(callback::onSuccess);
+            } else {
+                postCloudClearError(callback, error);
+            }
+        });
+    }
+
     private static void clearLocalCloudCache(Context context) {
         DatabaseHelper helper = DatabaseHelper.getInstance(context);
         SQLiteDatabase db = helper.getWritableDatabase();
@@ -95,6 +117,10 @@ public final class SupabaseMediaSyncManager {
             db.endTransaction();
             db.close();
         }
+    }
+
+    private static void postCloudClearError(@NonNull CloudClearCallback callback, String message) {
+        AppExecutor.getInstance().mainThread().execute(() -> callback.onError(message));
     }
 
     public static void enqueueUserEvent(Context context, String eventType, double eventValue, String sourceSurface) {
@@ -270,6 +296,97 @@ public final class SupabaseMediaSyncManager {
                 "eq." + session.userId,
                 "eq." + localMediaId
         ).enqueue(new NoopCallback());
+    }
+
+    private static String clearAllUserCloudDataNow(@NonNull Session session) {
+        try {
+            JsonArray mediaRows = fetchCloudRows(session);
+            if (mediaRows == null) {
+                return "Failed to load cloud media before delete.";
+            }
+            List<String> cloudMediaIds = extractCloudMediaIds(mediaRows);
+            for (String mediaId : cloudMediaIds) {
+                Response<Void> metadataDelete = api().deleteMediaMetadataByMediaId(
+                        CloudConfig.getSupabaseAnonKey(),
+                        "Bearer " + session.accessToken,
+                        "eq." + mediaId
+                ).execute();
+                if (!metadataDelete.isSuccessful()) {
+                    return "Failed deleting media metadata (" + metadataDelete.code() + ").";
+                }
+            }
+            Response<Void> progressDelete = api().deleteProgressLogsByUser(
+                    CloudConfig.getSupabaseAnonKey(),
+                    "Bearer " + session.accessToken,
+                    "eq." + session.userId
+            ).execute();
+            if (!progressDelete.isSuccessful()) {
+                return "Failed deleting progress logs (" + progressDelete.code() + ").";
+            }
+
+            Response<Void> eventDelete = api().deleteUserEventsByUser(
+                    CloudConfig.getSupabaseAnonKey(),
+                    "Bearer " + session.accessToken,
+                    "eq." + session.userId
+            ).execute();
+            if (!eventDelete.isSuccessful()) {
+                return "Failed deleting user events (" + eventDelete.code() + ").";
+            }
+
+            Response<Void> metricsDelete = api().deleteDailyMetricsByUser(
+                    CloudConfig.getSupabaseAnonKey(),
+                    "Bearer " + session.accessToken,
+                    "eq." + session.userId
+            ).execute();
+            if (!metricsDelete.isSuccessful()) {
+                return "Failed deleting daily metrics (" + metricsDelete.code() + ").";
+            }
+
+            Response<Void> vectorDelete = api().deleteUserFeatureVectorsByUser(
+                    CloudConfig.getSupabaseAnonKey(),
+                    "Bearer " + session.accessToken,
+                    "eq." + session.userId
+            ).execute();
+            if (!vectorDelete.isSuccessful()) {
+                return "Failed deleting feature vectors (" + vectorDelete.code() + ").";
+            }
+
+            Response<Void> profileDelete = api().deleteProfileByUserId(
+                    CloudConfig.getSupabaseAnonKey(),
+                    "Bearer " + session.accessToken,
+                    "eq." + session.userId
+            ).execute();
+            if (!profileDelete.isSuccessful()) {
+                return "Failed deleting profile signals (" + profileDelete.code() + ").";
+            }
+
+            Response<Void> mediaDelete = api().deleteAllMediaByUser(
+                    CloudConfig.getSupabaseAnonKey(),
+                    "Bearer " + session.accessToken,
+                    "eq." + session.userId
+            ).execute();
+            if (!mediaDelete.isSuccessful()) {
+                return "Failed deleting cloud media (" + mediaDelete.code() + ").";
+            }
+            return null;
+        } catch (IOException exception) {
+            return "Cloud delete request failed: " + exception.getMessage();
+        }
+    }
+
+    private static List<String> extractCloudMediaIds(@NonNull JsonArray rows) {
+        List<String> ids = new ArrayList<>();
+        for (int i = 0; i < rows.size(); i++) {
+            JsonElement element = rows.get(i);
+            if (element == null || !element.isJsonObject()) continue;
+            JsonObject row = element.getAsJsonObject();
+            if (!row.has("id") || row.get("id").isJsonNull()) continue;
+            String id = row.get("id").getAsString();
+            if (!TextUtils.isEmpty(id)) {
+                ids.add(id);
+            }
+        }
+        return ids;
     }
 
     private static JsonObject loadLocalMediaAsJson(Context context, int localMediaId, String userId) {

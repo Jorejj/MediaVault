@@ -30,6 +30,7 @@ Add to `local.properties`:
 SUPABASE_URL=https://<your-project-ref>.supabase.co
 SUPABASE_ANON_KEY=<your-anon-key>
 SUPABASE_ENABLED=true
+MYANIMELIST_CLIENT_ID=<your-mal-client-id>
 ```
 
 Cloud mode behavior:

@@ -260,30 +260,61 @@ public class SupabaseAuthRepository {
         });
     }
 
-    public void sendPasswordReset(String email, String redirectTo, AuthCallback callback) {
+    public void sendPasswordResetOtp(String email, AuthCallback callback) {
         if (!CloudConfig.isSupabaseEnabled()) {
-            callback.onError("Supabase is currently disabled. Configure SUPABASE_URL, SUPABASE_ANON_KEY, and SUPABASE_ENABLED=true in local.properties.");
+            callback.onError("Supabase is currently disabled.");
             return;
         }
         JsonObject body = new JsonObject();
-        body.addProperty("email", email);
-        String normalizedRedirect = redirectTo == null ? "" : redirectTo.trim();
-        String redirectParam = normalizedRedirect.isEmpty() ? null : normalizedRedirect;
-        authApi().sendPasswordRecovery(apiKey(), bearerAnon(), redirectParam, body).enqueue(new Callback<JsonObject>() {
+        body.addProperty("email", email == null ? "" : email.trim());
+        body.addProperty("type", "recovery");
+        body.addProperty("create_user", false);
+        authApi().sendEmailOtp(apiKey(), bearerAnon(), body).enqueue(new Callback<JsonObject>() {
             @Override
             public void onResponse(@NonNull Call<JsonObject> call, @NonNull Response<JsonObject> response) {
                 if (!response.isSuccessful()) {
-                    callback.onError(authError("Password reset request", response));
+                    callback.onError(authError("Reset code request", response));
                     return;
                 }
-                callback.onSuccess("Password reset email sent.");
+                callback.onSuccess("Reset code sent. Check your email.");
             }
 
             @Override
             public void onFailure(@NonNull Call<JsonObject> call, @NonNull Throwable throwable) {
-                callback.onError("Password reset request failed: " + throwable.getMessage());
+                callback.onError("Could not send reset code: " + throwable.getMessage());
             }
         });
+    }
+
+    public void verifyRecoveryCode(String email, String code, AuthCallback callback) {
+        if (!CloudConfig.isSupabaseEnabled()) {
+            callback.onError("Supabase is currently disabled.");
+            return;
+        }
+        JsonObject body = new JsonObject();
+        body.addProperty("type", "recovery");
+        body.addProperty("email", email);
+        body.addProperty("token", code);
+        authApi().verifyEmailOtp(apiKey(), bearerAnon(), body).enqueue(new Callback<JsonObject>() {
+            @Override
+            public void onResponse(@NonNull Call<JsonObject> call, @NonNull Response<JsonObject> response) {
+                if (!response.isSuccessful() || response.body() == null) {
+                    callback.onError("Invalid or expired code.");
+                    return;
+                }
+                sessionManager.saveSession(response.body());
+                callback.onSuccess("Code verified.");
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<JsonObject> call, @NonNull Throwable throwable) {
+                callback.onError("Verification failed: " + throwable.getMessage());
+            }
+        });
+    }
+
+    public void sendPasswordReset(String email, String redirectTo, AuthCallback callback) {
+        sendPasswordResetOtp(email, callback);
     }
 
     public void resetPasswordWithAccessToken(String accessToken, String newPassword, AuthCallback callback) {

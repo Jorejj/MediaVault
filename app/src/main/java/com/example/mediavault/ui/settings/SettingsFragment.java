@@ -332,10 +332,6 @@ public class SettingsFragment extends Fragment {
         // 10. Vault Management (Seed Data)
         if (rowVault != null) {
             rowVault.setOnClickListener(v -> {
-                if (CloudConfig.isSupabaseEnabled()) {
-                    ToastUtils.showCustomToast(requireContext(), "Vault seed is disabled in cloud mode.");
-                    return;
-                }
                 showSeedDataDialog();
             });
         }
@@ -1060,9 +1056,24 @@ public class SettingsFragment extends Fragment {
                 .setIcon(android.R.drawable.ic_dialog_alert)
                 .setMessage("Are you sure you want to delete ALL your media entries? This action is permanent and cannot be undone.")
                 .setPositiveButton("Clear All", (dialog, which) -> {
-                    dbHelper.clearAllMedia();
-                    ToastUtils.showCustomToast(getContext(), "Database cleared successfully");
-                    // Clear logs as well - DatabaseHelper.clearAllMedia already does this.
+                    if (!CloudConfig.isSupabaseEnabled()) {
+                        dbHelper.clearAllMedia();
+                        ToastUtils.showCustomToast(getContext(), "Database cleared successfully");
+                        return;
+                    }
+                    ToastUtils.showCustomToast(getContext(), "Clearing cloud and local data...");
+                    SupabaseMediaSyncManager.clearAllUserCloudDataAsync(requireContext(), new SupabaseMediaSyncManager.CloudClearCallback() {
+                        @Override
+                        public void onSuccess() {
+                            dbHelper.clearAllMedia();
+                            ToastUtils.showCustomToast(getContext(), "Database cleared locally and in cloud");
+                        }
+
+                        @Override
+                        public void onError(String message) {
+                            ToastUtils.showCustomToast(getContext(), message);
+                        }
+                    });
                 })
                 .setNegativeButton("Cancel", null)
                 .show();

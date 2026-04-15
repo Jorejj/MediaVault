@@ -15,13 +15,13 @@ public interface JikanApiService {
     @GET("manga")
     Call<JikanResponse> getManga(
             @Query("q") String query,
-            @Query("limit") int limit
-    );
+                @Query("limit") int limit
+        );
 
-    @GET("manga")
-    Call<JikanResponse> getMangaByType(
-            @Query("q") String query,
-            @Query("type") String type,
+        @GET("manga")
+        Call<JikanResponse> getMangaByType(
+                @Query("q") String query,
+                @Query("type") String type,
             @Query("limit") int limit
     );
 }

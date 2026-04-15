@@ -29,6 +29,13 @@ public interface SupabaseMediaApi {
             @Query("local_media_id") String localMediaIdEq
     );
 
+    @DELETE("rest/v1/media_library")
+    Call<Void> deleteAllMediaByUser(
+            @Header("apikey") String apikey,
+            @Header("Authorization") String authorization,
+            @Query("user_id") String userIdEq
+    );
+
     @GET("rest/v1/media_library")
     Call<JsonArray> getMediaByUser(
             @Header("apikey") String apikey,
@@ -48,6 +55,48 @@ public interface SupabaseMediaApi {
             @Query("user_id") String userIdEq,
             @Query("local_media_id") String localMediaIdEq,
             @Query("limit") String limit
+    );
+
+    @DELETE("rest/v1/progress_log")
+    Call<Void> deleteProgressLogsByUser(
+            @Header("apikey") String apikey,
+            @Header("Authorization") String authorization,
+            @Query("user_id") String userIdEq
+    );
+
+    @DELETE("rest/v1/daily_metrics")
+    Call<Void> deleteDailyMetricsByUser(
+            @Header("apikey") String apikey,
+            @Header("Authorization") String authorization,
+            @Query("user_id") String userIdEq
+    );
+
+    @DELETE("rest/v1/user_media_events")
+    Call<Void> deleteUserEventsByUser(
+            @Header("apikey") String apikey,
+            @Header("Authorization") String authorization,
+            @Query("user_id") String userIdEq
+    );
+
+    @DELETE("rest/v1/media_metadata")
+    Call<Void> deleteMediaMetadataByMediaId(
+            @Header("apikey") String apikey,
+            @Header("Authorization") String authorization,
+            @Query("media_id") String mediaIdEq
+    );
+
+    @DELETE("rest/v1/profiles")
+    Call<Void> deleteProfileByUserId(
+            @Header("apikey") String apikey,
+            @Header("Authorization") String authorization,
+            @Query("id") String userIdEq
+    );
+
+    @DELETE("rest/v1/user_feature_vectors")
+    Call<Void> deleteUserFeatureVectorsByUser(
+            @Header("apikey") String apikey,
+            @Header("Authorization") String authorization,
+            @Query("user_id") String userIdEq
     );
 
     @Headers("Content-Type: application/json")

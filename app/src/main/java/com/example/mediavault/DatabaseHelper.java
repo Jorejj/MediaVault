@@ -510,7 +510,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COL_CURRENT_SEASON, 1);
         values.put(COL_CURRENT_EPISODE, 1);
         long result = db.insertWithOnConflict(TABLE_MEDIA, null, values, SQLiteDatabase.CONFLICT_IGNORE);
-        db.close();
         if (result > 0 && result <= Integer.MAX_VALUE) {
             SupabaseMediaSyncManager.enqueueUpsertMedia(context, (int) result);
             SupabaseMediaSyncManager.enqueueUserEvent(
@@ -700,7 +699,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COL_LAST_UPDATED, getDateTime());
         int result = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(id)});
         
-        db.close();
         if (result > 0) {
             SupabaseMediaSyncManager.enqueueUpsertMedia(context, id);
             SupabaseMediaSyncManager.enqueueUserEvent(
@@ -780,7 +778,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COL_RATING, newRating > 0 ? newRating : currentRating);
         values.put(COL_LAST_UPDATED, getDateTime());
         int result = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(id)});
-        db.close();
         if (result > 0) {
             SupabaseMediaSyncManager.enqueueUpsertMedia(context, id);
             SupabaseMediaSyncManager.enqueueUserEvent(
@@ -829,7 +826,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COL_LAST_UPDATED, getDateTime());
         int result = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(id)});
 
-        db.close();
         if (result > 0) {
             SupabaseMediaSyncManager.enqueueUpsertMedia(context, id);
             SupabaseMediaSyncManager.enqueueUserEvent(
@@ -1232,7 +1228,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COL_PRIORITY, priority == null || priority.isEmpty() ? "Medium" : priority);
         values.put(COL_IS_FAVORITE, isFavorite ? 1 : 0);
         int result = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(id)});
-        db.close();
         if (result > 0) {
             SupabaseMediaSyncManager.enqueueUpsertMedia(context, id);
             SupabaseMediaSyncManager.enqueueUserEvent(
@@ -1351,9 +1346,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     public void seedDatabase() {
-        if (CloudConfig.isSupabaseEnabled()) {
-            return;
-        }
         SQLiteDatabase db = this.getWritableDatabase();
         
         // Clear existing data to ensure clean state
@@ -1490,12 +1482,18 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             }
 
             long mediaId = db.insertWithOnConflict(TABLE_MEDIA, null, v, SQLiteDatabase.CONFLICT_IGNORE);
-            if (mediaId != -1 && progress > 0) {
-                seedProgressHistory(db, (int) mediaId, progress);
+            if (mediaId != -1) {
+                if (progress > 0) {
+                    seedProgressHistory(db, (int) mediaId, progress);
+                }
             }
             index++;
         }
-        db.close();
+        
+        // Use bulk sync instead of enqueuing 50 separate tasks to avoid thread pool exhaustion/crash
+        if (CloudConfig.isSupabaseEnabled()) {
+            SupabaseMediaSyncManager.syncAllFromLocalAsync(context);
+        }
     }
 
     public void clearAllMedia() {
@@ -1545,7 +1543,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             if (cursor != null) {
                 cursor.close();
             }
-            db.close();
         }
     }
 

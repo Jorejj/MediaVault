@@ -6,7 +6,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -53,11 +52,6 @@ public class SpotlightAdapter extends RecyclerView.Adapter<SpotlightAdapter.Spot
             holder.tvStatus.setText(String.format(java.util.Locale.getDefault(), "%s • %s/%d %s", status, formattedProgress, item.getCapacity(), unit));
         }
         
-        if (holder.progressBar != null) {
-            holder.progressBar.setMax(Math.max(item.getCapacity(), 1));
-            holder.progressBar.setProgress((int) item.getProgress());
-        }
-
         if (holder.ivBackground != null) {
             String imagePath = item.getCoverPath();
             if (imagePath != null && !imagePath.isEmpty()) {
@@ -93,7 +87,6 @@ public class SpotlightAdapter extends RecyclerView.Adapter<SpotlightAdapter.Spot
     static class SpotlightViewHolder extends RecyclerView.ViewHolder {
         ImageView ivBackground;
         TextView tvLabel, tvTitle, tvStatus, tvAlert;
-        ProgressBar progressBar;
 
         public SpotlightViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -102,7 +95,6 @@ public class SpotlightAdapter extends RecyclerView.Adapter<SpotlightAdapter.Spot
             tvTitle = itemView.findViewById(R.id.tv_spotlight_title);
             tvStatus = itemView.findViewById(R.id.tv_spotlight_status);
             tvAlert = itemView.findViewById(R.id.tv_progress_alert);
-            progressBar = itemView.findViewById(R.id.progress_spotlight);
         }
     }
 }

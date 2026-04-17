@@ -200,6 +200,45 @@
             android:theme="@style/Theme.MediaVault"
             android:configChanges="orientation|screenSize" />
 
+        <activity
+            android:name=".cloud.auth.SupabaseAuthActivity"
+            android:exported="false"
+            android:theme="@style/Theme.MediaVault" />
+
+        <activity
+            android:name=".cloud.auth.SupabaseRegisterActivity"
+            android:exported="true"
+            android:theme="@style/Theme.MediaVault">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="mediavault" android:host="auth" android:path="/register-confirm" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".cloud.auth.SupabaseRegisterSuccessActivity"
+            android:exported="false"
+            android:theme="@style/Theme.MediaVault" />
+
+        <activity
+            android:name=".cloud.auth.CloudProfileActivity"
+            android:exported="false"
+            android:theme="@style/Theme.MediaVault" />
+
+        <activity
+            android:name=".cloud.auth.SupabasePasswordResetActivity"
+            android:exported="true"
+            android:theme="@style/Theme.MediaVault">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="mediavault" android:host="auth" android:path="/reset" />
+            </intent-filter>
+        </activity>
+
         <service
             android:name=".service.MediaMonitorService"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"

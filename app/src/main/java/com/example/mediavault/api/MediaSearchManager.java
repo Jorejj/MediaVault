@@ -1,5 +1,6 @@
 package com.example.mediavault.api;
 
+import android.content.Intent;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
@@ -10,6 +11,7 @@ import androidx.annotation.NonNull;
 import com.example.mediavault.AppExecutor;
 import com.example.mediavault.BuildConfig;
 import com.example.mediavault.DatabaseHelper;
+import com.example.mediavault.DescriptionActivity;
 import com.example.mediavault.ImageUtils;
 
 import java.util.List;
@@ -637,6 +639,7 @@ public class MediaSearchManager {
             if (localPath != null && !localPath.startsWith("http")) {
                 DatabaseHelper dbHelper = DatabaseHelper.getInstance(context);
                 dbHelper.updateImagePath(mediaId, localPath);
+                context.getApplicationContext().sendBroadcast(new Intent(DescriptionActivity.ACTION_MEDIA_UPDATED));
                 Log.d(TAG, "Successfully auto-updated image for media ID: " + mediaId);
             }
         }).start();

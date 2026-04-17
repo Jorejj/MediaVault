@@ -29,6 +29,10 @@ android {
         buildConfigField("String", "GOOGLE_BOOKS_API_KEY", "\"${localProperties.getProperty("GOOGLE_BOOKS_API_KEY") ?: ""}\"")
         buildConfigField("String", "TMDB_API_KEY", "\"${localProperties.getProperty("TMDB_API_KEY") ?: ""}\"")
         buildConfigField("String", "OMDB_API_KEY", "\"${localProperties.getProperty("OMDB_API_KEY") ?: ""}\"")
+        buildConfigField("String", "MYANIMELIST_CLIENT_ID", "\"${localProperties.getProperty("MYANIMELIST_CLIENT_ID") ?: ""}\"")
+        buildConfigField("String", "SUPABASE_URL", "\"${localProperties.getProperty("SUPABASE_URL") ?: ""}\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"${localProperties.getProperty("SUPABASE_ANON_KEY") ?: ""}\"")
+        buildConfigField("boolean", "SUPABASE_ENABLED", "${localProperties.getProperty("SUPABASE_ENABLED") ?: "false"}")
     }
 
     buildFeatures {

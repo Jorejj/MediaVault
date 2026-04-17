@@ -38,17 +38,26 @@ import com.example.mediavault.api.GoogleBooksApiService;
 import com.example.mediavault.api.GoogleBooksResponse;
 import com.example.mediavault.api.JikanApiService;
 import com.example.mediavault.api.JikanResponse;
+import com.example.mediavault.api.ApiHealthManager;
+import com.example.mediavault.api.KitsuApiService;
+import com.example.mediavault.api.KitsuResponse;
 import com.example.mediavault.api.MediaMetadataProfile;
 import com.example.mediavault.api.MediaSearchAdapter;
 import com.example.mediavault.api.MediaSearchResult;
 import com.example.mediavault.api.MovieDetailResponse;
+import com.example.mediavault.api.MyAnimeListApiService;
+import com.example.mediavault.api.MyAnimeListResponse;
 import com.example.mediavault.api.OpenLibraryResponse;
 import com.example.mediavault.api.OpenLibraryApiService;
 import com.example.mediavault.api.TmdbApiService;
 import com.example.mediavault.api.TmdbResponse;
+import com.example.mediavault.api.TvMazeApiService;
+import com.example.mediavault.api.TvMazeResponse;
 import com.example.mediavault.api.TvDetailResponse;
 import com.example.mediavault.api.search.model.AniListSearchResponse;
+import com.example.mediavault.api.search.model.OmdbSearchResponse;
 import com.example.mediavault.api.search.service.AniListSearchApiService;
+import com.example.mediavault.api.search.service.OmdbSearchApiService;
 import com.google.gson.Gson;
 import com.google.android.material.button.MaterialButtonToggleGroup;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -79,12 +88,19 @@ import java.util.Locale;
 public class AddMediaActivity extends AppCompatActivity implements MediaSearchAdapter.OnItemClickListener {
 
     private static final String TAG = "AddMediaDB_Error";
+    private static final String EXTRA_PREFILL_AUTO_PICK_RESULT = "PREFILL_AUTO_PICK_RESULT";
+    private static final String EXTRA_PREFILL_MATCH_TITLE = "PREFILL_MATCH_TITLE";
+    private static final String EXTRA_PREFILL_MATCH_TYPE = "PREFILL_MATCH_TYPE";
     private static final String ANILIST_LIGHT_NOVEL_QUERY =
             "query ($search: String) { " +
                     "Page(page: 1, perPage: 10) { " +
                     "media(search: $search, type: MANGA, format_in: [NOVEL, ONE_SHOT]) { " +
                     "id title { romaji english native } description(asHtml: false) coverImage { large } startDate { year } chapters " +
                     "} } }";
+    private static final String MAL_ANIME_FIELDS =
+            "id,title,main_picture,alternative_titles,synopsis,mean,popularity,num_episodes,status,start_date,genres";
+    private static final String MAL_MANGA_FIELDS =
+            "id,title,main_picture,alternative_titles,synopsis,mean,popularity,num_chapters,status,start_date,genres";
 
     private View layoutSearchApi, layoutManualEntry, coordinatorLayout;
     private MaterialButtonToggleGroup toggleGroup;
@@ -116,7 +132,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
 
     private DatabaseHelper dbHelper;
     private NetworkReceiver networkReceiver;
-    private Retrofit jikanRetrofit, googleBooksRetrofit, tmdbRetrofit, openLibraryRetrofit, aniListRetrofit;
+    private Retrofit jikanRetrofit, googleBooksRetrofit, tmdbRetrofit, openLibraryRetrofit, aniListRetrofit, malRetrofit, kitsuRetrofit, tvMazeRetrofit, omdbRetrofit;
     private final Gson gson = new Gson();
     private boolean isNetworkReceiverRegistered = false;
     private String selectedSourceUrl;
@@ -134,6 +150,10 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
     private boolean trackerForceManual;
     private String trackerPrefillSourceUrl;
     private String pendingGenrePrefill;
+    private boolean prefillAutoPickResult;
+    private boolean prefillAutoPickPending;
+    private String prefillMatchTitle;
+    private String prefillMatchType;
 
     private final ActivityResultLauncher<Intent> imagePickerLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
@@ -170,6 +190,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
     private void handleTrackerIntent() {
         Intent intent = getIntent();
         boolean webNovelTracker = false;
+        String prefillTypeHint = null;
         if (intent != null) {
             launchedFromTracker = intent.getBooleanExtra("FROM_TRACKER", false);
             trackerDetectedPackage = intent.getStringExtra("TRACKER_PACKAGE");
@@ -178,7 +199,11 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
             trackerDetectedTotalCount = intent.getIntExtra("PREFILL_TOTAL_COUNT", 0);
             trackerDetectedDescription = intent.getStringExtra("PREFILL_DESCRIPTION");
             trackerPrefillSourceUrl = intent.getStringExtra("PREFILL_SOURCE_URL");
-            String prefillTypeHint = intent.getStringExtra("PREFILL_TYPE_HINT");
+            prefillTypeHint = intent.getStringExtra("PREFILL_TYPE_HINT");
+            prefillAutoPickResult = intent.getBooleanExtra(EXTRA_PREFILL_AUTO_PICK_RESULT, false);
+            prefillAutoPickPending = prefillAutoPickResult;
+            prefillMatchTitle = intent.getStringExtra(EXTRA_PREFILL_MATCH_TITLE);
+            prefillMatchType = intent.getStringExtra(EXTRA_PREFILL_MATCH_TYPE);
             String inferredTrackerType = !TextUtils.isEmpty(prefillTypeHint)
                     ? prefillTypeHint
                     : inferTrackerMediaType(trackerDetectedPackage);
@@ -205,6 +230,9 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
             if (!TextUtils.isEmpty(trackerDetectedDescription) && TextUtils.isEmpty(etManualDescription.getText())) {
                 etManualDescription.setText(trackerDetectedDescription.trim());
             }
+        }
+        if (!launchedFromTracker && !TextUtils.isEmpty(prefillTypeHint)) {
+            applyTrackerTypeDefaults(prefillTypeHint);
         }
         if (intent != null && intent.hasExtra("PREFILL_TITLE")) {
             String prefillTitle = intent.getStringExtra("PREFILL_TITLE");
@@ -270,6 +298,30 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
 
         aniListRetrofit = new Retrofit.Builder()
                 .baseUrl("https://graphql.anilist.co/")
+                .client(okHttpClient)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        malRetrofit = new Retrofit.Builder()
+                .baseUrl("https://api.myanimelist.net/v2/")
+                .client(okHttpClient)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        kitsuRetrofit = new Retrofit.Builder()
+                .baseUrl("https://kitsu.io/api/edge/")
+                .client(okHttpClient)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        tvMazeRetrofit = new Retrofit.Builder()
+                .baseUrl("https://api.tvmaze.com/")
+                .client(okHttpClient)
+                .addConverterFactory(GsonConverterFactory.create())
+                .build();
+
+        omdbRetrofit = new Retrofit.Builder()
+                .baseUrl("https://www.omdbapi.com/")
                 .client(okHttpClient)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
@@ -404,7 +456,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         rvApiResults.setVisibility(View.GONE);
         tvNoResults.setVisibility(View.GONE);
         btnApiSearchSubmit.setEnabled(false);
-        searchAdapter.setResults(new ArrayList<>());
+        setSearchResults(new ArrayList<>());
 
         if (target.contains("Anime")) {
             searchAnime(query);
@@ -427,32 +479,259 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         }
     }
 
+    private void setSearchResults(List<MediaSearchResult> results) {
+        searchAdapter.setResults(results);
+        autoPickPrefilledResult(results);
+    }
+
+    private void autoPickPrefilledResult(List<MediaSearchResult> results) {
+        if (!prefillAutoPickPending || results == null || results.isEmpty()) {
+            return;
+        }
+        MediaSearchResult best = pickBestPrefillResult(results);
+        if (best == null) {
+            return;
+        }
+        prefillAutoPickPending = false;
+        onItemClick(best);
+    }
+
+    private MediaSearchResult pickBestPrefillResult(List<MediaSearchResult> results) {
+        if (results == null || results.isEmpty()) {
+            return null;
+        }
+        String titleHint = !TextUtils.isEmpty(prefillMatchTitle)
+                ? prefillMatchTitle
+                : String.valueOf(etApiSearch.getText());
+        Object selectedTarget = spinnerApiTarget.getSelectedItem();
+        String typeHint = !TextUtils.isEmpty(prefillMatchType)
+                ? prefillMatchType
+                : (selectedTarget == null ? "" : selectedTarget.toString());
+        String normalizedTitleHint = normalizeTitle(titleHint);
+        String normalizedTypeHint = normalizeType(typeHint);
+
+        MediaSearchResult best = results.get(0);
+        int bestScore = Integer.MIN_VALUE;
+        for (MediaSearchResult candidate : results) {
+            if (candidate == null) continue;
+            int score = 0;
+            String normalizedCandidateTitle = normalizeTitle(candidate.getTitle());
+            if (!normalizedTitleHint.isEmpty() && !normalizedCandidateTitle.isEmpty()) {
+                if (normalizedCandidateTitle.equals(normalizedTitleHint)) {
+                    score += 120;
+                } else if (normalizedCandidateTitle.contains(normalizedTitleHint)
+                        || normalizedTitleHint.contains(normalizedCandidateTitle)) {
+                    score += 80;
+                } else {
+                    String[] hintTokens = normalizedTitleHint.split(" ");
+                    int overlap = 0;
+                    for (String token : hintTokens) {
+                        if (!token.isEmpty() && normalizedCandidateTitle.contains(token)) {
+                            overlap++;
+                        }
+                    }
+                    score += overlap * 10;
+                }
+            }
+            String normalizedCandidateType = normalizeType(candidate.getType());
+            if (!normalizedTypeHint.isEmpty() && !normalizedCandidateType.isEmpty()) {
+                if (normalizedCandidateType.equals(normalizedTypeHint)) {
+                    score += 40;
+                } else if (normalizedCandidateType.contains(normalizedTypeHint)
+                        || normalizedTypeHint.contains(normalizedCandidateType)) {
+                    score += 25;
+                }
+            }
+            if (score > bestScore) {
+                bestScore = score;
+                best = candidate;
+            }
+        }
+        return best;
+    }
+
+    private static String normalizeTitle(String value) {
+        if (value == null) {
+            return "";
+        }
+        String normalized = value.trim().toLowerCase(Locale.ROOT);
+        return normalized.replaceAll("[^a-z0-9 ]", " ").replaceAll("\\s+", " ").trim();
+    }
+
+    private static String normalizeType(String value) {
+        if (value == null) {
+            return "";
+        }
+        String normalized = value.trim().toLowerCase(Locale.ROOT);
+        if (normalized.contains("light/web") || normalized.contains("novel")) return "book";
+        if (normalized.contains("book")) return "book";
+        if (normalized.contains("manga")) return "manga";
+        if (normalized.contains("anime")) return "anime";
+        if (normalized.contains("movie")) return "movie";
+        if (normalized.contains("series") || normalized.contains("tv")) return "series";
+        return normalized;
+    }
+
     private void searchAnime(String query) {
+        boolean malConfigured = !TextUtils.isEmpty(BuildConfig.MYANIMELIST_CLIENT_ID);
+        boolean malHealthy = ApiHealthManager.isHealthy(this, ApiHealthManager.KEY_MAL, true);
+        if (!malConfigured || !malHealthy) {
+            searchAnimeViaJikan(query);
+            return;
+        }
+        MyAnimeListApiService service = malRetrofit.create(MyAnimeListApiService.class);
+        service.searchAnime(BuildConfig.MYANIMELIST_CLIENT_ID, query, 10, MAL_ANIME_FIELDS)
+                .enqueue(new Callback<MyAnimeListResponse>() {
+                    @Override
+                    public void onResponse(@NonNull Call<MyAnimeListResponse> call, @NonNull Response<MyAnimeListResponse> response) {
+                        if (response.isSuccessful() && response.body() != null
+                                && response.body().getData() != null
+                                && !response.body().getData().isEmpty()) {
+                            ApiHealthManager.markHealth(AddMediaActivity.this, ApiHealthManager.KEY_MAL, true);
+                            handleMyAnimeListResponse(response.body(), "Anime", query);
+                            return;
+                        }
+                        ApiHealthManager.markHealth(AddMediaActivity.this, ApiHealthManager.KEY_MAL, false);
+                        searchAnimeViaJikan(query);
+                    }
+
+                    @Override
+                    public void onFailure(@NonNull Call<MyAnimeListResponse> call, @NonNull Throwable t) {
+                        ApiHealthManager.markHealth(AddMediaActivity.this, ApiHealthManager.KEY_MAL, false);
+                        searchAnimeViaJikan(query);
+                    }
+                });
+    }
+
+    private void searchAnimeViaJikan(String query) {
         JikanApiService service = jikanRetrofit.create(JikanApiService.class);
         service.getAnime(query, 10).enqueue(new Callback<JikanResponse>() {
             @Override
             public void onResponse(@NonNull Call<JikanResponse> call, @NonNull Response<JikanResponse> response) {
-                handleJikanResponse(response, "Anime", query);
+                boolean healthy = response.isSuccessful()
+                        && response.body() != null
+                        && response.body().getData() != null
+                        && !response.body().getData().isEmpty();
+                ApiHealthManager.markHealth(AddMediaActivity.this, ApiHealthManager.KEY_JIKAN, healthy);
+                if (healthy) {
+                    handleJikanResponse(response, "Anime", query);
+                    return;
+                }
+                searchAnimeViaKitsu(query);
             }
 
             @Override
             public void onFailure(@NonNull Call<JikanResponse> call, @NonNull Throwable t) {
+                ApiHealthManager.markHealth(AddMediaActivity.this, ApiHealthManager.KEY_JIKAN, false);
+                searchAnimeViaKitsu(query);
+            }
+        });
+    }
+
+    private void searchManga(String query) {
+        boolean malConfigured = !TextUtils.isEmpty(BuildConfig.MYANIMELIST_CLIENT_ID);
+        boolean malHealthy = ApiHealthManager.isHealthy(this, ApiHealthManager.KEY_MAL, true);
+        if (!malConfigured || !malHealthy) {
+            searchMangaViaJikan(query);
+            return;
+        }
+        MyAnimeListApiService service = malRetrofit.create(MyAnimeListApiService.class);
+        service.searchManga(BuildConfig.MYANIMELIST_CLIENT_ID, query, 10, MAL_MANGA_FIELDS)
+                .enqueue(new Callback<MyAnimeListResponse>() {
+                    @Override
+                    public void onResponse(@NonNull Call<MyAnimeListResponse> call, @NonNull Response<MyAnimeListResponse> response) {
+                        if (response.isSuccessful() && response.body() != null
+                                && response.body().getData() != null
+                                && !response.body().getData().isEmpty()) {
+                            ApiHealthManager.markHealth(AddMediaActivity.this, ApiHealthManager.KEY_MAL, true);
+                            handleMyAnimeListResponse(response.body(), "Manga", query);
+                            return;
+                        }
+                        ApiHealthManager.markHealth(AddMediaActivity.this, ApiHealthManager.KEY_MAL, false);
+                        searchMangaViaJikan(query);
+                    }
+
+                    @Override
+                    public void onFailure(@NonNull Call<MyAnimeListResponse> call, @NonNull Throwable t) {
+                        ApiHealthManager.markHealth(AddMediaActivity.this, ApiHealthManager.KEY_MAL, false);
+                        searchMangaViaJikan(query);
+                    }
+                });
+    }
+
+    private void searchMangaViaJikan(String query) {
+        JikanApiService service = jikanRetrofit.create(JikanApiService.class);
+        service.getManga(query, 10).enqueue(new Callback<JikanResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<JikanResponse> call, @NonNull Response<JikanResponse> response) {
+                boolean healthy = response.isSuccessful()
+                        && response.body() != null
+                        && response.body().getData() != null
+                        && !response.body().getData().isEmpty();
+                ApiHealthManager.markHealth(AddMediaActivity.this, ApiHealthManager.KEY_JIKAN, healthy);
+                if (healthy) {
+                    handleJikanResponse(response, "Manga", query);
+                    return;
+                }
+                searchMangaViaKitsu(query);
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<JikanResponse> call, @NonNull Throwable t) {
+                ApiHealthManager.markHealth(AddMediaActivity.this, ApiHealthManager.KEY_JIKAN, false);
+                searchMangaViaKitsu(query);
+            }
+        });
+    }
+
+    private void searchAnimeViaKitsu(String query) {
+        KitsuApiService service = kitsuRetrofit.create(KitsuApiService.class);
+        service.searchAnime(query, 10).enqueue(new Callback<KitsuResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<KitsuResponse> call, @NonNull Response<KitsuResponse> response) {
+                boolean healthy = response.isSuccessful()
+                        && response.body() != null
+                        && response.body().getData() != null
+                        && !response.body().getData().isEmpty();
+                ApiHealthManager.markHealth(AddMediaActivity.this, ApiHealthManager.KEY_KITSU, healthy);
+                if (healthy) {
+                    handleKitsuResponse(response.body(), "Anime", query);
+                    return;
+                }
+                handleSearchError("No results from Anime APIs");
+                showProviderCoverageFallback(query, "Anime");
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<KitsuResponse> call, @NonNull Throwable t) {
+                ApiHealthManager.markHealth(AddMediaActivity.this, ApiHealthManager.KEY_KITSU, false);
                 handleSearchError("Network timeout or error");
                 showProviderCoverageFallback(query, "Anime");
             }
         });
     }
 
-    private void searchManga(String query) {
-        JikanApiService service = jikanRetrofit.create(JikanApiService.class);
-        service.getManga(query, 10).enqueue(new Callback<JikanResponse>() {
+    private void searchMangaViaKitsu(String query) {
+        KitsuApiService service = kitsuRetrofit.create(KitsuApiService.class);
+        service.searchManga(query, 10).enqueue(new Callback<KitsuResponse>() {
             @Override
-            public void onResponse(@NonNull Call<JikanResponse> call, @NonNull Response<JikanResponse> response) {
-                handleJikanResponse(response, "Manga", query);
+            public void onResponse(@NonNull Call<KitsuResponse> call, @NonNull Response<KitsuResponse> response) {
+                boolean healthy = response.isSuccessful()
+                        && response.body() != null
+                        && response.body().getData() != null
+                        && !response.body().getData().isEmpty();
+                ApiHealthManager.markHealth(AddMediaActivity.this, ApiHealthManager.KEY_KITSU, healthy);
+                if (healthy) {
+                    handleKitsuResponse(response.body(), "Manga", query);
+                    return;
+                }
+                handleSearchError("No results from Manga APIs");
+                showProviderCoverageFallback(query, "Manga");
             }
 
             @Override
-            public void onFailure(@NonNull Call<JikanResponse> call, @NonNull Throwable t) {
+            public void onFailure(@NonNull Call<KitsuResponse> call, @NonNull Throwable t) {
+                ApiHealthManager.markHealth(AddMediaActivity.this, ApiHealthManager.KEY_KITSU, false);
                 handleSearchError("Network timeout or error");
                 showProviderCoverageFallback(query, "Manga");
             }
@@ -462,7 +741,23 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
     private void searchLightNovels(String query) {
         List<MediaSearchResult> aggregatedResults = new ArrayList<>();
         Set<String> dedupeKeys = new HashSet<>();
-        final int[] pendingSources = {4};
+        boolean preferredAniList = ApiHealthManager.isHealthy(this, ApiHealthManager.KEY_ANILIST, true);
+        boolean preferredJikan = ApiHealthManager.isHealthy(this, ApiHealthManager.KEY_JIKAN, true);
+        boolean preferredGoogle = !TextUtils.isEmpty(BuildConfig.GOOGLE_BOOKS_API_KEY)
+                && ApiHealthManager.isHealthy(this, ApiHealthManager.KEY_GOOGLE_BOOKS, true);
+        boolean preferredOpenLibrary = ApiHealthManager.isHealthy(this, ApiHealthManager.KEY_OPEN_LIBRARY, true);
+
+        boolean hasPreferred = preferredAniList || preferredJikan || preferredGoogle || preferredOpenLibrary;
+        final boolean runAniList = hasPreferred ? preferredAniList : true;
+        final boolean runJikan = hasPreferred ? preferredJikan : true;
+        final boolean runGoogle = hasPreferred ? preferredGoogle : !TextUtils.isEmpty(BuildConfig.GOOGLE_BOOKS_API_KEY);
+        final boolean runOpenLibrary = hasPreferred ? preferredOpenLibrary : true;
+        final int[] pendingSources = {
+                (runAniList ? 1 : 0)
+                        + (runJikan ? 1 : 0)
+                        + (runGoogle ? 1 : 0)
+                        + (runOpenLibrary ? 1 : 0)
+        };
 
         Runnable onSourceComplete = () -> {
             pendingSources[0]--;
@@ -475,15 +770,15 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                     return;
                 }
                 List<MediaSearchResult> mergedResults = mergeApiAndProviderResults(aggregatedResults, query, "Book");
-                searchAdapter.setResults(mergedResults);
+                setSearchResults(mergedResults);
                 showSuccessSnackbar(buildCoverageMessage(aggregatedResults.size(), mergedResults.size() - aggregatedResults.size()));
             }
         };
 
-        searchAniListLightNovels(query, aggregatedResults, dedupeKeys, onSourceComplete);
-        searchJikanLightNovels(query, aggregatedResults, dedupeKeys, onSourceComplete);
-        searchGoogleBooksLightNovels(query, aggregatedResults, dedupeKeys, onSourceComplete);
-        searchOpenLibraryLightNovels(query, aggregatedResults, dedupeKeys, onSourceComplete);
+        if (runAniList) searchAniListLightNovels(query, aggregatedResults, dedupeKeys, onSourceComplete);
+        if (runJikan) searchJikanLightNovels(query, aggregatedResults, dedupeKeys, onSourceComplete);
+        if (runGoogle) searchGoogleBooksLightNovels(query, aggregatedResults, dedupeKeys, onSourceComplete);
+        if (runOpenLibrary) searchOpenLibraryLightNovels(query, aggregatedResults, dedupeKeys, onSourceComplete);
     }
 
     private void searchAniListLightNovels(
@@ -502,6 +797,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         service.searchAnime(body).enqueue(new Callback<AniListSearchResponse>() {
             @Override
             public void onResponse(@NonNull Call<AniListSearchResponse> call, @NonNull Response<AniListSearchResponse> response) {
+                ApiHealthManager.markHealth(AddMediaActivity.this, ApiHealthManager.KEY_ANILIST, response.isSuccessful());
                 if (response.isSuccessful() && response.body() != null
                         && response.body().data != null
                         && response.body().data.page != null
@@ -538,6 +834,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
 
             @Override
             public void onFailure(@NonNull Call<AniListSearchResponse> call, @NonNull Throwable t) {
+                ApiHealthManager.markHealth(AddMediaActivity.this, ApiHealthManager.KEY_ANILIST, false);
                 onComplete.run();
             }
         });
@@ -553,6 +850,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         service.getMangaByType(query, "lightnovel", 10).enqueue(new Callback<JikanResponse>() {
             @Override
             public void onResponse(@NonNull Call<JikanResponse> call, @NonNull Response<JikanResponse> response) {
+                ApiHealthManager.markHealth(AddMediaActivity.this, ApiHealthManager.KEY_JIKAN, response.isSuccessful());
                 if (response.isSuccessful() && response.body() != null
                         && response.body().getData() != null
                         && !response.body().getData().isEmpty()) {
@@ -590,6 +888,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
 
             @Override
             public void onFailure(@NonNull Call<JikanResponse> call, @NonNull Throwable t) {
+                ApiHealthManager.markHealth(AddMediaActivity.this, ApiHealthManager.KEY_JIKAN, false);
                 onComplete.run();
             }
         });
@@ -605,6 +904,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         service.getBooks(query + " light novel", BuildConfig.GOOGLE_BOOKS_API_KEY).enqueue(new Callback<GoogleBooksResponse>() {
             @Override
             public void onResponse(@NonNull Call<GoogleBooksResponse> call, @NonNull Response<GoogleBooksResponse> response) {
+                ApiHealthManager.markHealth(AddMediaActivity.this, ApiHealthManager.KEY_GOOGLE_BOOKS, response.isSuccessful());
                 if (response.isSuccessful() && response.body() != null
                         && response.body().getItems() != null
                         && !response.body().getItems().isEmpty()) {
@@ -652,6 +952,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
 
             @Override
             public void onFailure(@NonNull Call<GoogleBooksResponse> call, @NonNull Throwable t) {
+                ApiHealthManager.markHealth(AddMediaActivity.this, ApiHealthManager.KEY_GOOGLE_BOOKS, false);
                 onComplete.run();
             }
         });
@@ -667,6 +968,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         service.searchBooks(query, 10).enqueue(new Callback<OpenLibraryResponse>() {
             @Override
             public void onResponse(@NonNull Call<OpenLibraryResponse> call, @NonNull Response<OpenLibraryResponse> response) {
+                ApiHealthManager.markHealth(AddMediaActivity.this, ApiHealthManager.KEY_OPEN_LIBRARY, response.isSuccessful());
                 if (response.isSuccessful() && response.body() != null
                         && response.body().getDocs() != null
                         && !response.body().getDocs().isEmpty()) {
@@ -708,6 +1010,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
 
             @Override
             public void onFailure(@NonNull Call<OpenLibraryResponse> call, @NonNull Throwable t) {
+                ApiHealthManager.markHealth(AddMediaActivity.this, ApiHealthManager.KEY_OPEN_LIBRARY, false);
                 onComplete.run();
             }
         });
@@ -786,7 +1089,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                     results.add(result);
                 }
                 List<MediaSearchResult> mergedResults = mergeApiAndProviderResults(results, query, type);
-                searchAdapter.setResults(mergedResults);
+                setSearchResults(mergedResults);
                 showSuccessSnackbar(buildCoverageMessage(results.size(), mergedResults.size() - results.size()));
             } else {
                 showProviderCoverageFallback(query, type);
@@ -797,11 +1100,142 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         }
     }
 
+    private void handleMyAnimeListResponse(MyAnimeListResponse body, String type, String query) {
+        pbSearchLoading.setVisibility(View.GONE);
+        btnApiSearchSubmit.setEnabled(true);
+        rvApiResults.setVisibility(View.VISIBLE);
+
+        List<MediaSearchResult> results = new ArrayList<>();
+        List<MyAnimeListResponse.Entry> entries = body.getData();
+        if (entries != null) {
+            for (MyAnimeListResponse.Entry entry : entries) {
+                MyAnimeListResponse.Node node = entry == null ? null : entry.getNode();
+                if (node == null || TextUtils.isEmpty(node.getTitle())) {
+                    continue;
+                }
+                String imageUrl = node.getMainPicture() == null ? null : node.getMainPicture().getBestUrl();
+                String sourceUrl = "https://myanimelist.net/" + ("Anime".equalsIgnoreCase(type) ? "anime/" : "manga/") + node.getId();
+                String creator = extractMyAnimeListCreator(node, type);
+                Integer totalCount = "Anime".equalsIgnoreCase(type) ? node.getNumEpisodes() : node.getNumChapters();
+                MediaSearchResult result = new MediaSearchResult(
+                        node.getTitle(),
+                        type,
+                        joinNamedItems(node.getGenres()),
+                        creator,
+                        node.getSynopsis(),
+                        imageUrl,
+                        totalCount,
+                        "Anime".equalsIgnoreCase(type) ? "Episodes" : "Chapters",
+                        sourceUrl,
+                        "search",
+                        null,
+                        parseReleaseYear(node.getStartDate())
+                );
+                result.setMetadataProfile(buildMyAnimeListMetadataProfile(node, type, sourceUrl));
+                results.add(result);
+            }
+        }
+        if (results.isEmpty()) {
+            showProviderCoverageFallback(query, type);
+            return;
+        }
+        List<MediaSearchResult> mergedResults = mergeApiAndProviderResults(results, query, type);
+        setSearchResults(mergedResults);
+        showSuccessSnackbar(buildCoverageMessage(results.size(), mergedResults.size() - results.size()));
+    }
+
+    private void handleKitsuResponse(KitsuResponse body, String type, String query) {
+        pbSearchLoading.setVisibility(View.GONE);
+        btnApiSearchSubmit.setEnabled(true);
+        rvApiResults.setVisibility(View.VISIBLE);
+
+        List<MediaSearchResult> results = new ArrayList<>();
+        if (body.getData() != null) {
+            for (KitsuResponse.KitsuItem item : body.getData()) {
+                KitsuResponse.Attributes attributes = item == null ? null : item.getAttributes();
+                if (attributes == null || TextUtils.isEmpty(attributes.getCanonicalTitle())) continue;
+                String sourceUrl = "https://kitsu.io/" + ("Anime".equalsIgnoreCase(type) ? "anime/" : "manga/")
+                        + (item.getId() == null ? "" : item.getId());
+                Integer totalCount = "Anime".equalsIgnoreCase(type)
+                        ? attributes.getEpisodeCount()
+                        : attributes.getChapterCount();
+                String imageUrl = attributes.getPosterImage() == null ? null : attributes.getPosterImage().best();
+                MediaSearchResult result = new MediaSearchResult(
+                        attributes.getCanonicalTitle(),
+                        type,
+                        "Unknown Genre",
+                        "Kitsu",
+                        attributes.getSynopsis(),
+                        imageUrl,
+                        totalCount,
+                        "Anime".equalsIgnoreCase(type) ? "Episodes" : "Chapters",
+                        sourceUrl,
+                        "search",
+                        null,
+                        parseReleaseYear(attributes.getStartDate())
+                );
+                result.setMetadataProfile(buildKitsuMetadataProfile(attributes, item.getId(), type, sourceUrl));
+                results.add(result);
+            }
+        }
+        if (results.isEmpty()) {
+            showProviderCoverageFallback(query, type);
+            return;
+        }
+        List<MediaSearchResult> mergedResults = mergeApiAndProviderResults(results, query, type);
+        setSearchResults(mergedResults);
+        showSuccessSnackbar(buildCoverageMessage(results.size(), mergedResults.size() - results.size()));
+    }
+
+    private String extractMyAnimeListCreator(MyAnimeListResponse.Node node, String type) {
+        if (node == null) return "Unknown Creator";
+        if ("Anime".equalsIgnoreCase(type)) {
+            String studio = firstNamedItem(node.getStudios());
+            return TextUtils.isEmpty(studio) ? "Unknown Creator" : studio;
+        }
+        if (node.getAuthors() != null) {
+            for (MyAnimeListResponse.AuthorRole authorRole : node.getAuthors()) {
+                if (authorRole == null) continue;
+                String name = authorRole.getDisplayName();
+                if (!TextUtils.isEmpty(name)) return name;
+            }
+        }
+        return "Unknown Creator";
+    }
+
+    private String firstNamedItem(List<MyAnimeListResponse.NamedItem> items) {
+        if (items == null || items.isEmpty()) return null;
+        for (MyAnimeListResponse.NamedItem item : items) {
+            if (item != null && !TextUtils.isEmpty(item.getName())) {
+                return item.getName().trim();
+            }
+        }
+        return null;
+    }
+
+    private String joinNamedItems(List<MyAnimeListResponse.NamedItem> items) {
+        if (items == null || items.isEmpty()) return "Unknown Genre";
+        List<String> names = new ArrayList<>();
+        for (MyAnimeListResponse.NamedItem item : items) {
+            if (item != null && !TextUtils.isEmpty(item.getName())) {
+                names.add(item.getName().trim());
+            }
+        }
+        if (names.isEmpty()) return "Unknown Genre";
+        return String.join(", ", names);
+    }
+
     private void searchBooks(String query) {
+        if (TextUtils.isEmpty(BuildConfig.GOOGLE_BOOKS_API_KEY)
+                || !ApiHealthManager.isHealthy(this, ApiHealthManager.KEY_GOOGLE_BOOKS, true)) {
+            searchBooksViaOpenLibrary(query);
+            return;
+        }
         GoogleBooksApiService service = googleBooksRetrofit.create(GoogleBooksApiService.class);
         service.getBooks(query, BuildConfig.GOOGLE_BOOKS_API_KEY).enqueue(new Callback<GoogleBooksResponse>() {
             @Override
             public void onResponse(@NonNull Call<GoogleBooksResponse> call, @NonNull Response<GoogleBooksResponse> response) {
+                ApiHealthManager.markHealth(AddMediaActivity.this, ApiHealthManager.KEY_GOOGLE_BOOKS, response.isSuccessful());
                 pbSearchLoading.setVisibility(View.GONE);
                 btnApiSearchSubmit.setEnabled(true);
                 rvApiResults.setVisibility(View.VISIBLE);
@@ -847,36 +1281,106 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                             results.add(result);
                         }
                         List<MediaSearchResult> mergedResults = mergeApiAndProviderResults(results, query, "Book");
-                        searchAdapter.setResults(mergedResults);
+                        setSearchResults(mergedResults);
                         showSuccessSnackbar(buildCoverageMessage(results.size(), mergedResults.size() - results.size()));
                     } else {
-                        showProviderCoverageFallback(query, "Book");
+                        searchBooksViaOpenLibrary(query);
                     }
                 } else {
-                    handleSearchError("API Error: " + response.code());
-                    showProviderCoverageFallback(query, "Book");
+                    ApiHealthManager.markHealth(AddMediaActivity.this, ApiHealthManager.KEY_GOOGLE_BOOKS, false);
+                    searchBooksViaOpenLibrary(query);
                 }
             }
 
             @Override
             public void onFailure(@NonNull Call<GoogleBooksResponse> call, @NonNull Throwable t) {
-                handleSearchError("Network timeout or error");
+                ApiHealthManager.markHealth(AddMediaActivity.this, ApiHealthManager.KEY_GOOGLE_BOOKS, false);
+                searchBooksViaOpenLibrary(query);
+            }
+        });
+    }
+
+    private void searchBooksViaOpenLibrary(String query) {
+        OpenLibraryApiService service = openLibraryRetrofit.create(OpenLibraryApiService.class);
+        service.searchBooks(query, 10).enqueue(new Callback<OpenLibraryResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<OpenLibraryResponse> call, @NonNull Response<OpenLibraryResponse> response) {
+                pbSearchLoading.setVisibility(View.GONE);
+                btnApiSearchSubmit.setEnabled(true);
+                rvApiResults.setVisibility(View.VISIBLE);
+                if (response.isSuccessful() && response.body() != null
+                        && response.body().getDocs() != null
+                        && !response.body().getDocs().isEmpty()) {
+                    ApiHealthManager.markHealth(AddMediaActivity.this, ApiHealthManager.KEY_OPEN_LIBRARY, true);
+                    List<MediaSearchResult> results = new ArrayList<>();
+                    for (OpenLibraryResponse.Doc doc : response.body().getDocs()) {
+                        if (doc == null || TextUtils.isEmpty(doc.getTitle())) continue;
+                        String authors = "";
+                        if (doc.getAuthorName() != null && !doc.getAuthorName().isEmpty()) {
+                            authors = String.join(", ", doc.getAuthorName());
+                        }
+                        String genres = "";
+                        if (doc.getSubject() != null && !doc.getSubject().isEmpty()) {
+                            genres = String.join(", ", doc.getSubject().subList(0, Math.min(3, doc.getSubject().size())));
+                        }
+                        String sourceUrl = !TextUtils.isEmpty(doc.getWorkUrl())
+                                ? doc.getWorkUrl()
+                                : "https://openlibrary.org/search?title=" + Uri.encode(doc.getTitle());
+                        MediaSearchResult result = new MediaSearchResult(
+                                doc.getTitle(),
+                                "Book",
+                                genres,
+                                authors,
+                                "OpenLibrary metadata result",
+                                doc.getCoverUrl(),
+                                doc.getPageCount(),
+                                "Pages",
+                                sourceUrl,
+                                "reader",
+                                null,
+                                doc.getFirstPublishYear() != null ? doc.getFirstPublishYear() : 0
+                        );
+                        result.setMetadataProfile(buildOpenLibraryMetadataProfile(doc, sourceUrl, authors));
+                        results.add(result);
+                    }
+                    if (!results.isEmpty()) {
+                        List<MediaSearchResult> mergedResults = mergeApiAndProviderResults(results, query, "Book");
+                        setSearchResults(mergedResults);
+                        showSuccessSnackbar(buildCoverageMessage(results.size(), mergedResults.size() - results.size()));
+                        return;
+                    }
+                } else {
+                    ApiHealthManager.markHealth(AddMediaActivity.this, ApiHealthManager.KEY_OPEN_LIBRARY, false);
+                }
+                showProviderCoverageFallback(query, "Book");
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<OpenLibraryResponse> call, @NonNull Throwable t) {
+                ApiHealthManager.markHealth(AddMediaActivity.this, ApiHealthManager.KEY_OPEN_LIBRARY, false);
+                pbSearchLoading.setVisibility(View.GONE);
+                btnApiSearchSubmit.setEnabled(true);
+                rvApiResults.setVisibility(View.VISIBLE);
                 showProviderCoverageFallback(query, "Book");
             }
         });
     }
 
     private void searchTmdb(String query, String type) {
-        if (TextUtils.isEmpty(BuildConfig.TMDB_API_KEY)) {
-            pbSearchLoading.setVisibility(View.GONE);
-            btnApiSearchSubmit.setEnabled(true);
-            rvApiResults.setVisibility(View.VISIBLE);
-            showProviderCoverageFallback(query, type.equals("Movie") ? "Movie" : "Series");
+        boolean isMovie = type.equals("Movie");
+        boolean tmdbUsable = !TextUtils.isEmpty(BuildConfig.TMDB_API_KEY)
+                && ApiHealthManager.isHealthy(this, ApiHealthManager.KEY_TMDB, true);
+        if (!tmdbUsable) {
+            if (isMovie) {
+                searchMoviesViaOmdb(query);
+            } else {
+                searchSeriesViaTvMaze(query);
+            }
             return;
         }
         TmdbApiService service = tmdbRetrofit.create(TmdbApiService.class);
         Call<TmdbResponse> call;
-        if (type.equals("Movie")) {
+        if (isMovie) {
             call = service.searchMovies(BuildConfig.TMDB_API_KEY, query);
         } else {
             call = service.searchTv(BuildConfig.TMDB_API_KEY, query);
@@ -885,6 +1389,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         call.enqueue(new Callback<TmdbResponse>() {
             @Override
             public void onResponse(@NonNull Call<TmdbResponse> call, @NonNull Response<TmdbResponse> response) {
+                ApiHealthManager.markHealth(AddMediaActivity.this, ApiHealthManager.KEY_TMDB, response.isSuccessful());
                 if (response.isSuccessful() && response.body() != null) {
                     List<MediaSearchResult> results = new ArrayList<>();
                     List<TmdbResponse.TmdbItem> items = response.body().getResults();
@@ -897,9 +1402,9 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                                     pbSearchLoading.setVisibility(View.GONE);
                                     btnApiSearchSubmit.setEnabled(true);
                                     rvApiResults.setVisibility(View.VISIBLE);
-                                    String mediaType = "Movie".equals(type) ? "Movie" : "Series";
+                                    String mediaType = isMovie ? "Movie" : "Series";
                                     List<MediaSearchResult> mergedResults = mergeApiAndProviderResults(results, query, mediaType);
-                                    searchAdapter.setResults(mergedResults);
+                                    setSearchResults(mergedResults);
                                     showSuccessSnackbar(buildCoverageMessage(results.size(), mergedResults.size() - results.size()));
                                 }
                             });
@@ -908,18 +1413,186 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                         pbSearchLoading.setVisibility(View.GONE);
                         btnApiSearchSubmit.setEnabled(true);
                         rvApiResults.setVisibility(View.VISIBLE);
-                        showProviderCoverageFallback(query, type.equals("Movie") ? "Movie" : "Series");
+                        if (isMovie) {
+                            searchMoviesViaOmdb(query);
+                        } else {
+                            searchSeriesViaTvMaze(query);
+                        }
                     }
                 } else {
-                    handleSearchError("API Error: " + response.code());
-                    showProviderCoverageFallback(query, type.equals("Movie") ? "Movie" : "Series");
+                    ApiHealthManager.markHealth(AddMediaActivity.this, ApiHealthManager.KEY_TMDB, false);
+                    if (isMovie) {
+                        searchMoviesViaOmdb(query);
+                    } else {
+                        searchSeriesViaTvMaze(query);
+                    }
                 }
             }
 
             @Override
             public void onFailure(@NonNull Call<TmdbResponse> call, @NonNull Throwable t) {
-                handleSearchError("Network timeout or error");
-                showProviderCoverageFallback(query, type.equals("Movie") ? "Movie" : "Series");
+                ApiHealthManager.markHealth(AddMediaActivity.this, ApiHealthManager.KEY_TMDB, false);
+                if (isMovie) {
+                    searchMoviesViaOmdb(query);
+                } else {
+                    searchSeriesViaTvMaze(query);
+                }
+            }
+        });
+    }
+
+    private void searchMoviesViaOmdb(String query) {
+        if (TextUtils.isEmpty(BuildConfig.OMDB_API_KEY)
+                || !ApiHealthManager.isHealthy(this, ApiHealthManager.KEY_OMDB, true)) {
+            pbSearchLoading.setVisibility(View.GONE);
+            btnApiSearchSubmit.setEnabled(true);
+            rvApiResults.setVisibility(View.VISIBLE);
+            showProviderCoverageFallback(query, "Movie");
+            return;
+        }
+        OmdbSearchApiService service = omdbRetrofit.create(OmdbSearchApiService.class);
+        service.searchMovies(BuildConfig.OMDB_API_KEY, query, "movie", 1).enqueue(new Callback<OmdbSearchResponse>() {
+            @Override
+            public void onResponse(@NonNull Call<OmdbSearchResponse> call, @NonNull Response<OmdbSearchResponse> response) {
+                pbSearchLoading.setVisibility(View.GONE);
+                btnApiSearchSubmit.setEnabled(true);
+                rvApiResults.setVisibility(View.VISIBLE);
+                boolean healthy = response.isSuccessful()
+                        && response.body() != null
+                        && response.body().search != null
+                        && !response.body().search.isEmpty();
+                ApiHealthManager.markHealth(AddMediaActivity.this, ApiHealthManager.KEY_OMDB, healthy);
+                if (!healthy) {
+                    showProviderCoverageFallback(query, "Movie");
+                    return;
+                }
+                List<MediaSearchResult> results = new ArrayList<>();
+                for (OmdbSearchResponse.OmdbItem item : response.body().search) {
+                    if (item == null || TextUtils.isEmpty(item.title)) continue;
+                    int year = parseReleaseYear(item.year);
+                    String sourceUrl = "https://www.imdb.com/title/" + (item.imdbId == null ? "" : item.imdbId);
+                    MediaSearchResult result = new MediaSearchResult(
+                            item.title,
+                            "Movie",
+                            "Unknown",
+                            "OMDb",
+                            "OMDb metadata result",
+                            "N/A".equalsIgnoreCase(item.poster) ? null : item.poster,
+                            null,
+                            "Minutes",
+                            sourceUrl,
+                            "search",
+                            null,
+                            year
+                    );
+                    result.setMetadataProfile(buildManualMetadataProfile(
+                            item.title,
+                            "Movie",
+                            "Unknown",
+                            "OMDb",
+                            0,
+                            "Minutes",
+                            sourceUrl,
+                            null,
+                            year,
+                            "omdb"
+                    ));
+                    results.add(result);
+                }
+                if (results.isEmpty()) {
+                    showProviderCoverageFallback(query, "Movie");
+                    return;
+                }
+                List<MediaSearchResult> mergedResults = mergeApiAndProviderResults(results, query, "Movie");
+                setSearchResults(mergedResults);
+                showSuccessSnackbar(buildCoverageMessage(results.size(), mergedResults.size() - results.size()));
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<OmdbSearchResponse> call, @NonNull Throwable t) {
+                ApiHealthManager.markHealth(AddMediaActivity.this, ApiHealthManager.KEY_OMDB, false);
+                pbSearchLoading.setVisibility(View.GONE);
+                btnApiSearchSubmit.setEnabled(true);
+                rvApiResults.setVisibility(View.VISIBLE);
+                showProviderCoverageFallback(query, "Movie");
+            }
+        });
+    }
+
+    private void searchSeriesViaTvMaze(String query) {
+        if (!ApiHealthManager.isHealthy(this, ApiHealthManager.KEY_TVMAZE, true)) {
+            pbSearchLoading.setVisibility(View.GONE);
+            btnApiSearchSubmit.setEnabled(true);
+            rvApiResults.setVisibility(View.VISIBLE);
+            showProviderCoverageFallback(query, "Series");
+            return;
+        }
+        TvMazeApiService service = tvMazeRetrofit.create(TvMazeApiService.class);
+        service.searchShows(query).enqueue(new Callback<List<TvMazeResponse>>() {
+            @Override
+            public void onResponse(@NonNull Call<List<TvMazeResponse>> call, @NonNull Response<List<TvMazeResponse>> response) {
+                pbSearchLoading.setVisibility(View.GONE);
+                btnApiSearchSubmit.setEnabled(true);
+                rvApiResults.setVisibility(View.VISIBLE);
+                boolean healthy = response.isSuccessful() && response.body() != null && !response.body().isEmpty();
+                ApiHealthManager.markHealth(AddMediaActivity.this, ApiHealthManager.KEY_TVMAZE, healthy);
+                if (!healthy) {
+                    showProviderCoverageFallback(query, "Series");
+                    return;
+                }
+                List<MediaSearchResult> results = new ArrayList<>();
+                for (TvMazeResponse entry : response.body()) {
+                    TvMazeResponse.TvShow show = entry == null ? null : entry.getShow();
+                    if (show == null || TextUtils.isEmpty(show.getName())) continue;
+                    String sourceUrl = "https://www.tvmaze.com/search?q=" + Uri.encode(show.getName());
+                    String genres = show.getGenres() == null || show.getGenres().isEmpty()
+                            ? "Unknown"
+                            : String.join(", ", show.getGenres());
+                    String description = sanitizeDescription(show.getSummary());
+                    MediaSearchResult result = new MediaSearchResult(
+                            show.getName(),
+                            "Series",
+                            genres,
+                            "TVMaze",
+                            description,
+                            show.getImage() == null ? null : show.getImage().getOriginal(),
+                            null,
+                            "Episodes",
+                            sourceUrl,
+                            "search",
+                            null,
+                            0
+                    );
+                    result.setMetadataProfile(buildManualMetadataProfile(
+                            show.getName(),
+                            "Series",
+                            genres,
+                            "TVMaze",
+                            0,
+                            "Episodes",
+                            sourceUrl,
+                            null,
+                            0,
+                            "tvmaze"
+                    ));
+                    results.add(result);
+                }
+                if (results.isEmpty()) {
+                    showProviderCoverageFallback(query, "Series");
+                    return;
+                }
+                List<MediaSearchResult> mergedResults = mergeApiAndProviderResults(results, query, "Series");
+                setSearchResults(mergedResults);
+                showSuccessSnackbar(buildCoverageMessage(results.size(), mergedResults.size() - results.size()));
+            }
+
+            @Override
+            public void onFailure(@NonNull Call<List<TvMazeResponse>> call, @NonNull Throwable t) {
+                ApiHealthManager.markHealth(AddMediaActivity.this, ApiHealthManager.KEY_TVMAZE, false);
+                pbSearchLoading.setVisibility(View.GONE);
+                btnApiSearchSubmit.setEnabled(true);
+                rvApiResults.setVisibility(View.VISIBLE);
+                showProviderCoverageFallback(query, "Series");
             }
         });
     }
@@ -1037,7 +1710,7 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
         btnApiSearchSubmit.setEnabled(true);
         rvApiResults.setVisibility(View.VISIBLE);
         tvNoResults.setVisibility(View.GONE);
-        searchAdapter.setResults(fallbackResults);
+        setSearchResults(fallbackResults);
         Snackbar.make(
                 coordinatorLayout,
                 "API had limited coverage. Using provider fallback links.",
@@ -1527,21 +2200,21 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
     }
 
     private void saveToDatabase() {
-        String title = Objects.requireNonNull(etManualTitle.getText()).toString().trim();
-        String type = spinnerManualType.getSelectedItem().toString();
-        String status = spinnerManualStatus.getSelectedItem().toString();
+        String title = getTextOrEmpty(etManualTitle);
+        String type = getSpinnerValueOrDefault(spinnerManualType, "Book");
+        String status = getSpinnerValueOrDefault(spinnerManualStatus, "Planning");
         String genreInput = spinnerManualGenre.getSelectedItem() != null ? spinnerManualGenre.getSelectedItem().toString() : "";
-        String creator = Objects.requireNonNull(etManualAuthor.getText()).toString().trim();
-        String progressStr = etManualProgress.getText().toString().trim();
-        String capacityStr = etManualTotal.getText().toString().trim();
-        String unit = spinnerTotalUnit.getSelectedItem().toString();
-        String imageUrl = Objects.requireNonNull(etManualImage.getText()).toString().trim();
-        String descriptionInput = Objects.requireNonNull(etManualDescription.getText()).toString().trim();
+        String creator = getTextOrEmpty(etManualAuthor);
+        String progressStr = getTextOrEmpty(etManualProgress);
+        String capacityStr = getTextOrEmpty(etManualTotal);
+        String unit = getSpinnerValueOrDefault(spinnerTotalUnit, "Pages");
+        String imageUrl = getTextOrEmpty(etManualImage);
+        String descriptionInput = getTextOrEmpty(etManualDescription);
         if (TextUtils.isEmpty(descriptionInput) && !TextUtils.isEmpty(trackerDetectedDescription)) {
             descriptionInput = trackerDetectedDescription.trim();
         }
-        String review = Objects.requireNonNull(etManualReview.getText()).toString().trim();
-        String journal = Objects.requireNonNull(etManualJournal.getText()).toString().trim();
+        String review = getTextOrEmpty(etManualReview);
+        String journal = getTextOrEmpty(etManualJournal);
         String mood = getSelectedManualMood();
         String priority = spinnerManualPriority.getSelectedItem() != null
                 ? spinnerManualPriority.getSelectedItem().toString()
@@ -1706,6 +2379,8 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                     AppExecutor.getInstance().mainThread().execute(() -> {
                         // Successfully added - redirect immediately
                         Toast.makeText(AddMediaActivity.this, "✓ Successfully added to MediaVault!", Toast.LENGTH_SHORT).show();
+                        Intent updateIntent = new Intent(DescriptionActivity.ACTION_MEDIA_UPDATED);
+                        sendBroadcast(updateIntent);
                         setResult(RESULT_OK);
                         finish();
                     });
@@ -1730,6 +2405,21 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
                 });
             }
         });
+    }
+
+    private String getTextOrEmpty(EditText input) {
+        if (input == null || input.getText() == null) {
+            return "";
+        }
+        return input.getText().toString().trim();
+    }
+
+    private String getSpinnerValueOrDefault(Spinner spinner, String fallback) {
+        if (spinner == null || spinner.getSelectedItem() == null) {
+            return fallback;
+        }
+        String value = spinner.getSelectedItem().toString();
+        return value == null || value.trim().isEmpty() ? fallback : value;
     }
 
     private void showDuplicateEntryDialog() {
@@ -1867,6 +2557,86 @@ public class AddMediaActivity extends AppCompatActivity implements MediaSearchAd
             profile.addExternalId("malId", String.valueOf(data.getMalId()));
         }
         profile.addTag("source:jikan");
+        profile.addTag("provider:" + MediaMetadataProfile.detectProviderSlugFromUrl(canonicalUrl));
+        return profile;
+    }
+
+    private MediaMetadataProfile buildMyAnimeListMetadataProfile(MyAnimeListResponse.Node node, String type, String canonicalUrl) {
+        if (node == null) return null;
+        String canonicalTitle = node.getTitle();
+        String englishTitle = node.getAlternativeTitles() == null ? null : node.getAlternativeTitles().getEnglish();
+        String japaneseTitle = node.getAlternativeTitles() == null ? null : node.getAlternativeTitles().getJapanese();
+        Integer total = "Anime".equalsIgnoreCase(type) ? node.getNumEpisodes() : node.getNumChapters();
+        MediaMetadataProfile profile = MediaMetadataProfile.create()
+                .withCanonicalTitle(canonicalTitle)
+                .withNormalizedTitle(MediaMetadataProfile.normalizeTitle(canonicalTitle))
+                .addAltTitle(englishTitle)
+                .addAltTitle(japaneseTitle)
+                .withProviderId("myanimelist")
+                .withProviderSlug("myanimelist")
+                .withCanonicalUrl(canonicalUrl)
+                .withMetadataSource("myanimelist")
+                .withMediaType(type)
+                .withStatus(node.getStatus())
+                .withReleaseYear(MediaMetadataProfile.safeYear(parseReleaseYear(node.getStartDate())))
+                .withTotalCount(total)
+                .withUnit("Anime".equalsIgnoreCase(type) ? "Episodes" : "Chapters")
+                .addGenres(MediaMetadataProfile.splitCsv(joinNamedItems(node.getGenres())))
+                .withRating(node.getMean())
+                .withPopularity(node.getPopularity() == null ? null : node.getPopularity().floatValue())
+                .withMetadataConfidence(0.9f)
+                .withMetadataPriority(92)
+                .stampNow();
+        if (node.getId() != null && node.getId() > 0) {
+            profile.addExternalId("malId", String.valueOf(node.getId()));
+        }
+        if (node.getAlternativeTitles() != null && node.getAlternativeTitles().getSynonyms() != null) {
+            for (String synonym : node.getAlternativeTitles().getSynonyms()) {
+                profile.addAltTitle(synonym);
+            }
+        }
+        profile.addTag("source:myanimelist");
+        profile.addTag("provider:" + MediaMetadataProfile.detectProviderSlugFromUrl(canonicalUrl));
+        return profile;
+    }
+
+    private MediaMetadataProfile buildKitsuMetadataProfile(
+            KitsuResponse.Attributes attributes,
+            String kitsuId,
+            String type,
+            String canonicalUrl
+    ) {
+        if (attributes == null) return null;
+        Integer total = "Anime".equalsIgnoreCase(type) ? attributes.getEpisodeCount() : attributes.getChapterCount();
+        Float rating = null;
+        try {
+            if (!TextUtils.isEmpty(attributes.getAverageRating())) {
+                rating = Float.parseFloat(attributes.getAverageRating()) / 10f;
+            }
+        } catch (Exception ignored) {
+            rating = null;
+        }
+        MediaMetadataProfile profile = MediaMetadataProfile.create()
+                .withCanonicalTitle(attributes.getCanonicalTitle())
+                .withNormalizedTitle(MediaMetadataProfile.normalizeTitle(attributes.getCanonicalTitle()))
+                .withProviderId("kitsu")
+                .withProviderSlug("kitsu")
+                .withCanonicalUrl(canonicalUrl)
+                .withMetadataSource("kitsu")
+                .withMediaType(type)
+                .withStatus(attributes.getStatus())
+                .withReleaseYear(MediaMetadataProfile.safeYear(parseReleaseYear(attributes.getStartDate())))
+                .withTotalCount(total)
+                .withUnit("Anime".equalsIgnoreCase(type) ? "Episodes" : "Chapters")
+                .withRating(rating)
+                .withPopularity(attributes.getPopularityRank() == null ? null : attributes.getPopularityRank().floatValue())
+                .withMetadataConfidence(0.8f)
+                .withMetadataPriority(76)
+                .stampNow();
+        if (!TextUtils.isEmpty(kitsuId)) {
+            profile.addExternalId("kitsuId", kitsuId);
+        }
+        profile.addTag("source:kitsu");
         profile.addTag("provider:" + MediaMetadataProfile.detectProviderSlugFromUrl(canonicalUrl));
         return profile;
     }

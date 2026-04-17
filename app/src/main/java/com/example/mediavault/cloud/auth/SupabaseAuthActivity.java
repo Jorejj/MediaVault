@@ -1,0 +1,196 @@
+package com.example.mediavault.cloud.auth;
+
+import android.content.Intent;
+import android.os.Bundle;
+import android.view.View;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.TextView;
+
+import androidx.appcompat.app.AppCompatActivity;
+
+import com.example.mediavault.MainActivity;
+import com.example.mediavault.R;
+import com.example.mediavault.cloud.CloudConfig;
+import com.example.mediavault.cloud.sync.SupabaseMediaSyncManager;
+import com.example.mediavault.utils.ThemeUtils;
+import com.example.mediavault.widget.ToastUtils;
+
+public class SupabaseAuthActivity extends AppCompatActivity {
+    public static final String EXTRA_FORCE_LOGIN = "extra_force_login";
+
+    private SupabaseAuthRepository authRepository;
+    private EditText editEmail;
+    private EditText editPassword;
+    private TextView textSessionStatus;
+    private TextView textRegisterLink;
+    private View dividerAuthActions;
+    private Button buttonLogin;
+    private Button buttonForgot;
+    private Button buttonLogout;
+    private Button buttonClose;
+    private boolean forceLogin;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        ThemeUtils.applySavedTheme(this);
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_supabase_auth);
+
+        authRepository = new SupabaseAuthRepository(this);
+        forceLogin = getIntent().getBooleanExtra(EXTRA_FORCE_LOGIN, false);
+
+        editEmail = findViewById(R.id.edit_cloud_email);
+        editPassword = findViewById(R.id.edit_cloud_password);
+        textSessionStatus = findViewById(R.id.text_cloud_session_status);
+        textRegisterLink = findViewById(R.id.text_register_link);
+        dividerAuthActions = findViewById(R.id.divider_auth_actions);
+        buttonLogin = findViewById(R.id.btn_cloud_login);
+        buttonForgot = findViewById(R.id.btn_cloud_forgot);
+        buttonLogout = findViewById(R.id.btn_cloud_logout);
+        buttonClose = findViewById(R.id.btn_cloud_close);
+
+        if (forceLogin) {
+            buttonClose.setText(R.string.auto_exit);
+            buttonClose.setOnClickListener(v -> finishAffinity());
+        } else {
+            buttonClose.setText("Continue to App");
+            buttonClose.setOnClickListener(v -> {
+                Intent intent = new Intent(SupabaseAuthActivity.this, MainActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                startActivity(intent);
+                finish();
+            });
+        }
+
+        buttonLogin.setOnClickListener(v -> attemptLogin());
+        buttonForgot.setOnClickListener(v -> attemptForgotPassword());
+        buttonLogout.setOnClickListener(v -> attemptLogout());
+        buttonLogout.setText(R.string.auto_log_out_account);
+        textRegisterLink.setOnClickListener(v -> openRegisterPage());
+
+        applySupabaseAvailabilityState();
+        refreshSessionStatus();
+    }
+
+    private void applySupabaseAvailabilityState() {
+        boolean enabled = CloudConfig.isSupabaseEnabled();
+        buttonLogin.setEnabled(enabled);
+        buttonForgot.setEnabled(enabled);
+        textRegisterLink.setEnabled(enabled);
+        buttonLogout.setEnabled(true);
+        if (!enabled) {
+            textSessionStatus.setText("Supabase integration is currently disabled.");
+        } else if (forceLogin) {
+            textSessionStatus.setText("Sync required to continue.");
+        }
+    }
+
+    private void refreshSessionStatus() {
+        SupabaseSessionManager session = authRepository.getSessionManager();
+        boolean loggedIn = session.isLoggedIn();
+        if (loggedIn) {
+            textSessionStatus.setText("Logged in as: " + session.getEmail() + "\nUser ID: " + session.getUserId());
+        } else if (CloudConfig.isSupabaseEnabled()) {
+            textSessionStatus.setText("Not logged in.");
+        }
+        buttonLogout.setVisibility(loggedIn ? View.VISIBLE : View.GONE);
+        
+        // Show "Continue" button if not forced AND (we are logged in OR Supabase is disabled)
+        boolean showClose = !forceLogin && (loggedIn || !CloudConfig.isSupabaseEnabled());
+        buttonClose.setVisibility(showClose ? View.VISIBLE : View.GONE);
+        
+        dividerAuthActions.setVisibility((loggedIn || showClose) ? View.VISIBLE : View.GONE);
+    }
+
+    private void attemptLogin() {
+        String email = readEmail();
+        String password = readPassword();
+        if (email.isEmpty() || password.isEmpty()) {
+            ToastUtils.showCustomToast(this, "Email and password are required.");
+            return;
+        }
+        authRepository.signIn(email, password, new SupabaseAuthRepository.AuthCallback() {
+            @Override
+            public void onSuccess(String message) {
+                refreshSessionStatus();
+                SupabaseMediaSyncManager.bootstrapCloudPrimaryAsync(SupabaseAuthActivity.this);
+                ToastUtils.showCustomToast(SupabaseAuthActivity.this, message);
+                Intent intent = new Intent(SupabaseAuthActivity.this, MainActivity.class);
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+                startActivity(intent);
+                finish();
+            }
+
+            @Override
+            public void onError(String message) {
+                ToastUtils.showCustomToast(SupabaseAuthActivity.this, message);
+            }
+        });
+    }
+
+    private void attemptForgotPassword() {
+        String email = readEmail();
+        if (email.isEmpty()) {
+            ToastUtils.showCustomToast(this, "Email is required.");
+            return;
+        }
+        buttonForgot.setEnabled(false);
+        authRepository.sendPasswordResetOtp(email, new SupabaseAuthRepository.AuthCallback() {
+            @Override
+            public void onSuccess(String message) {
+                buttonForgot.setEnabled(true);
+                ToastUtils.showCustomToast(SupabaseAuthActivity.this, message);
+                Intent intent = new Intent(SupabaseAuthActivity.this, SupabasePasswordResetActivity.class);
+                intent.putExtra(SupabasePasswordResetActivity.EXTRA_EMAIL, email);
+                startActivity(intent);
+            }
+
+            @Override
+            public void onError(String message) {
+                buttonForgot.setEnabled(true);
+                ToastUtils.showCustomToast(SupabaseAuthActivity.this, message);
+            }
+        });
+    }
+
+    private void attemptLogout() {
+        authRepository.signOut(new SupabaseAuthRepository.AuthCallback() {
+            @Override
+            public void onSuccess(String message) {
+                refreshSessionStatus();
+                ToastUtils.showCustomToast(SupabaseAuthActivity.this, message);
+            }
+
+            @Override
+            public void onError(String message) {
+                ToastUtils.showCustomToast(SupabaseAuthActivity.this, message);
+            }
+        });
+    }
+
+    private void openRegisterPage() {
+        Intent intent = new Intent(this, SupabaseRegisterActivity.class);
+        intent.putExtra(EXTRA_FORCE_LOGIN, forceLogin);
+        startActivity(intent);
+    }
+
+    private String readEmail() {
+        CharSequence text = editEmail.getText();
+        return text == null ? "" : text.toString().trim();
+    }
+
+    private String readPassword() {
+        CharSequence text = editPassword.getText();
+        return text == null ? "" : text.toString().trim();
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (forceLogin) {
+            finishAffinity();
+            return;
+        }
+        super.onBackPressed();
+    }
+}

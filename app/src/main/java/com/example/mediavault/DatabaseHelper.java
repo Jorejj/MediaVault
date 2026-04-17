@@ -23,6 +23,8 @@ import java.util.Set;
 
 import com.example.mediavault.utils.ProgressValueUtils;
 import com.example.mediavault.api.MediaMetadataProfile;
+import com.example.mediavault.cloud.CloudConfig;
+import com.example.mediavault.cloud.sync.SupabaseMediaSyncManager;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
 
@@ -508,7 +510,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COL_CURRENT_SEASON, 1);
         values.put(COL_CURRENT_EPISODE, 1);
         long result = db.insertWithOnConflict(TABLE_MEDIA, null, values, SQLiteDatabase.CONFLICT_IGNORE);
-        db.close();
+        if (result > 0 && result <= Integer.MAX_VALUE) {
+            SupabaseMediaSyncManager.enqueueUpsertMedia(context, (int) result);
+            SupabaseMediaSyncManager.enqueueUserEvent(
+                    context,
+                    "open",
+                    1.0,
+                    "add_media:local_id=" + result
+            );
+        }
         return result;
     }
 
@@ -602,7 +612,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             logProgressDelta(db, id, normalizedProgress - oldProgress);
         }
         int result = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(id)});
-        db.close();
+        if (result > 0) {
+            SupabaseMediaSyncManager.enqueueUpsertMedia(context, id);
+        }
         return result > 0;
     }
 
@@ -635,7 +647,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             logProgressDelta(db, id, normalizedProgress - oldProgress);
         }
         int result = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(id)});
-        db.close();
+        if (result > 0) {
+            SupabaseMediaSyncManager.enqueueUpsertMedia(context, id);
+        }
         return result > 0;
     }
 
@@ -683,7 +697,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COL_LAST_UPDATED, getDateTime());
         int result = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(id)});
         
-        db.close();
+        if (result > 0) {
+            SupabaseMediaSyncManager.enqueueUpsertMedia(context, id);
+            SupabaseMediaSyncManager.enqueueUserEvent(
+                    context,
+                    "progress",
+                    Math.max(0f, progressAdded),
+                    "progress_update:local_id=" + id
+            );
+        }
         return result > 0;
     }
 
@@ -694,7 +716,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COL_CONTENT_TYPE, contentType);
         values.put(COL_LAST_UPDATED, getDateTime());
         int result = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(id)});
-        db.close();
+        if (result > 0) {
+            SupabaseMediaSyncManager.enqueueUpsertMedia(context, id);
+        }
         return result > 0;
     }
 
@@ -751,7 +775,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COL_RATING, newRating > 0 ? newRating : currentRating);
         values.put(COL_LAST_UPDATED, getDateTime());
         int result = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(id)});
-        db.close();
+        if (result > 0) {
+            SupabaseMediaSyncManager.enqueueUpsertMedia(context, id);
+            SupabaseMediaSyncManager.enqueueUserEvent(
+                    context,
+                    "progress",
+                    Math.max(0f, progressAdded),
+                    "series_progress:local_id=" + id + ":s" + safeSeason + "e" + safeEpisode
+            );
+        }
         return result > 0;
     }
 
@@ -791,14 +823,24 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COL_LAST_UPDATED, getDateTime());
         int result = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(id)});
 
-        db.close();
+        if (result > 0) {
+            SupabaseMediaSyncManager.enqueueUpsertMedia(context, id);
+            SupabaseMediaSyncManager.enqueueUserEvent(
+                    context,
+                    "progress",
+                    Math.max(0f, progressAdded),
+                    "progress_status_mood:local_id=" + id
+            );
+        }
         return result > 0;
     }
 
     public boolean deleteMedia(int id) {
         SQLiteDatabase db = this.getWritableDatabase();
         int result = db.delete(TABLE_MEDIA, COL_ID + "=?", new String[]{String.valueOf(id)});
-        db.close();
+        if (result > 0) {
+            SupabaseMediaSyncManager.enqueueDeleteMedia(context, id);
+        }
         return result > 0;
     }
 
@@ -807,7 +849,9 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         ContentValues values = new ContentValues();
         values.put(COL_IMAGE_PATH, newPath);
         int result = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(id)});
-        db.close();
+        if (result > 0) {
+            SupabaseMediaSyncManager.enqueueUpsertMedia(context, id);
+        }
         return result > 0;
     }
 
@@ -1026,7 +1070,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         );
         if (!cursor.moveToFirst()) {
             cursor.close();
-            db.close();
             return false;
         }
         String existing = cursor.getString(0);
@@ -1066,7 +1109,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COL_GENRE, merged.toString());
         values.put(COL_LAST_UPDATED, getDateTime());
         int rows = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(mediaId)});
-        db.close();
         return rows > 0;
     }
 
@@ -1179,7 +1221,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COL_PRIORITY, priority == null || priority.isEmpty() ? "Medium" : priority);
         values.put(COL_IS_FAVORITE, isFavorite ? 1 : 0);
         int result = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(id)});
-        db.close();
+        if (result > 0) {
+            SupabaseMediaSyncManager.enqueueUpsertMedia(context, id);
+            SupabaseMediaSyncManager.enqueueUserEvent(
+                    context,
+                    isFavorite ? "favorite" : "unfavorite",
+                    1.0,
+                    "metadata_toggle:local_id=" + id
+            );
+        }
         return result > 0;
     }
 
@@ -1198,7 +1248,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             if (cursor != null) {
                 cursor.close();
             }
-            db.close();
             return false;
         }
 
@@ -1216,7 +1265,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COL_STATUS, newStatus);
         values.put(COL_RATING, rating);
         int updatedRows = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(mediaId)});
-        db.close();
+        if (updatedRows > 0) {
+            SupabaseMediaSyncManager.enqueueUpsertMedia(context, mediaId);
+            SupabaseMediaSyncManager.enqueueUserEvent(
+                    context,
+                    "progress",
+                    1.0,
+                    "quick_plus:local_id=" + mediaId
+            );
+        }
         return updatedRows > 0;
     }
 
@@ -1239,7 +1296,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COL_STATUS, "Planning");
         values.put(COL_PRIORITY, (priority == null || priority.isEmpty()) ? "Medium" : priority);
         long result = db.insertWithOnConflict(TABLE_MEDIA, null, values, SQLiteDatabase.CONFLICT_IGNORE);
-        db.close();
         return result;
     }
 
@@ -1416,12 +1472,18 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             }
 
             long mediaId = db.insertWithOnConflict(TABLE_MEDIA, null, v, SQLiteDatabase.CONFLICT_IGNORE);
-            if (mediaId != -1 && progress > 0) {
-                seedProgressHistory(db, (int) mediaId, progress);
+            if (mediaId != -1) {
+                if (progress > 0) {
+                    seedProgressHistory(db, (int) mediaId, progress);
+                }
             }
             index++;
         }
-        db.close();
+        
+        // Use bulk sync instead of enqueuing 50 separate tasks to avoid thread pool exhaustion/crash
+        if (CloudConfig.isSupabaseEnabled()) {
+            SupabaseMediaSyncManager.syncAllFromLocalAsync(context);
+        }
     }
 
     public void clearAllMedia() {
@@ -1429,7 +1491,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.execSQL("DELETE FROM " + TABLE_PROGRESS_LOG);
         db.execSQL("DELETE FROM " + TABLE_MEDIA_METADATA);
         db.execSQL("DELETE FROM " + TABLE_MEDIA);
-        db.close();
     }
 
     public boolean upsertMediaMetadata(int mediaId, MediaMetadataProfile profile) {
@@ -1462,12 +1523,15 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
             ContentValues values = toMetadataContentValues(mediaId, merged);
             long result = db.insertWithOnConflict(TABLE_MEDIA_METADATA, null, values, SQLiteDatabase.CONFLICT_REPLACE);
+            if (result != -1) {
+                SupabaseMediaSyncManager.enqueueUpsertMedia(context, mediaId);
+                SupabaseMediaSyncManager.enqueueUpsertMediaMetadata(context, mediaId);
+            }
             return result != -1;
         } finally {
             if (cursor != null) {
                 cursor.close();
             }
-            db.close();
         }
     }
 
@@ -1500,7 +1564,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             if (cursor != null) {
                 cursor.close();
             }
-            db.close();
         }
     }
 
@@ -1585,7 +1648,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             if (cursor != null) {
                 cursor.close();
             }
-            db.close();
         }
     }
 
@@ -1878,6 +1940,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         logValues.put(COL_LOG_MEDIA_ID, mediaId);
         logValues.put(COL_PROGRESS_ADDED, delta);
         db.insert(TABLE_PROGRESS_LOG, null, logValues);
+        SupabaseMediaSyncManager.enqueueProgressLog(context, mediaId, delta, getDateOffset(0));
     }
 
     private void logProgressDeltaAtDate(SQLiteDatabase db, int mediaId, float delta, String date) {
@@ -1889,6 +1952,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         logValues.put(COL_PROGRESS_ADDED, delta);
         logValues.put(COL_LOG_DATE, date);
         db.insert(TABLE_PROGRESS_LOG, null, logValues);
+        SupabaseMediaSyncManager.enqueueProgressLog(context, mediaId, delta, date);
     }
 
     private void seedProgressHistory(SQLiteDatabase db, int mediaId, float progress) {

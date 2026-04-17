@@ -8,6 +8,7 @@ import android.widget.Button;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.mediavault.cloud.auth.CloudAuthNavigator;
 import com.example.mediavault.ui.dialogs.PermissionWizardDialog;
 
 /**
@@ -33,7 +34,7 @@ public class OnboardingActivity extends AppCompatActivity {
         
         // Check if onboarding already completed
         if (isOnboardingComplete()) {
-            proceedToMain();
+            proceedToLogin();
             return;
         }
 
@@ -107,7 +108,7 @@ public class OnboardingActivity extends AppCompatActivity {
 
     private void skipOnboarding() {
         markOnboardingComplete();
-        proceedToMain();
+        proceedToLogin();
     }
 
     private void finishOnboarding() {
@@ -129,9 +130,8 @@ public class OnboardingActivity extends AppCompatActivity {
         return prefs.getBoolean(KEY_ONBOARDING_COMPLETE, false);
     }
 
-    private void proceedToMain() {
-        Intent intent = new Intent(this, MainActivity.class);
-        startActivity(intent);
+    private void proceedToLogin() {
+        CloudAuthNavigator.openForcedLogin(this);
         finish();
     }
 

@@ -36,6 +36,11 @@ import androidx.navigation.Navigation;
 import com.example.mediavault.DatabaseHelper;
 import com.example.mediavault.DailyGoalsManager;
 import com.example.mediavault.R;
+import com.example.mediavault.cloud.CloudConfig;
+import com.example.mediavault.cloud.auth.CloudAuthNavigator;
+import com.example.mediavault.cloud.auth.CloudProfileActivity;
+import com.example.mediavault.cloud.auth.SupabaseAuthRepository;
+import com.example.mediavault.cloud.sync.SupabaseMediaSyncManager;
 import com.example.mediavault.receiver.DailyGoalReminderReceiver;
 import com.example.mediavault.service.MediaMonitorService;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
@@ -142,6 +147,9 @@ public class SettingsFragment extends Fragment {
         TextView textBatteryStatus = view.findViewById(R.id.text_battery_status);
         textReminderAlertStatus = view.findViewById(R.id.text_reminder_alert_status);
         View rowExportData = view.findViewById(R.id.row_export_data);
+        View rowCloudProfile = view.findViewById(R.id.row_cloud_profile);
+        View rowCloudLogout = view.findViewById(R.id.row_cloud_logout);
+        View rowCloudSyncNow = view.findViewById(R.id.row_cloud_sync_now);
         View rowQrVault = view.findViewById(R.id.row_qr_vault);
         View rowClearDatabase = view.findViewById(R.id.row_clear_database);
         View rowTerms = view.findViewById(R.id.row_terms);
@@ -259,6 +267,34 @@ public class SettingsFragment extends Fragment {
             rowExportData.setOnClickListener(v -> showExportConfirmationDialog());
         }
 
+        if (rowCloudProfile != null) {
+            rowCloudProfile.setOnClickListener(v -> startActivity(new Intent(requireContext(), CloudProfileActivity.class)));
+        }
+        if (rowCloudLogout != null) {
+            rowCloudLogout.setOnClickListener(v -> new SupabaseAuthRepository(requireContext()).signOut(new SupabaseAuthRepository.AuthCallback() {
+                @Override
+                public void onSuccess(String message) {
+                    ToastUtils.showCustomToast(requireContext(), message);
+                    CloudAuthNavigator.openForcedLogin(requireContext());
+                }
+
+                @Override
+                public void onError(String message) {
+                    ToastUtils.showCustomToast(requireContext(), message);
+                }
+            }));
+        }
+        if (rowCloudSyncNow != null) {
+            rowCloudSyncNow.setOnClickListener(v -> {
+                if (!CloudConfig.isSupabaseEnabled()) {
+                    ToastUtils.showCustomToast(requireContext(), "Supabase is disabled.");
+                    return;
+                }
+                SupabaseMediaSyncManager.bootstrapCloudPrimaryAsync(requireContext());
+                ToastUtils.showCustomToast(requireContext(), "Cloud refresh started.");
+            });
+        }
+
         if (rowQrVault != null) {
             rowQrVault.setOnClickListener(v -> showQrVaultDialog());
         }
@@ -295,7 +331,9 @@ public class SettingsFragment extends Fragment {
 
         // 10. Vault Management (Seed Data)
         if (rowVault != null) {
-            rowVault.setOnClickListener(v -> showSeedDataDialog());
+            rowVault.setOnClickListener(v -> {
+                showSeedDataDialog();
+            });
         }
 
         // 8. Navigation to About Page
@@ -1018,9 +1056,24 @@ public class SettingsFragment extends Fragment {
                 .setIcon(android.R.drawable.ic_dialog_alert)
                 .setMessage("Are you sure you want to delete ALL your media entries? This action is permanent and cannot be undone.")
                 .setPositiveButton("Clear All", (dialog, which) -> {
-                    dbHelper.clearAllMedia();
-                    ToastUtils.showCustomToast(getContext(), "Database cleared successfully");
-                    // Clear logs as well - DatabaseHelper.clearAllMedia already does this.
+                    if (!CloudConfig.isSupabaseEnabled()) {
+                        dbHelper.clearAllMedia();
+                        ToastUtils.showCustomToast(getContext(), "Database cleared successfully");
+                        return;
+                    }
+                    ToastUtils.showCustomToast(getContext(), "Clearing cloud and local data...");
+                    SupabaseMediaSyncManager.clearAllUserCloudDataAsync(requireContext(), new SupabaseMediaSyncManager.CloudClearCallback() {
+                        @Override
+                        public void onSuccess() {
+                            dbHelper.clearAllMedia();
+                            ToastUtils.showCustomToast(getContext(), "Database cleared locally and in cloud");
+                        }
+
+                        @Override
+                        public void onError(String message) {
+                            ToastUtils.showCustomToast(getContext(), message);
+                        }
+                    });
                 })
                 .setNegativeButton("Cancel", null)
                 .show();

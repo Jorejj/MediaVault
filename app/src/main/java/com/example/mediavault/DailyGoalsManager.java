@@ -7,6 +7,8 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 import android.util.Log;
 
+import com.example.mediavault.cloud.sync.SupabaseMediaSyncManager;
+
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
@@ -132,6 +134,7 @@ public class DailyGoalsManager {
             SQLiteDatabase db = dbHelper.getWritableDatabase();
             db.execSQL("INSERT OR IGNORE INTO " + DatabaseHelper.TABLE_DAILY_METRICS + 
                     " (" + DatabaseHelper.COL_DAILY_DATE + ") VALUES (?)", new String[]{date});
+            SupabaseMediaSyncManager.enqueueUpsertDailyMetrics(context, date);
         } catch (SQLiteException e) {
             Log.e(TAG, "Error ensuring daily row", e);
         }
@@ -176,6 +179,7 @@ public class DailyGoalsManager {
             wdb.execSQL("UPDATE " + DatabaseHelper.TABLE_DAILY_METRICS +
                     " SET " + DatabaseHelper.COL_DAILY_GOAL_MET + " = ? WHERE " +
                     DatabaseHelper.COL_DAILY_DATE + " = ?", new Object[]{goalMet, date});
+            SupabaseMediaSyncManager.enqueueUpsertDailyMetrics(context, date);
 
             calculateCurrentStreakSync();
         } catch (SQLiteException e) {

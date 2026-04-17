@@ -18,8 +18,8 @@ import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 
-import com.example.mediavault.MainActivity;
 import com.example.mediavault.R;
+import com.example.mediavault.cloud.auth.CloudAuthNavigator;
 import com.example.mediavault.utils.AccessibilityServiceHelper;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 
@@ -320,10 +320,7 @@ public class PermissionWizardActivity extends AppCompatActivity {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         prefs.edit().putBoolean(KEY_WIZARD_COMPLETED, true).apply();
 
-        // Navigate to MainActivity
-        Intent intent = new Intent(this, MainActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-        startActivity(intent);
+        CloudAuthNavigator.openForcedLogin(this);
         finish();
     }
 

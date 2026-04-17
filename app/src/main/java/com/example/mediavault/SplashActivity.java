@@ -7,6 +7,10 @@ import android.os.Looper; // Added this import
 import android.content.SharedPreferences;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.app.AppCompatDelegate;
+import com.example.mediavault.cloud.auth.CloudAccessGate;
+import com.example.mediavault.cloud.auth.SupabaseAuthActivity;
+import com.example.mediavault.cloud.sync.SupabaseMediaSyncManager;
+import com.example.mediavault.api.ApiHealthManager;
 
 @SuppressWarnings("CustomSplashScreen")
 
@@ -17,6 +21,7 @@ public class SplashActivity extends AppCompatActivity {
         applySavedTheme();
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_starting_page);
+        ApiHealthManager.preflightAsync(getApplicationContext());
 
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             // Check if onboarding should be shown
@@ -24,7 +29,14 @@ public class SplashActivity extends AppCompatActivity {
                 Intent intent = new Intent(SplashActivity.this, OnboardingActivity.class);
                 startActivity(intent);
             } else {
-                Intent intent = new Intent(SplashActivity.this, MainActivity.class);
+                Intent intent;
+                if (CloudAccessGate.requiresCloudLogin(this)) {
+                    intent = new Intent(SplashActivity.this, SupabaseAuthActivity.class);
+                    intent.putExtra(SupabaseAuthActivity.EXTRA_FORCE_LOGIN, true);
+                } else {
+                    SupabaseMediaSyncManager.bootstrapCloudPrimaryAsync(this);
+                    intent = new Intent(SplashActivity.this, MainActivity.class);
+                }
                 startActivity(intent);
             }
             finish();

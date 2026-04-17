@@ -8,12 +8,12 @@
         <item>Series</item>
     </string-array>
     <string-array name="api_targets">
-        <item>Anime (Jikan)</item>
-        <item>Manga (Jikan)</item>
-        <item>Light/Web Novels (AniList + OpenLibrary)</item>
-        <item>Books (Google Books)</item>
-        <item>Movies (TMDB)</item>
-        <item>Series (TMDB)</item>
+        <item>Anime</item>
+        <item>Manga</item>
+        <item>Light/Web Novels</item>
+        <item>Books</item>
+        <item>Movies</item>
+        <item>Series</item>
     </string-array>
     <string-array name="media_statuses">
         <item>Planning</item>

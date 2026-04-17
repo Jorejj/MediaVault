@@ -166,11 +166,32 @@
                         android:textColor="?attr/colorTextSecondary"
                         android:textSize="14sp" />
 
+                    <com.google.android.material.textfield.TextInputLayout
+                        android:id="@+id/layout_register_verify_password"
+                        style="@style/Widget.MaterialComponents.TextInputLayout.OutlinedBox"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:hint="@string/auto_password"
+                        app:boxBackgroundMode="outline"
+                        app:boxStrokeColor="@color/vault_red_primary"
+                        app:endIconMode="password_toggle">
+
+                        <com.google.android.material.textfield.TextInputEditText
+                            android:id="@+id/edit_register_verify_password"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:fontFamily="@font/sf_pro_regular"
+                            android:imeOptions="actionNext"
+                            android:inputType="textPassword"
+                            android:maxLines="1" />
+                    </com.google.android.material.textfield.TextInputLayout>
+
                     <EditText
                         android:id="@+id/edit_register_verification_code"
                         android:layout_width="140dp"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="14dp"
+                        android:layout_marginTop="12dp"
                         android:digits="0123456789"
                         android:fontFamily="@font/sf_pro_medium"
                         android:gravity="center"

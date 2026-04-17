@@ -43,7 +43,7 @@ public class SupabaseAuthRepository {
     public void signIn(String email, String password, AuthCallback callback) {
         String normalizedEmail = email == null ? "" : email.trim();
         String normalizedPassword = password == null ? "" : password.trim();
-        if (DEBUG_USERNAME.equalsIgnoreCase(normalizedEmail) && DEBUG_PASSWORD.equals(normalizedPassword)) {
+        if (com.example.mediavault.BuildConfig.DEBUG && DEBUG_USERNAME.equalsIgnoreCase(normalizedEmail) && DEBUG_PASSWORD.equals(normalizedPassword)) {
             sessionManager.saveDebugSession(DEBUG_USERNAME);
             callback.onSuccess("Logged in with debug account.");
             return;

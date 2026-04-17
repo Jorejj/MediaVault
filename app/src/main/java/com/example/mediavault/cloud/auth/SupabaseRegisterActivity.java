@@ -20,11 +20,12 @@ public class SupabaseRegisterActivity extends AppCompatActivity {
     private static final long EMAIL_COOLDOWN_MS = 60_000L;
     private static final String PREFS_NAME = "supabase_register_pending";
     private static final String KEY_PENDING_EMAIL = "pending_email";
-    private static final String KEY_PENDING_PASSWORD = "pending_password";
+    private static final String KEY_PENDING_PASSWORD_LEGACY = "pending_password";
 
     private SupabaseAuthRepository authRepository;
     private EditText editEmail;
     private EditText editPassword;
+    private EditText editVerifyPassword;
     private EditText editVerificationCode;
     private TextView textTitle;
     private TextView textSubtitle;
@@ -37,7 +38,8 @@ public class SupabaseRegisterActivity extends AppCompatActivity {
     private TextView textBackToLoginRegister;
     private TextView textBackToLoginVerify;
     private String pendingVerificationEmail = "";
-    private String pendingPassword = "";
+    private String pendingLinkTokenHash = "";
+    private String pendingLinkType = "";
     private boolean forceLogin;
     private long nextRegisterEmailRequestAt = 0L;
 
@@ -58,6 +60,7 @@ public class SupabaseRegisterActivity extends AppCompatActivity {
         verifyPanel = findViewById(R.id.layout_verify_panel);
         editEmail = findViewById(R.id.edit_register_email);
         editPassword = findViewById(R.id.edit_register_password);
+        editVerifyPassword = findViewById(R.id.edit_register_verify_password);
         editVerificationCode = findViewById(R.id.edit_register_verification_code);
         buttonRegister = findViewById(R.id.btn_register_submit);
         buttonVerifyCode = findViewById(R.id.btn_register_verify_code);
@@ -102,7 +105,6 @@ public class SupabaseRegisterActivity extends AppCompatActivity {
             return;
         }
         pendingVerificationEmail = email;
-        pendingPassword = password;
         savePendingRegistration();
         nextRegisterEmailRequestAt = now + EMAIL_COOLDOWN_MS;
         buttonRegister.setEnabled(false);
@@ -111,6 +113,16 @@ public class SupabaseRegisterActivity extends AppCompatActivity {
     }
 
     private void attemptVerifyCode() {
+        String password = readVerificationPassword();
+        if (password.length() < 6) {
+            ToastUtils.showCustomToast(this, "Password must be at least 6 characters.");
+            return;
+        }
+        if (!TextUtils.isEmpty(pendingLinkTokenHash)) {
+            textStatus.setText("Verifying your email...");
+            authRepository.verifyRegisterLinkAndActivate(pendingLinkTokenHash, pendingLinkType, password, new VerifyCallback());
+            return;
+        }
         String code = readVerificationCode();
         if (pendingVerificationEmail.isEmpty()) {
             ToastUtils.showCustomToast(this, "Email is required.");
@@ -123,7 +135,7 @@ public class SupabaseRegisterActivity extends AppCompatActivity {
         authRepository.verifyRegisterCodeAndActivate(
                 pendingVerificationEmail,
                 code,
-                pendingPassword,
+                password,
                 new VerifyCallback()
         );
     }
@@ -143,6 +155,11 @@ public class SupabaseRegisterActivity extends AppCompatActivity {
         return text == null ? "" : text.toString().trim();
     }
 
+    private String readVerificationPassword() {
+        CharSequence text = editVerifyPassword.getText();
+        return text == null ? "" : text.toString().trim();
+    }
+
     private void showRegisterPanel() {
         registerPanel.setVisibility(View.VISIBLE);
         verifyPanel.setVisibility(View.GONE);
@@ -154,9 +171,10 @@ public class SupabaseRegisterActivity extends AppCompatActivity {
         registerPanel.setVisibility(View.GONE);
         verifyPanel.setVisibility(View.VISIBLE);
         textTitle.setText(R.string.auto_verify_your_email);
-        textSubtitle.setText("Tap the confirmation link in your email or enter the 6-digit code.");
+        textSubtitle.setText("Enter your password and the 6-digit code from your email.");
         textStatus.setText("Verification email sent. Check your inbox.");
         textVerifyEmailTarget.setText(getString(R.string.auto_code_sent_to_format, pendingVerificationEmail));
+        editVerifyPassword.setText(readPassword());
         editVerificationCode.setText("");
     }
 
@@ -166,15 +184,10 @@ public class SupabaseRegisterActivity extends AppCompatActivity {
         if (TextUtils.isEmpty(tokenHash)) {
             return;
         }
-        if (TextUtils.isEmpty(pendingPassword)) {
-            textStatus.setText("Open register first and set your password before confirming by email link.");
-            showVerifyPanel();
-            return;
-        }
-        String type = getParam(data, "type");
+        pendingLinkTokenHash = tokenHash;
+        pendingLinkType = getParam(data, "type");
         showVerifyPanel();
-        textStatus.setText("Verifying your email...");
-        authRepository.verifyRegisterLinkAndActivate(tokenHash, type, pendingPassword, new VerifyCallback());
+        textStatus.setText("Confirmation link detected. Enter your password, then tap Verify Code.");
     }
 
     private static String getParam(Uri data, String key) {
@@ -203,19 +216,20 @@ public class SupabaseRegisterActivity extends AppCompatActivity {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         prefs.edit()
                 .putString(KEY_PENDING_EMAIL, pendingVerificationEmail)
-                .putString(KEY_PENDING_PASSWORD, pendingPassword)
                 .apply();
     }
 
     private void loadPendingRegistration() {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
         pendingVerificationEmail = prefs.getString(KEY_PENDING_EMAIL, "");
-        pendingPassword = prefs.getString(KEY_PENDING_PASSWORD, "");
     }
 
     private void clearPendingRegistration() {
         SharedPreferences prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE);
-        prefs.edit().clear().apply();
+        prefs.edit()
+                .remove(KEY_PENDING_EMAIL)
+                .remove(KEY_PENDING_PASSWORD_LEGACY)
+                .apply();
     }
 
     private void openSuccessPage() {
@@ -243,6 +257,8 @@ public class SupabaseRegisterActivity extends AppCompatActivity {
         @Override
         public void onSuccess(String message) {
             authRepository.signOutLocal();
+            pendingLinkTokenHash = "";
+            pendingLinkType = "";
             ToastUtils.showCustomToast(SupabaseRegisterActivity.this, message);
             clearPendingRegistration();
             openSuccessPage();

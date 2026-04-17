@@ -612,7 +612,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             logProgressDelta(db, id, normalizedProgress - oldProgress);
         }
         int result = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(id)});
-        db.close();
         if (result > 0) {
             SupabaseMediaSyncManager.enqueueUpsertMedia(context, id);
         }
@@ -648,7 +647,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             logProgressDelta(db, id, normalizedProgress - oldProgress);
         }
         int result = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(id)});
-        db.close();
         if (result > 0) {
             SupabaseMediaSyncManager.enqueueUpsertMedia(context, id);
         }
@@ -718,7 +716,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COL_CONTENT_TYPE, contentType);
         values.put(COL_LAST_UPDATED, getDateTime());
         int result = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(id)});
-        db.close();
         if (result > 0) {
             SupabaseMediaSyncManager.enqueueUpsertMedia(context, id);
         }
@@ -841,7 +838,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public boolean deleteMedia(int id) {
         SQLiteDatabase db = this.getWritableDatabase();
         int result = db.delete(TABLE_MEDIA, COL_ID + "=?", new String[]{String.valueOf(id)});
-        db.close();
         if (result > 0) {
             SupabaseMediaSyncManager.enqueueDeleteMedia(context, id);
         }
@@ -853,7 +849,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         ContentValues values = new ContentValues();
         values.put(COL_IMAGE_PATH, newPath);
         int result = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(id)});
-        db.close();
         if (result > 0) {
             SupabaseMediaSyncManager.enqueueUpsertMedia(context, id);
         }
@@ -1075,7 +1070,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         );
         if (!cursor.moveToFirst()) {
             cursor.close();
-            db.close();
             return false;
         }
         String existing = cursor.getString(0);
@@ -1115,7 +1109,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COL_GENRE, merged.toString());
         values.put(COL_LAST_UPDATED, getDateTime());
         int rows = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(mediaId)});
-        db.close();
         return rows > 0;
     }
 
@@ -1255,7 +1248,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             if (cursor != null) {
                 cursor.close();
             }
-            db.close();
             return false;
         }
 
@@ -1273,7 +1265,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COL_STATUS, newStatus);
         values.put(COL_RATING, rating);
         int updatedRows = db.update(TABLE_MEDIA, values, COL_ID + "=?", new String[]{String.valueOf(mediaId)});
-        db.close();
         if (updatedRows > 0) {
             SupabaseMediaSyncManager.enqueueUpsertMedia(context, mediaId);
             SupabaseMediaSyncManager.enqueueUserEvent(
@@ -1305,7 +1296,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         values.put(COL_STATUS, "Planning");
         values.put(COL_PRIORITY, (priority == null || priority.isEmpty()) ? "Medium" : priority);
         long result = db.insertWithOnConflict(TABLE_MEDIA, null, values, SQLiteDatabase.CONFLICT_IGNORE);
-        db.close();
         return result;
     }
 
@@ -1501,7 +1491,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         db.execSQL("DELETE FROM " + TABLE_PROGRESS_LOG);
         db.execSQL("DELETE FROM " + TABLE_MEDIA_METADATA);
         db.execSQL("DELETE FROM " + TABLE_MEDIA);
-        db.close();
     }
 
     public boolean upsertMediaMetadata(int mediaId, MediaMetadataProfile profile) {
@@ -1575,7 +1564,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             if (cursor != null) {
                 cursor.close();
             }
-            db.close();
         }
     }
 
@@ -1660,7 +1648,6 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             if (cursor != null) {
                 cursor.close();
             }
-            db.close();
         }
     }
 

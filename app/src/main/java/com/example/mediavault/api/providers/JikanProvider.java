@@ -28,7 +28,7 @@ import retrofit2.converter.gson.GsonConverterFactory;
 public class JikanProvider implements MediaProvider {
     private static final String TAG = "JikanProvider";
     private static final String PROVIDER_NAME = "Jikan+AnimeFallback";
-    private static final String JIKAN_BASE_URL = "https://api.jikan.moe/v4/top/anime?type=ona";
+    private static final String JIKAN_BASE_URL = "https://api.jikan.moe/v4/";
     private static final String GOGOANIME_BASE_URL = "https://aniwatchtv.to/";
     private static final int TIMEOUT_SECONDS = 15;
     private static final int MAX_EPISODE_PAGES = 100;

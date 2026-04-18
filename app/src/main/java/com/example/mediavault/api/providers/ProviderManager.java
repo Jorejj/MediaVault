@@ -61,70 +61,103 @@ public class ProviderManager {
      * NOTE: Consumet API is currently down (DMCA takedown), so we skip it and use fallbacks only.
      */
     private void initializeDefaultProviders() {
-        // Create providers
-        // ConsumetProvider consumetProvider = new ConsumetProvider(); // DISABLED: API down (DMCA)
-        MangaDexProvider mangaDexProvider = new MangaDexProvider();
-        JikanProvider jikanProvider = new JikanProvider();
-        VidSrcProvider vidSrcProvider = new VidSrcProvider();
-        AnimeFallbackProvider animeFallbackA = new AnimeFallbackProvider("AnimeFallback-AnimeKai", "https://animekai.to/search?keyword=%s", 260);
-        AnimeFallbackProvider animeFallbackB = new AnimeFallbackProvider("AnimeFallback-AniwatchTV", "https://aniwatchtv.to/search?keyword=%s", 260);
-        AnimeFallbackProvider animeFallbackC = new AnimeFallbackProvider("AnimeFallback-AnimePahe", "https://animepahe.pw/anime?q=%s", 260);
-        AnimeFallbackProvider animeFallbackD = new AnimeFallbackProvider("AnimeFallback-BiliBili", "https://www.bilibili.tv/en/search-result?q=%s", 260);
-        MangaFallbackProvider mangaFallbackA = new MangaFallbackProvider("MangaFallback-Comix", "https://comix.to/filter?keyword=%s", 500);
-        MangaFallbackProvider mangaFallbackB = new MangaFallbackProvider("MangaFallback-MangaFire", "https://mangafire.to/filter?keyword=%s", 500);
-        MangaFallbackProvider mangaFallbackC = new MangaFallbackProvider("MangaFallback-WeebCentral", "https://weebcentral.com/search?q=%s", 500);
-        MangaFallbackProvider mangaFallbackD = new MangaFallbackProvider("MangaFallback-MangaPark", "https://mangapark.io/search?word=%s", 500);
-        YouTubeSearchProvider youtubeProvider = new YouTubeSearchProvider();
-        SearchEngineFallbackProvider streamFallbackNepu = new SearchEngineFallbackProvider(
-                "StreamFallback-Nepu",
-                "https://nepu.to/search?q=%s",
-                EnumSet.of(MediaProvider.MediaType.MOVIE, MediaProvider.MediaType.TV_SHOW)
-        );
-        SearchEngineFallbackProvider streamFallbackXprime = new SearchEngineFallbackProvider(
-                "StreamFallback-Xprime",
-                "https://xprime.su/search?q=%s",
-                EnumSet.of(MediaProvider.MediaType.MOVIE, MediaProvider.MediaType.TV_SHOW)
-        );
-        SearchEngineFallbackProvider streamFallbackCineby = new SearchEngineFallbackProvider(
-                "StreamFallback-Cineby",
-                "https://www.cineby.sc/search?q=%s",
-                EnumSet.of(MediaProvider.MediaType.MOVIE, MediaProvider.MediaType.TV_SHOW)
-        );
+        try {
+            // Create providers
+            // ConsumetProvider consumetProvider = new ConsumetProvider(); // DISABLED: API down (DMCA)
+            
+            // Register Anime Providers
+            try {
+                JikanProvider jikanProvider = new JikanProvider();
+                registerAnimeProvider(jikanProvider);
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to initialize JikanProvider", e);
+            }
+            
+            try {
+                YouTubeSearchProvider youtubeProvider = new YouTubeSearchProvider();
+                registerAnimeProvider(youtubeProvider);
+                registerMovieProvider(youtubeProvider);
+                registerTvProvider(youtubeProvider);
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to initialize YouTubeSearchProvider", e);
+            }
+            
+            try {
+                AnimeFallbackProvider animeFallbackA = new AnimeFallbackProvider("AnimeFallback-AnimeKai", "https://animekai.to/search?keyword=%s", 260);
+                registerAnimeProvider(animeFallbackA);
+                AnimeFallbackProvider animeFallbackB = new AnimeFallbackProvider("AnimeFallback-AniwatchTV", "https://aniwatchtv.to/search?keyword=%s", 260);
+                registerAnimeProvider(animeFallbackB);
+                AnimeFallbackProvider animeFallbackC = new AnimeFallbackProvider("AnimeFallback-AnimePahe", "https://animepahe.pw/anime?q=%s", 260);
+                registerAnimeProvider(animeFallbackC);
+                AnimeFallbackProvider animeFallbackD = new AnimeFallbackProvider("AnimeFallback-BiliBili", "https://www.bilibili.tv/en/search-result?q=%s", 260);
+                registerAnimeProvider(animeFallbackD);
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to initialize AnimeFallbackProviders", e);
+            }
+
+            // Register Manga Providers
+            try {
+                MangaDexProvider mangaDexProvider = new MangaDexProvider();
+                registerMangaProvider(mangaDexProvider);
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to initialize MangaDexProvider", e);
+            }
+            
+            try {
+                MangaFallbackProvider mangaFallbackA = new MangaFallbackProvider("MangaFallback-Comix", "https://comix.to/filter?keyword=%s", 500);
+                registerMangaProvider(mangaFallbackA);
+                MangaFallbackProvider mangaFallbackB = new MangaFallbackProvider("MangaFallback-MangaFire", "https://mangafire.to/filter?keyword=%s", 500);
+                registerMangaProvider(mangaFallbackB);
+                MangaFallbackProvider mangaFallbackC = new MangaFallbackProvider("MangaFallback-WeebCentral", "https://weebcentral.com/search?q=%s", 500);
+                registerMangaProvider(mangaFallbackC);
+                MangaFallbackProvider mangaFallbackD = new MangaFallbackProvider("MangaFallback-MangaPark", "https://mangapark.io/search?word=%s", 500);
+                registerMangaProvider(mangaFallbackD);
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to initialize MangaFallbackProviders", e);
+            }
+
+            // Register Movie/TV Providers
+            try {
+                VidSrcProvider vidSrcProvider = new VidSrcProvider();
+                registerMovieProvider(vidSrcProvider);
+                registerTvProvider(vidSrcProvider);
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to initialize VidSrcProvider", e);
+            }
+            
+            try {
+                SearchEngineFallbackProvider streamFallbackNepu = new SearchEngineFallbackProvider(
+                        "StreamFallback-Nepu",
+                        "https://nepu.to/search?q=%s",
+                        EnumSet.of(MediaProvider.MediaType.MOVIE, MediaProvider.MediaType.TV_SHOW)
+                );
+                registerMovieProvider(streamFallbackNepu);
+                registerTvProvider(streamFallbackNepu);
+                
+                SearchEngineFallbackProvider streamFallbackXprime = new SearchEngineFallbackProvider(
+                        "StreamFallback-Xprime",
+                        "https://xprime.su/search?q=%s",
+                        EnumSet.of(MediaProvider.MediaType.MOVIE, MediaProvider.MediaType.TV_SHOW)
+                );
+                registerMovieProvider(streamFallbackXprime);
+                registerTvProvider(streamFallbackXprime);
+                
+                SearchEngineFallbackProvider streamFallbackCineby = new SearchEngineFallbackProvider(
+                        "StreamFallback-Cineby",
+                        "https://www.cineby.sc/search?q=%s",
+                        EnumSet.of(MediaProvider.MediaType.MOVIE, MediaProvider.MediaType.TV_SHOW)
+                );
+                registerMovieProvider(streamFallbackCineby);
+                registerTvProvider(streamFallbackCineby);
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to initialize StreamFallbackProviders", e);
+            }
+            
+        } catch (Exception e) {
+            Log.e(TAG, "Critical error during provider initialization", e);
+        }
         
-        // Register anime providers (priority order)
-        // registerAnimeProvider(consumetProvider);  // DISABLED: Consumet down
-        registerAnimeProvider(jikanProvider);     // Primary: Jikan metadata + external fallback handoff
-        registerAnimeProvider(youtubeProvider);   // Ad-light fallback: YouTube search redirect
-        registerAnimeProvider(animeFallbackA);    // Fallback: AnimeKai search redirect + generic episode table
-        registerAnimeProvider(animeFallbackB);    // Fallback: AniwatchTV search redirect
-        registerAnimeProvider(animeFallbackC);    // Fallback: AnimePahe search redirect
-        registerAnimeProvider(animeFallbackD);    // Fallback: BiliBili search redirect
-        
-        // Register manga providers (priority order)
-        // registerMangaProvider(consumetProvider);  // DISABLED: Consumet down
-        registerMangaProvider(mangaDexProvider);  // Primary: Direct MangaDex API
-        registerMangaProvider(mangaFallbackA);    // Fallback: Comix search + generic chapter table
-        registerMangaProvider(mangaFallbackB);    // Fallback: MangaFire search
-        registerMangaProvider(mangaFallbackC);    // Fallback: WeebCentral search
-        registerMangaProvider(mangaFallbackD);    // Fallback: alternate generic chapter source
-        
-        // Register movie providers (priority order)
-        // registerMovieProvider(consumetProvider);  // DISABLED: Consumet down
-        registerMovieProvider(vidSrcProvider);    // Primary: VidSrc embeds
-        registerMovieProvider(youtubeProvider);   // Ad-light fallback: YouTube search redirect
-        registerMovieProvider(streamFallbackNepu);     // Fallback: Nepu search
-        registerMovieProvider(streamFallbackXprime);   // Fallback: Xprime search
-        registerMovieProvider(streamFallbackCineby);   // Fallback: Cineby search
-        
-        // Register TV providers (priority order)
-        // registerTvProvider(consumetProvider);     // DISABLED: Consumet down
-        registerTvProvider(vidSrcProvider);       // Primary: VidSrc embeds
-        registerTvProvider(youtubeProvider);      // Ad-light fallback: YouTube search redirect
-        registerTvProvider(streamFallbackNepu);   // Fallback: Nepu search
-        registerTvProvider(streamFallbackXprime); // Fallback: Xprime search
-        registerTvProvider(streamFallbackCineby); // Fallback: Cineby search
-        
-        Log.d(TAG, "Initialized providers (Consumet DISABLED) - Anime: " + animeProviders.size() + 
+        Log.d(TAG, "Initialized providers - Anime: " + animeProviders.size() + 
               ", Manga: " + mangaProviders.size() + 
               ", Movie: " + movieProviders.size() + 
               ", TV: " + tvProviders.size());
